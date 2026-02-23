@@ -55,7 +55,6 @@ const adminNav = [
 ];
 
 const organizerNav = [
-  { name: "Overview", href: "/dashboard/overview", icon: Home },
   { name: "Dashboard", href: "/dashboard/organizer", icon: LayoutDashboard },
   { name: "Create Conference", href: "/dashboard/organizer/conferences/new", icon: PlusCircle },
   { name: "Conferences", href: "/dashboard/organizer/conferences", icon: Calendar },
@@ -68,7 +67,6 @@ const organizerNav = [
 ];
 
 const reviewerNav = [
-  { name: "Overview", href: "/dashboard/overview", icon: Home },
   { name: "Dashboard", href: "/dashboard/reviewer", icon: LayoutDashboard },
   { name: "Assigned Papers", href: "/dashboard/reviewer/papers", icon: FileText },
   { name: "Reviews", href: "/dashboard/reviewer/reviews", icon: Users },
@@ -77,7 +75,7 @@ const reviewerNav = [
 ];
 
 const participantNav = [
-  { name: "Overview", href: "/dashboard/overview", icon: Home },
+  { name: "Overview", href: "/dashboard/participant/overview", icon: Home },
   { name: "Dashboard", href: "/dashboard/participant", icon: LayoutDashboard },
   { name: "My Submissions", href: "/dashboard/participant/submissions", icon: FileText },
   { name: "Conferences", href: "/dashboard/participant/conferences", icon: Calendar },
@@ -225,9 +223,10 @@ export function DashboardSidebar({
               </div>
             )}
           </Link>
+          <div className="mx-3 my-3 border-t border-gray-200" />
         </div>
       )}
-      <div className="mx-3 my-3 border-t border-gray-200" />
+  
 
       {/* Navigation */}
       <ScrollArea className="flex-1 py-4">
