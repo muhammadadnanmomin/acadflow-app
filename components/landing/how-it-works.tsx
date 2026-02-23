@@ -1,27 +1,27 @@
 const steps = [
   {
     step: "01",
-    title: "Create a Conference",
+    title: "Set Up Your Conference",
     description:
-      "Organizers set up conference details, submission dates, and registration settings from the dashboard.",
+      "Create your conference, define submission deadlines, and configure registration and participation settings.",
   },
   {
     step: "02",
-    title: "Accept Submissions",
+    title: "Receive Paper Submissions",
     description:
-      "Participants register and upload research papers securely through the platform.",
+      "Researchers and participants register and submit their papers securely through the platform.",
   },
   {
     step: "03",
-    title: "Review & Evaluate",
+    title: "Peer Review & Evaluation",
     description:
-      "Reviewers assess submissions, provide feedback, and recommend acceptance or rejection.",
+      "Assign reviewers, evaluate submissions, and provide structured feedback and decisions.",
   },
   {
     step: "04",
-    title: "Publish Results & Certificates",
+    title: "Publish Results & Issue Certificates",
     description:
-      "Organizers announce results and generate digital certificates for participants.",
+      "Announce acceptance results and automatically generate verified digital certificates.",
   },
 ];
 
@@ -41,11 +41,12 @@ export function HowItWorksSection() {
           </p>
 
           <h2 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Simple Workflow for Academic Conferences
+            A Simple Workflow for Academic Conferences
           </h2>
 
           <p className="mt-4 text-lg text-gray-600">
-            AcadFlow guides you through every stage — from setup to certification.
+            AcadFlow streamlines the entire conference lifecycle —
+            from setup and submissions to review, results, and certification.
           </p>
 
         </div>
@@ -84,6 +85,7 @@ export function HowItWorksSection() {
                       className="
                         flex h-14 w-14 shrink-0 items-center justify-center
                         rounded-xl bg-indigo-600 text-lg font-bold text-white
+                        shadow-md
                       "
                     >
                       {step.step}

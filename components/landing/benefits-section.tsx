@@ -4,28 +4,28 @@ const benefits = [
   {
     title: "For Organizers",
     items: [
-      "Centralized management for all conferences",
-      "Easy creation and publishing tools",
-      "Automated participant and paper tracking",
-      "Secure role-based access control",
+      "Manage multiple conferences from one centralized workspace",
+      "Publish events and manage timelines with ease",
+      "Track participants, submissions, and payments in real time",
+      "Secure role-based permissions for team collaboration",
     ],
   },
   {
     title: "For Professors & Reviewers",
     items: [
-      "Simple paper review workflow",
-      "Clear evaluation criteria",
-      "Organized reviewer assignments",
-      "Transparent decision process",
+      "Streamlined peer review workflow",
+      "Structured evaluation and feedback tools",
+      "Organized reviewer assignments and workload management",
+      "Transparent and fair decision-making process",
     ],
   },
   {
     title: "For Students & Authors",
     items: [
-      "Easy registration and submission",
-      "Real-time submission status",
-      "Digital certificates",
-      "Secure document storage",
+      "Simple registration and paper submission process",
+      "Real-time updates on submission status",
+      "Instant access to verified digital certificates",
+      "Secure storage for research documents",
     ],
   },
 ];
@@ -46,12 +46,12 @@ export function BenefitsSection() {
           </p>
 
           <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-            Designed for Every Academic Role
+            Built for Every Role in Academic Conferences
           </h2>
 
           <p className="mt-4 text-lg text-indigo-100">
-            AcadFlow supports organizers, reviewers, and participants
-            with tools built for academic excellence.
+            AcadFlow empowers organizers, reviewers, and participants
+            with tools designed to simplify academic workflows.
           </p>
 
         </div>
@@ -64,7 +64,8 @@ export function BenefitsSection() {
               key={benefit.title}
               className="
                 rounded-xl bg-white/10 p-8
-                backdrop-blur-sm border border-white/20
+                backdrop-blur-md border border-white/20
+                transition hover:bg-white/15
               "
             >
 
@@ -82,7 +83,7 @@ export function BenefitsSection() {
 
                     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-indigo-200" />
 
-                    <span className="text-indigo-50">
+                    <span className="text-indigo-50 leading-relaxed">
                       {item}
                     </span>
 
@@ -101,7 +102,7 @@ export function BenefitsSection() {
 
           <p className="text-sm text-indigo-200">
             Trusted by academic institutions and independent organizers
-            for reliable conference management.
+            to deliver reliable, professional conference experiences.
           </p>
 
         </div>

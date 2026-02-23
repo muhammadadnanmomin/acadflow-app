@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Play } from "lucide-react";
 
 export function HeroSection() {
   return (
@@ -18,120 +16,115 @@ export function HeroSection() {
 
           {/* Badge */}
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1.5 text-sm text-indigo-700">
-            🚀 Built for Colleges & Universities
+            🎓 Built for Colleges, Universities & Research Communities
           </div>
 
           {/* Heading */}
           <h1 className="text-balance text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-
             Manage Academic Conferences
             <span className="block text-indigo-600">
               Faster. Smarter. Easier.
             </span>
-
           </h1>
 
           {/* Subtitle */}
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-600 sm:text-xl">
+            AcadFlow streamlines paper submissions, peer reviews,
+            registrations, and certificates — all in one secure,
+            easy-to-use platform designed for academic workflows.
+          </p>
 
-            AcadFlow helps institutions manage submissions, reviews,
-            registrations, and certificates — all in one secure platform.
-
+          {/* Trust line */}
+          <p className="mt-3 text-sm text-gray-500">
+            Trusted workflow for organizers, reviewers, and researchers.
           </p>
 
           {/* CTA */}
-          <div className="flex flex-wrap gap-4 justify-center mt-6">
+          {/* CTA */}
+          <div className="flex flex-wrap gap-4 justify-center mt-8">
 
-  <Link
-    href="/signup?role=organizer"
-    className="px-6 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700"
-  >
-    🎯 Organize Conference
-  </Link>
+            {/* Primary CTA */}
+            <Link
+              href="/signup"
+              className="px-7 py-3 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition"
+            >
+              Get Started Free
+            </Link>
 
-  <Link
-    href="/conferences"
-    className="px-6 py-3 rounded-lg border font-medium hover:bg-gray-50"
-  >
-    📚 Browse Conferences
-  </Link>
+            {/* Secondary CTA */}
+            <Link
+              href="/conferences"
+              className="px-7 py-3 rounded-lg border font-medium hover:bg-gray-50 transition"
+            >
+              Browse Conferences
+            </Link>
 
-  <Link
-    href="/signup?role=reviewer"
-    className="px-6 py-3 rounded-lg border font-medium hover:bg-gray-50"
-  >
-    📝 Become Reviewer
-  </Link>
+          </div>
 
-</div>
+          {/* Organizer hint */}
+          <p className="mt-4 text-sm text-gray-500">
+            Organizing a conference?{" "}
+            <Link href="/signup?role=organizer" className="text-indigo-600 hover:underline">
+              Create organizer workspace →
+            </Link>
+          </p>
 
-
-        </div>
-
-        {/* Preview Mock */}
-        <div className="mt-16 sm:mt-20">
-
-          <div className="relative mx-auto max-w-5xl overflow-hidden rounded-xl border bg-white shadow-xl">
-
-            {/* Browser Bar */}
-            <div className="flex h-8 items-center gap-2 border-b bg-gray-100 px-4">
-              <div className="h-3 w-3 rounded-full bg-red-400" />
-              <div className="h-3 w-3 rounded-full bg-yellow-400" />
-              <div className="h-3 w-3 rounded-full bg-green-400" />
-            </div>
-
-            {/* Dashboard Preview */}
-            <div className="aspect-[16/9] bg-gradient-to-br from-indigo-50 to-white p-6 sm:p-8">
-
-              <div className="grid h-full gap-4 sm:grid-cols-3">
-
-                {/* Sidebar Preview */}
-                <div className="rounded-lg bg-white p-4 shadow">
-
-                  <div className="mb-3 h-2 w-24 rounded bg-indigo-200" />
-
-                  <div className="space-y-2">
-                    <div className="h-2 w-full rounded bg-gray-200" />
-                    <div className="h-2 w-3/4 rounded bg-gray-200" />
-                    <div className="h-2 w-1/2 rounded bg-gray-200" />
-                  </div>
-
-                </div>
-
-                {/* Main Preview */}
-                <div className="hidden rounded-lg bg-white p-4 shadow sm:col-span-2 sm:block">
-
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="h-2 w-32 rounded bg-indigo-200" />
-                    <div className="h-6 w-20 rounded-full bg-indigo-100" />
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-
-                    {[1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className="rounded-lg border bg-gray-50 p-3"
-                      >
-                        <div className="mb-2 h-2 w-16 rounded bg-gray-300" />
-                        <div className="h-8 w-full rounded bg-gray-200" />
-                      </div>
-                    ))}
-
-                  </div>
-
-                </div>
-
-              </div>
-
-            </div>
-
+          {/* Micro trust indicators */}
+          <div className="mt-6 flex flex-wrap justify-center gap-6 text-sm text-gray-500">
+            <span>✔ Secure & reliable</span>
+            <span>✔ Academic-friendly workflow</span>
+            <span>✔ No complex setup</span>
           </div>
 
         </div>
 
+
+   {/* Demo Video Section */}
+<section className="mt-20 sm:mt-24 lg:mt-28">
+
+  <div className="relative mx-auto max-w-5xl">
+
+    {/* soft glow background */}
+    <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.15),transparent_70%)] blur-2xl" />
+
+    {/* label */}
+    <div className="text-center mb-6">
+      <span className="inline-block rounded-full bg-indigo-50 text-indigo-700 px-4 py-1 text-sm font-medium border border-indigo-200">
+        🎥 Product Demo
+      </span>
+    </div>
+
+    {/* video card */}
+    <div className="group relative overflow-hidden rounded-2xl border bg-black shadow-2xl transition duration-300 hover:shadow-indigo-200">
+
+      <div className="aspect-video">
+
+        <iframe
+          className="w-full h-full"
+          src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
+          title="AcadFlow Demo Video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+
       </div>
 
+      {/* subtle overlay on hover */}
+      <div className="pointer-events-none absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition" />
+
+    </div>
+
+    {/* caption */}
+    <p className="text-center text-gray-500 mt-5 text-sm sm:text-base">
+      See how AcadFlow simplifies conference management from submission to certification.
+    </p>
+
+  </div>
+
+</section>
+
+
+      </div>
     </section>
   );
 }

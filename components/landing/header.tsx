@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Menu, X, GraduationCap } from "lucide-react";
+import Image from "next/image";
 
 import { useProfile } from "@/lib/auth/useProfile";
 import { createClient } from "@/lib/supabase/client";
@@ -28,12 +29,16 @@ export function Header() {
 
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
-        {/* Logo */}
+{/* Logo */}
         <Link href="/" className="flex items-center gap-2">
 
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600">
-            <GraduationCap className="h-5 w-5 text-white" />
-          </div>
+          <Image
+            src="/logo.png"
+            alt="AcadFlow logo"
+            width={36}
+            height={36}
+            priority
+          />
 
           <span className="text-xl font-semibold text-gray-900">
             AcadFlow
@@ -69,7 +74,7 @@ export function Header() {
             href="#pricing"
             className="text-sm font-medium text-gray-600 hover:text-gray-900"
           >
-            Pricing
+            Plans & Access
           </Link>
 
         </nav>

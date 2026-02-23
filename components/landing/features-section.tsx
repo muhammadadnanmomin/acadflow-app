@@ -10,39 +10,39 @@ import {
 const features = [
   {
     icon: FileText,
-    title: "Paper Submission & Review",
+    title: "Paper Submission & Peer Review",
     description:
-      "Manage paper submissions, reviewer assignments, and evaluations in one secure workflow.",
+      "Collect research papers, assign reviewers, and manage evaluations through a structured and transparent workflow.",
   },
   {
     icon: Users,
-    title: "Participant Management",
+    title: "Participant & Registration Management",
     description:
-      "Handle registrations, payments, and participant records with automated tracking.",
+      "Track registrations, payments, and participant records with automated organization and real-time updates.",
   },
   {
     icon: Calendar,
-    title: "Conference Scheduling",
+    title: "Conference Scheduling & Deadlines",
     description:
-      "Organize sessions, timelines, and important deadlines from a central dashboard.",
+      "Manage timelines, submission deadlines, and event schedules from a centralized academic dashboard.",
   },
   {
     icon: BarChart3,
-    title: "Organizer Dashboard",
+    title: "Real-Time Organizer Dashboard",
     description:
-      "Monitor submissions, reviews, and registrations with real-time status updates.",
+      "Monitor submissions, review progress, and participant activity with live status insights.",
   },
   {
     icon: Shield,
-    title: "Secure Authentication",
+    title: "Secure Role-Based Access",
     description:
-      "Role-based access for organizers, reviewers, and participants with strong security.",
+      "Protect workflows with secure authentication and role-based permissions for organizers, reviewers, and participants.",
   },
   {
     icon: Award,
-    title: "Digital Certificates",
+    title: "Verified Digital Certificates",
     description:
-      "Generate and distribute verified participation and presentation certificates.",
+      "Automatically generate and distribute professional participation and presentation certificates.",
   },
 ];
 
@@ -58,7 +58,7 @@ export function FeaturesSection() {
         <div className="mx-auto max-w-2xl text-center">
 
           <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">
-            Features
+            Platform Features
           </p>
 
           <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
@@ -66,8 +66,8 @@ export function FeaturesSection() {
           </h2>
 
           <p className="mt-4 text-lg text-gray-600">
-            AcadFlow provides essential tools for managing conferences
-            efficiently — from submission to certification.
+            AcadFlow replaces scattered tools and manual workflows with one
+            streamlined platform designed for academic institutions and research communities.
           </p>
 
         </div>
@@ -78,10 +78,7 @@ export function FeaturesSection() {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="
-                group rounded-xl border bg-white p-8
-                transition hover:shadow-md
-              "
+              className="group rounded-xl border bg-white p-8 transition hover:shadow-md hover:-translate-y-1"
             >
 
               {/* Icon */}
