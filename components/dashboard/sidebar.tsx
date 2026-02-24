@@ -27,6 +27,7 @@ import {
   Building2,
 } from "lucide-react";
 
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
@@ -169,26 +170,42 @@ export function DashboardSidebar({
       )}
     >
       {/* Header */}
-      <div
-        className={cn(
-          "flex h-16 items-center border-b px-4",
-          collapsed ? "justify-center" : "gap-3"
-        )}
-      >
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600">
-          <GraduationCap className="h-5 w-5 text-white" />
-        </div>
+<div
+  className={cn(
+    "flex h-16 items-center border-b px-4 bg-white",
+    collapsed ? "justify-center" : "gap-3"
+  )}
+>
+  {/* Logo */}
+  <div className="flex items-center justify-center h-9 w-9 flex-shrink-0">
+    <Image
+      src="/logo.png"
+      alt="AcadFlow Logo"
+      width={32}
+      height={32}
+      priority
+      className="object-contain"
+    />
+  </div>
 
-        {!collapsed && (
-          <Link href="/dashboard/overview" className="text-lg font-semibold">
-            AcadFlow
-          </Link>
-        )}
+  {/* Brand Name */}
+  {!collapsed && (
+    <Link
+      href="/dashboard"
+      className="text-lg font-semibold tracking-tight leading-none text-gray-900"
+    >
+      AcadFlow
+    </Link>
+  )}
 
-        <button onClick={onMobileClose} className="ml-auto md:hidden">
-          <X className="h-5 w-5" />
-        </button>
-      </div>
+  {/* Mobile Close Button */}
+  <button
+    onClick={onMobileClose}
+    className="ml-auto md:hidden p-1 rounded-md hover:bg-gray-100 transition"
+  >
+    <X className="h-5 w-5 text-gray-600" />
+  </button>
+</div>
 
       {/* Organization Workspace */}
 

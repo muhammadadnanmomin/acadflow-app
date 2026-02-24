@@ -11,15 +11,21 @@ export default function DashboardRedirect() {
   useEffect(() => {
     if (loading || !profile) return;
 
-    /**
-     * If user directly navigates to /dashboard
-     * we now KEEP them here (Overview Page).
-     *
-     * Role dashboards are accessed via sidebar.
-     */
+    const storedRole = localStorage.getItem("activeRole");
 
-    router.replace("/dashboard/overview");
+    // prefer stored role if user switched dashboard
+    const role = storedRole || profile.role;
 
+    if (role === "admin") {
+      router.replace("/dashboard/admin");
+    } else if (role === "organizer") {
+      router.replace("/dashboard/organizer");
+    } else if (role === "reviewer") {
+      router.replace("/dashboard/reviewer");
+    } else {
+      // participant default
+      router.replace("/dashboard/participant/overview");
+    }
   }, [profile, loading, router]);
 
   return (
