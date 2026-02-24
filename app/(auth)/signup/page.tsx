@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { signUp } from "@/lib/auth/auth";
@@ -16,9 +16,8 @@ export default function SignupPage() {
 
   const redirect = searchParams.get("redirect");
 
-  // reviewer invites still supported
+  // invite parameter kept for future use (no UI change)
   const selectedRole = searchParams.get("role");
-  const isReviewerInvite = selectedRole === "reviewer";
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -37,14 +36,14 @@ export default function SignupPage() {
         variant: "destructive",
         title: "Invalid Username",
         description:
-          "Username must be 3-30 characters (lowercase letters, numbers, hyphen only).",
+          "Username must be 3–30 characters (lowercase letters, numbers, hyphen only).",
       });
       setLoading(false);
       return;
     }
 
-    // reviewer invite keeps reviewer role
-    const role = isReviewerInvite ? "reviewer" : "participant";
+    // all users sign up normally
+    const role = "participant";
 
     const { error } = await signUp(
       email,
@@ -64,11 +63,10 @@ export default function SignupPage() {
       return;
     }
 
+    // ✅ universal verification message
     toast({
-      title: "Account Created",
-      description: isReviewerInvite
-        ? "Reviewer account created. Please verify your email."
-        : "Check your email to verify your account.",
+      title: "Verify your email 📩",
+      description: `We sent a confirmation link to ${email}. Please verify your account to continue.`,
     });
 
     setTimeout(() => {
@@ -77,7 +75,7 @@ export default function SignupPage() {
       } else {
         router.push("/login");
       }
-    }, 1500);
+    }, 2500);
   }
 
   return (
@@ -86,13 +84,11 @@ export default function SignupPage() {
 
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-gray-900">
-            {isReviewerInvite ? "Reviewer Registration" : "Create Account"}
+            Create Account
           </h1>
 
           <p className="mt-1 text-sm text-gray-500">
-            {isReviewerInvite
-              ? "You have been invited to review a conference."
-              : "Start using AcadFlow"}
+            Start using AcadFlow
           </p>
         </div>
 
@@ -142,13 +138,6 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-
-          {/* Reviewer Notice */}
-          {isReviewerInvite && (
-            <div className="rounded-md bg-indigo-50 p-3 text-sm text-indigo-700">
-              You are registering as a <strong>Reviewer</strong>.
-            </div>
-          )}
 
           <Button
             type="submit"

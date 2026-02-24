@@ -21,9 +21,14 @@ export function useOrganization() {
         `)
         .eq("user_id", profile.id)
         .limit(1)
-        .single();
+        .maybeSingle();   // ✅ FIX HERE
 
-      if (!error && data?.organization) {
+      if (error) {
+        console.error("Organization load error:", error);
+        return;
+      }
+
+      if (data?.organization) {
         setOrganization(data.organization);
       }
     }

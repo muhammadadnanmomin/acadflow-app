@@ -37,9 +37,10 @@ export default function OrganizerSubmissions() {
 
     /* 1️⃣ Get conferences owned by organization */
     const { data: conferences, error: confErr } = await supabase
-      .from("conferences")
-      .select("id")
-      .eq("organization_id", organization.id);
+      .from("conference_registrations")
+      .select("conference_id")
+      .eq("user_id", profile.id)
+      .in("role", ["organizer", "owner"]);
 
     if (confErr) {
       console.error(confErr);
@@ -47,7 +48,7 @@ export default function OrganizerSubmissions() {
       return;
     }
 
-    const conferenceIds = conferences?.map(c => c.id) || [];
+    const conferenceIds = conferences?.map(c => c.conference_id) || [];
 
     if (conferenceIds.length === 0) {
       setSubmissions([]);
@@ -110,9 +111,11 @@ export default function OrganizerSubmissions() {
     setLoading(false);
   }
 
-  useEffect(() => {
+ useEffect(() => {
+  if (profile && organization) {
     loadSubmissions();
-  }, [profile, organization]);
+  }
+}, [profile, organization]);
 
   /* Assign reviewer */
   async function assignReviewer(

@@ -11,8 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
 import { Upload, FileText } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
-const supabase = createClient()
 
 export default function ParticipantSubmissionsPage() {
   const { profile } = useProfile();
@@ -22,6 +22,9 @@ export default function ParticipantSubmissionsPage() {
   const [submissions, setSubmissions] = useState<Record<string, any>>({});
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [submitting, setSubmitting] = useState<string | null>(null);
+
+  const { toast } = useToast();
+  const supabase = createClient()
 
   async function loadData() {
     if (!profile) return;
@@ -84,7 +87,11 @@ export default function ParticipantSubmissionsPage() {
   async function submitPaper(confId: string) {
     const file = files[confId];
     if (!file) {
-      alert("Please select a PDF file");
+      toast({
+        variant: "destructive",
+        title: "No file selected",
+        description: "Please choose a PDF file before uploading.",
+      });
       return;
     }
 
@@ -95,7 +102,11 @@ export default function ParticipantSubmissionsPage() {
     } = await supabase.auth.getSession();
 
     if (!session) {
-      alert("Session expired");
+      toast({
+        variant: "destructive",
+        title: "Session expired",
+        description: "Please log in again.",
+      });
       setSubmitting(null);
       return;
     }
@@ -107,7 +118,11 @@ export default function ParticipantSubmissionsPage() {
       .upload(path, file, { upsert: true });
 
     if (uploadErr) {
-      alert(uploadErr.message);
+      toast({
+        variant: "destructive",
+        title: "Upload failed",
+        description: uploadErr.message,
+      });
       setSubmitting(null);
       return;
     }
@@ -126,9 +141,16 @@ export default function ParticipantSubmissionsPage() {
       });
 
     if (error) {
-      alert(error.message);
+      toast({
+        variant: "destructive",
+        title: "Submission failed",
+        description: error.message,
+      });
     } else {
-      alert("Paper submitted successfully");
+      toast({
+        title: "Paper submitted ✅",
+        description: "Your paper was uploaded successfully.",
+      });
       loadData();
     }
 
@@ -203,11 +225,11 @@ export default function ParticipantSubmissionsPage() {
                   accept=".pdf"
                   disabled={reviewLocked || deadlinePassed}
                   onChange={(e) =>
-                    setFiles({
+                    setFiles(prev => ({
                       ...files,
                       [r.conference_id]:
                         e.target.files?.[0] || null,
-                    })
+                    }))
                   }
                 />
 
