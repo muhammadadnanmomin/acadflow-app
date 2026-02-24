@@ -160,11 +160,12 @@ export function DashboardSidebar({
   return (
     <aside
       className={cn(
-        "fixed top-0 left-0 z-40 flex h-screen flex-col bg-white border-r transition-all duration-300",
-        collapsed ? "md:w-16" : "md:w-64",
-        mobileOpen
-          ? "translate-x-0"
-          : "-translate-x-full md:translate-x-0"
+        "fixed top-0 left-0 z-[60] flex h-screen flex-col bg-white border-r shadow-lg",
+        "transform transition-transform duration-300 ease-in-out",
+        "w-72 md:w-64",
+        collapsed && "md:w-16",
+        mobileOpen ? "translate-x-0" : "-translate-x-full",
+        "md:translate-x-0"
       )}
     >
       {/* Header */}
@@ -226,7 +227,7 @@ export function DashboardSidebar({
           <div className="mx-3 my-3 border-t border-gray-200" />
         </div>
       )}
-  
+
 
       {/* Navigation */}
       <ScrollArea className="flex-1 py-4">
@@ -276,7 +277,7 @@ export function DashboardSidebar({
         <Button
           variant="ghost"
           onClick={handleLogout}
-          className="w-full justify-start gap-2 text-red-600 hover:bg-red-50"
+          className="w-full justify-start gap-2 text-red-600 hover:bg-red-500"
         >
           <LogOut className="h-4 w-4" />
           {!collapsed && "Logout"}

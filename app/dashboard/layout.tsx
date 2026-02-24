@@ -22,6 +22,9 @@ export default function DashboardRootLayout({
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // ✅ MOBILE SIDEBAR STATE
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   /* Determine role from URL only for UI */
   const dashboardRole =
     pathname.startsWith("/dashboard/admin")
@@ -49,9 +52,20 @@ export default function DashboardRootLayout({
 
   return (
     <div className="min-h-screen bg-slate-50">
+      
+      {/* ✅ MOBILE OVERLAY */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+        />
+      )}
+
       {/* Sidebar */}
       <DashboardSidebar
         collapsed={sidebarCollapsed}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         role={dashboardRole}
       />
@@ -68,6 +82,7 @@ export default function DashboardRootLayout({
           userEmail={profile.email}
           userRole={dashboardRole}
           userAvatar={profile.avatar_url}
+          onMenuClick={() => setMobileOpen(true)}   // ✅ hamburger opens sidebar
         />
 
         <main className="flex-1 p-6">{children}</main>

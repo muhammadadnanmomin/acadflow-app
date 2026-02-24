@@ -117,14 +117,16 @@ export function DashboardHeader({
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 md:px-6">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-white px-4 md:px-6">
       {/* Left */}
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
           className="md:hidden"
-          onClick={onMenuClick}
+          onClick={() => {
+            onMenuClick?.();
+          }}
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -134,7 +136,7 @@ export function DashboardHeader({
       <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2">
+            <Button variant="ghost" className="flex items-center gap-2 text-gray-800 hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={userAvatar || ""} />
                 <AvatarFallback className="bg-indigo-600 text-white text-sm">
@@ -215,7 +217,7 @@ export function DashboardHeader({
             {/* Logout */}
             <DropdownMenuItem
               onClick={handleLogout}
-              className="text-red-600 cursor-pointer"
+              className="text-red-600 cursor-pointer hover:bg-red-500 focus:bg-red-500 hover:text-red-50 focus:text-red-50"
             >
               <LogOut className="mr-2 h-4 w-4" />
               Log out
