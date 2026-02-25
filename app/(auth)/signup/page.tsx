@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-
 import { signUp } from "@/lib/auth/auth";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
@@ -16,13 +14,9 @@ export default function SignupPage() {
 
   const redirect = searchParams.get("redirect");
 
-  // invite parameter kept for future use (no UI change)
-  const selectedRole = searchParams.get("role");
-
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
 
   async function handleSignup(e: React.FormEvent) {
@@ -42,14 +36,13 @@ export default function SignupPage() {
       return;
     }
 
-    // all users sign up normally
-    const role = "participant";
+    // ✅ ALL users are created as "user"
+    const role = "user";
 
     const { error } = await signUp(
       email,
       password,
-      username,
-      role
+      username
     );
 
     setLoading(false);
@@ -63,37 +56,29 @@ export default function SignupPage() {
       return;
     }
 
-    // ✅ universal verification message
     toast({
       title: "Verify your email 📩",
       description: `We sent a confirmation link to ${email}. Please verify your account to continue.`,
     });
 
     setTimeout(() => {
-      if (redirect) {
-        router.push(`/login?redirect=${redirect}`);
-      } else {
-        router.push("/login");
-      }
+      router.push(redirect ? `/login?redirect=${redirect}` : "/login");
     }, 2500);
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-indigo-100 px-4">
       <div className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-lg sm:p-8">
-
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-gray-900">
             Create Account
           </h1>
-
           <p className="mt-1 text-sm text-gray-500">
             Start using AcadFlow
           </p>
         </div>
 
         <form onSubmit={handleSignup} className="space-y-4">
-
           {/* Username */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">
@@ -157,7 +142,6 @@ export default function SignupPage() {
             Login
           </button>
         </div>
-
       </div>
     </div>
   );

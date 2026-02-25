@@ -7,6 +7,8 @@ import { useProfile } from "@/lib/auth/useProfile";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+import { useOrganization } from "@/lib/organizations/useOrganization";
+
 import {
   Calendar,
   FileText,
@@ -22,7 +24,7 @@ export default function OrganizerDashboard() {
   const { profile } = useProfile();
   const supabase = createClient();
 
-  const [organization, setOrganization] = useState<any>(null);
+  const organization = useOrganization();
 
   const [stats, setStats] = useState({
     conferences: 0,
@@ -37,33 +39,18 @@ export default function OrganizerDashboard() {
     if (!profile) return;
 
     async function load() {
-      /* 🔹 1️⃣ Load organization memberships */
-      const { data: memberships, error: memberError } = await supabase
-        .from("organization_members")
-        .select("organization_id, organizations(*)")
-        .eq("user_id", profile.id);
+      if (!profile) return;
 
-      if (memberError) {
-        console.error(memberError);
-        return;
-      }
+      const orgIds = organization ? [organization.id] : [];
 
-      const org = memberships?.[0]?.organizations || null;
-      setOrganization(org);
-
-      const orgIds =
-        memberships?.map((m) => m.organization_id) || [];
-
-      /* 🔹 2️⃣ Fetch conferences (safe query) */
+      /* conferences query */
       let query = supabase
         .from("conferences")
         .select("*")
         .order("created_at", { ascending: false });
 
-      // include user-owned conferences (backward compatibility)
       query = query.or(`organizer_id.eq.${profile.id}`);
 
-      // include organization conferences if exist
       if (orgIds.length > 0) {
         query = query.or(
           `organization_id.in.(${orgIds.join(",")})`
@@ -77,9 +64,8 @@ export default function OrganizerDashboard() {
         return;
       }
 
-      const conferenceIds = conferences?.map((c) => c.id) || [];
+      const conferenceIds = conferences?.map(c => c.id) || [];
 
-      /* 🔹 3️⃣ Count submissions */
       let submissions = 0;
 
       if (conferenceIds.length > 0) {
@@ -102,7 +88,7 @@ export default function OrganizerDashboard() {
     }
 
     load();
-  }, [profile]);
+  }, [profile, organization]);
 
   return (
     <div className="space-y-8">

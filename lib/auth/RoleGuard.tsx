@@ -4,22 +4,25 @@ import { useProfile } from "./useProfile";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-type Props = {
-  allowed: string[];
+export default function RoleGuard({
+  adminOnly = false,
+  children,
+}: {
+  adminOnly?: boolean;
   children: React.ReactNode;
-};
-
-export default function RoleGuard({ allowed, children }: Props) {
+}) {
   const { profile, loading } = useProfile();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && (!profile || !allowed.includes(profile.role))) {
+    if (loading || !profile) return;
+
+    if (adminOnly && profile.role !== "admin") {
       router.replace("/dashboard");
     }
-  }, [profile, loading, allowed, router]);
+  }, [profile, loading, adminOnly, router]);
 
-  if (loading || !profile) return <p>Checking permissions...</p>;
+  if (loading || !profile) return null;
 
   return <>{children}</>;
 }

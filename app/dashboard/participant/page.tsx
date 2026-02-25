@@ -150,7 +150,7 @@ export default function ParticipantDashboard() {
           </div>
 
           <Button asChild>
-            <Link href="/onboarding/organization">
+            <Link href="onboarding/organization">
               ➕ Create Organization
             </Link>
           </Button>

@@ -8,8 +8,7 @@ const supabase = createClient();
 export async function signUp(
   email: string,
   password: string,
-  username: string,
-  role: string
+  username: string
 ) {
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -17,19 +16,12 @@ export async function signUp(
     options: {
       data: {
         username,
-        role, // will be used by DB trigger
       },
     },
   });
 
-  if (error) {
-    return { error };
-  }
-
-  // Profile is automatically created by DB trigger
-  return { error: null };
+  return { error };
 }
-
 /* =========================
    SIGN IN
 ========================= */

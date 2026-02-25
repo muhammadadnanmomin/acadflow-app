@@ -19,6 +19,9 @@ export default function OrganizationSetup() {
 
   const [name, setName] = useState("");
   const [website, setWebsite] = useState("");
+  const [linkedin, setLinkedin] = useState("");
+  const [country, setCountry] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function createOrganization() {
@@ -27,12 +30,14 @@ export default function OrganizationSetup() {
     setLoading(true);
 
     try {
-      // 1️⃣ create organization
       const { data: org, error: orgError } = await supabase
         .from("organizations")
         .insert({
           name,
           website,
+          linkedin_url: linkedin,
+          country,
+          description,
           created_by: profile.id,
         })
         .select()
@@ -40,7 +45,6 @@ export default function OrganizationSetup() {
 
       if (orgError) throw orgError;
 
-      // 2️⃣ add owner membership
       const { error: memberError } = await supabase
         .from("organization_members")
         .insert({
@@ -52,7 +56,7 @@ export default function OrganizationSetup() {
       if (memberError) throw memberError;
 
       toast({
-        title: "Organization created",
+        title: "Organization created 🎉",
         description: "You are ready to host conferences.",
       });
 
@@ -69,18 +73,21 @@ export default function OrganizationSetup() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
-      <Card className="w-full max-w-lg p-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">
-            Create Organization
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            This workspace will host your conferences.
-          </p>
-        </div>
+    <div className="space-y-6 max-w-3xl">
 
+      {/* Page Header */}
+      <div>
+        <h1 className="text-3xl font-bold">Create Organization</h1>
+        <p className="text-gray-500 mt-1">
+          This workspace will host your conferences.
+        </p>
+      </div>
+
+      {/* Form Card */}
+      <Card className="p-6 space-y-6">
         <div className="space-y-4">
+
+          {/* Name */}
           <div>
             <label className="text-sm font-medium">
               Organization Name
@@ -92,6 +99,7 @@ export default function OrganizationSetup() {
             />
           </div>
 
+          {/* Website */}
           <div>
             <label className="text-sm font-medium">
               Website (optional)
@@ -102,15 +110,53 @@ export default function OrganizationSetup() {
               onChange={(e) => setWebsite(e.target.value)}
             />
           </div>
+
+          {/* LinkedIn */}
+          <div>
+            <label className="text-sm font-medium">
+              LinkedIn Page (optional)
+            </label>
+            <Input
+              placeholder="https://linkedin.com/company/your-org"
+              value={linkedin}
+              onChange={(e) => setLinkedin(e.target.value)}
+            />
+          </div>
+
+          {/* Country */}
+          <div>
+            <label className="text-sm font-medium">
+              Country
+            </label>
+            <Input
+              placeholder="India"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="text-sm font-medium">
+              Short Description
+            </label>
+            <Input
+              placeholder="Promoting academic research and innovation"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+
         </div>
 
         <Button
-          className="w-full"
+          className="w-full sm:w-auto"
           onClick={createOrganization}
           disabled={loading}
         >
           {loading ? "Creating..." : "Create Organization"}
         </Button>
+
       </Card>
     </div>
   );

@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useProfile } from "./useProfile";
+import { useOrganization } from "@/lib/organizations/useOrganization";
 
 export function useActiveRole() {
   const { profile, loading } = useProfile();
+  const organization = useOrganization();
+
   const [activeRole, setActiveRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -12,13 +15,27 @@ export function useActiveRole() {
 
     const stored = localStorage.getItem("activeRole");
 
+    // 🔹 if user switched workspace before, respect it
     if (stored) {
       setActiveRole(stored);
-    } else {
-      setActiveRole(profile.role);
-      localStorage.setItem("activeRole", profile.role);
+      return;
     }
-  }, [profile]);
+
+    // 🔹 admin always admin
+    if (profile.role === "admin") {
+      setActiveRole("admin");
+      return;
+    }
+
+    // 🔹 organizer workspace available
+    if (organization) {
+      setActiveRole("organizer");
+      return;
+    }
+
+    // 🔹 default workspace
+    setActiveRole("participant");
+  }, [profile, organization]);
 
   return { activeRole, loading };
 }

@@ -21,21 +21,21 @@ export default function DashboardRootLayout({
   const { profile, loading } = useProfile();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  // ✅ MOBILE SIDEBAR STATE
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  /* Determine role from URL only for UI */
-  const dashboardRole =
-    pathname.startsWith("/dashboard/admin")
-      ? "admin"
-      : pathname.startsWith("/dashboard/reviewer")
-      ? "reviewer"
-      : pathname.startsWith("/dashboard/organizer")
-      ? "organizer"
-      : "participant";
+  /* Determine role from URL (UI context only) */
+  let dashboardRole: "admin" | "organizer" | "reviewer" | "participant" =
+    "participant";
 
-  /* 🔐 Only authentication guard here */
+  if (pathname.startsWith("/dashboard/admin")) {
+    dashboardRole = "admin";
+  } else if (pathname.startsWith("/dashboard/organizer")) {
+    dashboardRole = "organizer";
+  } else if (pathname.startsWith("/dashboard/reviewer")) {
+    dashboardRole = "reviewer";
+  }
+
+  /* 🔐 Authentication guard */
   useEffect(() => {
     if (!loading && !profile) {
       router.replace("/login");
@@ -53,7 +53,7 @@ export default function DashboardRootLayout({
   return (
     <div className="min-h-screen bg-slate-50">
       
-      {/* ✅ MOBILE OVERLAY */}
+      {/* Mobile overlay */}
       {mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
@@ -82,7 +82,7 @@ export default function DashboardRootLayout({
           userEmail={profile.email}
           userRole={dashboardRole}
           userAvatar={profile.avatar_url}
-          onMenuClick={() => setMobileOpen(true)}   // ✅ hamburger opens sidebar
+          onMenuClick={() => setMobileOpen(true)}
         />
 
         <main className="flex-1 p-6">{children}</main>

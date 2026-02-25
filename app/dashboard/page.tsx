@@ -1,32 +1,83 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
 import { useProfile } from "@/lib/auth/useProfile";
+import { useOrganization } from "@/lib/organizations/useOrganization";
 
 export default function DashboardRedirect() {
   const { profile, loading } = useProfile();
+  const organization = useOrganization();
   const router = useRouter();
+  const supabase = createClient();
+
+  const [isReviewer, setIsReviewer] = useState<boolean | null>(null);
+
+  // 🔹 detect reviewer assignments
+  useEffect(() => {
+    if (!profile) return;
+
+    async function checkReviewer() {
+      const { data } = await supabase
+        .from("paper_submissions")
+        .select("id")
+        .eq("reviewer_id", profile.id)
+        .limit(1);
+
+      setIsReviewer(data && data.length > 0);
+    }
+
+    checkReviewer();
+  }, [profile]);
 
   useEffect(() => {
-    if (loading || !profile) return;
+    if (loading || !profile || isReviewer === null) return;
 
     const storedRole = localStorage.getItem("activeRole");
 
-    // prefer stored role if user switched dashboard
-    const role = storedRole || profile.role;
+    let role: string;
 
-    if (role === "admin") {
-      router.replace("/dashboard/admin");
-    } else if (role === "organizer") {
-      router.replace("/dashboard/organizer");
-    } else if (role === "reviewer") {
-      router.replace("/dashboard/reviewer");
-    } else {
-      // participant default
-      router.replace("/dashboard/participant/overview");
+    // 1️⃣ user workspace preference
+    if (storedRole) {
+      role = storedRole;
     }
-  }, [profile, loading, router]);
+
+    // 2️⃣ organizer workspace available
+    else if (organization) {
+      role = "organizer";
+    }
+
+    // 3️⃣ reviewer workspace available
+    else if (isReviewer) {
+      role = "reviewer";
+    }
+
+    // 4️⃣ admin fallback
+    else if (profile.role === "admin") {
+      role = "admin";
+    }
+
+    // 5️⃣ default
+    else {
+      role = "participant";
+    }
+
+    switch (role) {
+      case "admin":
+        router.replace("/dashboard/admin");
+        break;
+      case "organizer":
+        router.replace("/dashboard/organizer");
+        break;
+      case "reviewer":
+        router.replace("/dashboard/reviewer");
+        break;
+      default:
+        router.replace("/dashboard/participant/overview");
+    }
+  }, [profile, loading, organization, isReviewer, router]);
 
   return (
     <div className="p-10 text-gray-500">

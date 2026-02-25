@@ -146,7 +146,7 @@ export function DashboardSidebar({
       ...navItems,
       {
         name: "Create Organization",
-        href: "/onboarding/organization",
+        href: "/dashboard/onboarding/organization",
         icon: PlusCircle,
       },
     ];
@@ -209,41 +209,39 @@ export function DashboardSidebar({
 
       {/* Organization Workspace */}
 
-      {activeRole === "participant" && organization && (
-        <div className="px-3 pt-4 pb-2">
-          {!collapsed && (
-            <p className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase mb-2">
-              Organization
-            </p>
-          )}
+      <div className="px-3 pt-4 pb-2">
+  {!collapsed && (
+    <p className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase mb-2">
+      Organization
+    </p>
+  )}
 
-          <Link
-            href="/dashboard/organizer"
-            onClick={() => localStorage.setItem("activeRole", "organizer")}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition hover:bg-gray-100",
-              collapsed && "justify-center"
-            )}
-          >
-            {/* Org Avatar */}
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-indigo-100 text-indigo-600 font-semibold">
-              {organization.name.charAt(0)}
-            </div>
+  <Link
+    href="/dashboard/organizer"
+    onClick={() => localStorage.setItem("activeRole", "organizer")}
+    className={cn(
+      "flex items-center gap-3 rounded-lg px-3 py-2 transition hover:bg-gray-100",
+      collapsed && "justify-center"
+    )}
+    title={organization?.name || "Organization"} // ⭐ shows full name on hover
+  >
+    {/* Avatar */}
+    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-indigo-100 text-indigo-600 font-semibold shrink-0">
+      {organization?.name?.charAt(0) || "O"}
+    </div>
 
-            {!collapsed && (
-              <div className="flex flex-col leading-tight">
-                <span className="font-medium truncate">
-                  {organization.name}
-                </span>
-                <span className="text-xs text-gray-500">
-                  Organizer workspace
-                </span>
-              </div>
-            )}
-          </Link>
-          <div className="mx-3 my-3 border-t border-gray-200" />
-        </div>
-      )}
+    {!collapsed && (
+      <div className="flex flex-col min-w-0">
+        {/* Org Name */}
+        <span className="font-medium truncate">
+          {organization?.name || "Organization"}
+        </span>
+      </div>
+    )}
+  </Link>
+
+  <div className="mx-3 my-3 border-t border-gray-200" />
+</div>
 
 
       {/* Navigation */}

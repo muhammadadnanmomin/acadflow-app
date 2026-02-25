@@ -14,23 +14,34 @@ export function useOrganization() {
     if (!profile) return;
 
     async function loadOrganization() {
+      // 🔹 try membership first
       const { data, error } = await supabase
         .from("organization_members")
-        .select(`
-          organization:organizations(*)
-        `)
+        .select(`organization:organizations(*)`)
         .eq("user_id", profile.id)
         .limit(1)
-        .maybeSingle();   // ✅ FIX HERE
-
-      if (error) {
-        console.error("Organization load error:", error);
-        return;
-      }
+        .maybeSingle();
 
       if (data?.organization) {
         setOrganization(data.organization);
+        return;
       }
+
+      // 🔹 admin fallback → fetch first organization
+      if (profile.role === "admin") {
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("*")
+          .order("created_at", { ascending: true }) // predictable
+          .limit(1)
+          .maybeSingle();
+
+        setOrganization(org || null);
+        return;
+      }
+
+      // 🔹 no organization
+      setOrganization(null);
     }
 
     loadOrganization();
