@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 
 import { Card } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 
-import { Eye, CheckCircle, XCircle } from "lucide-react";
+import { Eye, CheckCircle, XCircle, Clock } from "lucide-react";
 
 /* ---------- PAGE ---------- */
 
@@ -25,6 +25,16 @@ export default function ReviewerReviewPage() {
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const supabase = createClient()
+
+  /* Load saved draft comments */
+  useEffect(() => {
+    if (paperId) {
+      const saved = localStorage.getItem(`review-draft-${paperId}`);
+      if (saved) setComments(saved);
+    }
+  }, [paperId]);
 
   /* Load paper */
   useEffect(() => {
@@ -66,12 +76,25 @@ export default function ReviewerReviewPage() {
     loadPaper();
   }, [profile, paperId]);
 
+  /* Auto-save draft */
+  useEffect(() => {
+    if (paperId) {
+      localStorage.setItem(`review-draft-${paperId}`, comments);
+    }
+  }, [comments, paperId]);
+
   /* Submit review */
   async function submitReview(decision: "accepted" | "rejected") {
     if (!comments.trim()) {
       setError("Please write review comments before submitting.");
       return;
     }
+
+    const confirmDecision = confirm(
+      `Are you sure you want to ${decision.toUpperCase()} this paper?\nThis action cannot be changed.`
+    );
+
+    if (!confirmDecision) return;
 
     setSubmitting(true);
     setError(null);
@@ -92,6 +115,7 @@ export default function ReviewerReviewPage() {
       return;
     }
 
+    localStorage.removeItem(`review-draft-${paperId}`);
     router.push("/dashboard/reviewer/papers");
   }
 
@@ -119,6 +143,8 @@ export default function ReviewerReviewPage() {
     );
   }
 
+  const wordCount = comments.trim().split(/\s+/).filter(Boolean).length;
+
   /* ---------- UI ---------- */
 
   return (
@@ -135,10 +161,17 @@ export default function ReviewerReviewPage() {
       {/* Paper Info */}
       <Card className="p-5 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="font-semibold">Paper #{paper.id.slice(0, 8)}</span>
+          <span className="font-semibold">
+            Paper #{paper.id.slice(0, 8)}
+          </span>
           <Badge className="bg-blue-100 text-blue-700">
             Under Review
           </Badge>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <Clock className="h-3 w-3" />
+          Submitted on {new Date(paper.created_at).toLocaleDateString()}
         </div>
 
         {paper.file_url && (
@@ -161,6 +194,11 @@ export default function ReviewerReviewPage() {
           onChange={(e) => setComments(e.target.value)}
           rows={8}
         />
+
+        <div className="flex justify-between text-xs text-gray-500">
+          <span>Tip: include strengths, weaknesses & suggestions</span>
+          <span>{wordCount} words</span>
+        </div>
 
         {error && (
           <p className="text-sm text-red-600">{error}</p>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 
 import { Card } from "@/components/ui/card";
@@ -23,7 +23,8 @@ export default function ReviewerReviewsPage() {
   const [papers, setPapers] = useState<any[]>([]);
   const [comments, setComments] = useState<Record<string, string>>({});
 
-  /* Load papers */
+  const supabase = createClient()
+
   async function loadPapers() {
     if (!profile) return;
 
@@ -33,10 +34,9 @@ export default function ReviewerReviewsPage() {
       .from("paper_submissions")
       .select(`
         id,
-        title,
         file_url,
         status,
-        review_comments,
+        review_comment,
         created_at,
         conferences ( title )
       `)
@@ -44,18 +44,17 @@ export default function ReviewerReviewsPage() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error(error);
+      console.error("Load reviews error:", error);
       setLoading(false);
       return;
     }
 
     setPapers(data || []);
 
-    /* Load existing comments */
     const map: Record<string, string> = {};
 
     data?.forEach((p: any) => {
-      map[p.id] = p.review_comments || "";
+      map[p.id] = p.review_comment || "";
     });
 
     setComments(map);
@@ -67,12 +66,11 @@ export default function ReviewerReviewsPage() {
     loadPapers();
   }, [profile]);
 
-  /* Submit review */
   async function submitReview(
     paperId: string,
     decision: "accepted" | "rejected"
   ) {
-    if (!comments[paperId]) {
+    if (!comments[paperId]?.trim()) {
       alert("Please write review comments first");
       return;
     }
@@ -81,10 +79,11 @@ export default function ReviewerReviewsPage() {
       .from("paper_submissions")
       .update({
         status: decision,
-        review_comments: comments[paperId],
+        review_comment: comments[paperId],
         reviewed_at: new Date(),
       })
-      .eq("id", paperId);
+      .eq("id", paperId)
+      .eq("reviewer_id", profile?.id);
 
     if (error) {
       alert(error.message);
@@ -99,18 +98,13 @@ export default function ReviewerReviewsPage() {
   return (
     <div className="space-y-8 max-w-6xl">
 
-      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">
-          My Reviews
-        </h1>
-
+        <h1 className="text-3xl font-bold">My Reviews</h1>
         <p className="text-gray-500 mt-1">
           Review and evaluate assigned papers
         </p>
       </div>
 
-      {/* Main */}
       <Card className="p-6">
 
         {loading && (
@@ -126,10 +120,9 @@ export default function ReviewerReviewsPage() {
         )}
 
         {!loading && papers.length > 0 && (
-
           <div className="space-y-5">
 
-            {papers.map((p) => {
+            {papers.map((p, index) => {
 
               const isReviewed =
                 p.status === "accepted" ||
@@ -142,60 +135,37 @@ export default function ReviewerReviewsPage() {
                   className="border rounded-lg p-5 space-y-4"
                 >
 
-                  {/* Header */}
                   <div className="flex items-center justify-between">
 
                     <div className="flex items-center gap-2">
-
                       <FileText className="h-4 w-4 text-gray-400" />
-
                       <span className="font-semibold">
-                        {p.title}
+                        Paper #{index + 1}
                       </span>
-
                     </div>
 
                     <StatusBadge status={p.status} />
 
                   </div>
 
-                  {/* Meta */}
                   <div className="text-sm text-gray-500">
-
                     <p>
-                      Conference:{" "}
-                      {p.conferences?.title}
+                      Conference: {p.conferences?.title}
                     </p>
-
                     <p>
-                      Assigned:{" "}
-                      {new Date(p.created_at)
-                        .toLocaleDateString()}
+                      Assigned: {new Date(p.created_at).toLocaleDateString()}
                     </p>
-
                   </div>
 
-                  {/* Paper link */}
                   {p.file_url && (
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      asChild
-                    >
-                      <a
-                        href={p.file_url}
-                        target="_blank"
-                      >
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={p.file_url} target="_blank">
                         View Paper
                       </a>
                     </Button>
-
                   )}
 
-                  {/* Review box */}
                   <div className="space-y-3">
-
                     <label className="text-sm font-medium">
                       Review Comments
                     </label>
@@ -211,12 +181,9 @@ export default function ReviewerReviewsPage() {
                         })
                       }
                     />
-
                   </div>
 
-                  {/* Actions */}
                   {!isReviewed && (
-
                     <div className="flex justify-end gap-3 pt-2">
 
                       <Button
@@ -241,16 +208,12 @@ export default function ReviewerReviewsPage() {
                       </Button>
 
                     </div>
-
                   )}
 
-                  {/* Reviewed message */}
                   {isReviewed && (
-
                     <p className="text-sm text-green-600 font-medium">
                       Review submitted ✓
                     </p>
-
                   )}
 
                 </div>
@@ -259,7 +222,6 @@ export default function ReviewerReviewsPage() {
             })}
 
           </div>
-
         )}
 
       </Card>
@@ -268,36 +230,19 @@ export default function ReviewerReviewsPage() {
   );
 }
 
-/* Status Badge */
 function StatusBadge({ status }: { status: string }) {
 
   if (status === "accepted") {
-    return (
-      <Badge className="bg-green-100 text-green-700">
-        Accepted
-      </Badge>
-    );
+    return <Badge className="bg-green-100 text-green-700">Accepted</Badge>;
   }
 
   if (status === "rejected") {
-    return (
-      <Badge className="bg-red-100 text-red-700">
-        Rejected
-      </Badge>
-    );
+    return <Badge className="bg-red-100 text-red-700">Rejected</Badge>;
   }
 
-  if (status === "under_review") {
-    return (
-      <Badge className="bg-blue-100 text-blue-700">
-        Under Review
-      </Badge>
-    );
+  if (status === "Submitted" || status === "under_review") {
+    return <Badge className="bg-blue-100 text-blue-700">Under Review</Badge>;
   }
 
-  return (
-    <Badge className="bg-yellow-100 text-yellow-700">
-      Pending
-    </Badge>
-  );
+  return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
 }

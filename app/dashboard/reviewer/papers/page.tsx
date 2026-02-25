@@ -10,9 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { FileText, Eye, PenLine } from "lucide-react";
-
-/* ---------- PAGE ---------- */
+import { FileText, Eye, PenLine, Clock } from "lucide-react";
 
 const supabase = createClient()
 
@@ -22,7 +20,6 @@ export default function ReviewerPapersPage() {
   const [loading, setLoading] = useState(true);
   const [papers, setPapers] = useState<any[]>([]);
 
-  /* Load assigned papers (blind-review safe) */
   async function loadPapers() {
     if (!profile) return;
 
@@ -54,18 +51,24 @@ export default function ReviewerPapersPage() {
     loadPapers();
   }, [profile]);
 
+  const pendingCount = papers.filter(p => !p.reviewed_at).length;
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto px-3 sm:px-6">
 
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">
-          Assigned Papers
-        </h1>
+        <h1 className="text-3xl font-bold">Assigned Papers</h1>
 
         <p className="text-gray-500 mt-1">
           Papers assigned to you for blind review
         </p>
+
+        {!loading && papers.length > 0 && (
+          <p className="text-sm text-gray-500 mt-2">
+            {pendingCount} pending • {papers.length} total
+          </p>
+        )}
       </div>
 
       {/* Main */}
@@ -95,48 +98,64 @@ export default function ReviewerPapersPage() {
                   <tr className="border-b text-left text-sm text-gray-500">
                     <th className="py-3 px-2">Paper</th>
                     <th className="py-3 px-2">Status</th>
-                    <th className="py-3 px-2">Assigned On</th>
+                    <th className="py-3 px-2">Submitted</th>
+                    <th className="py-3 px-2">Review</th>
                     <th className="py-3 px-2 text-right">Actions</th>
                   </tr>
                 </thead>
 
                 <tbody>
 
-                  {papers.map((p, index) => (
+                  {papers.map((p, index) => {
 
-                    <tr
-                      key={p.id}
-                      className="border-b last:border-0 hover:bg-gray-50"
-                    >
+                    const needsReview = !p.reviewed_at;
 
-                      {/* Paper */}
-                      <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-gray-400" />
-                          <span className="font-medium">
-                            Paper #{index + 1}
-                          </span>
-                        </div>
-                      </td>
+                    return (
+                      <tr
+                        key={p.id}
+                        className={`border-b last:border-0 hover:bg-gray-50 ${
+                          needsReview ? "bg-yellow-50" : ""
+                        }`}
+                      >
 
-                      {/* Status */}
-                      <td className="py-3 px-2">
-                        <StatusBadge status={p.status} />
-                      </td>
+                        {/* Paper */}
+                        <td className="py-3 px-2">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-gray-400" />
+                            <span className="font-medium">
+                              Paper #{index + 1}
+                            </span>
+                          </div>
+                        </td>
 
-                      {/* Date */}
-                      <td className="py-3 px-2 text-sm text-gray-500">
-                        {new Date(p.created_at).toLocaleDateString()}
-                      </td>
+                        {/* Status */}
+                        <td className="py-3 px-2">
+                          <StatusBadge status={p.status} />
+                        </td>
 
-                      {/* Actions */}
-                      <td className="py-3 px-2 text-right">
-                        <ActionButtons paper={p} />
-                      </td>
+                        {/* Submitted */}
+                        <td className="py-3 px-2 text-sm text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(p.created_at).toLocaleDateString()}
+                          </div>
+                        </td>
 
-                    </tr>
+                        {/* Review Date */}
+                        <td className="py-3 px-2 text-sm text-gray-500">
+                          {p.reviewed_at
+                            ? new Date(p.reviewed_at).toLocaleDateString()
+                            : "Pending"}
+                        </td>
 
-                  ))}
+                        {/* Actions */}
+                        <td className="py-3 px-2 text-right">
+                          <ActionButtons paper={p} />
+                        </td>
+
+                      </tr>
+                    );
+                  })}
 
                 </tbody>
 
@@ -147,32 +166,38 @@ export default function ReviewerPapersPage() {
             {/* Mobile cards */}
             <div className="sm:hidden space-y-3">
 
-              {papers.map((p, index) => (
+              {papers.map((p, index) => {
 
-                <Card
-                  key={p.id}
-                  className="p-4 space-y-3"
-                >
+                const needsReview = !p.reviewed_at;
 
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-gray-400" />
-                      <span className="font-semibold">
-                        Paper #{index + 1}
-                      </span>
+                return (
+                  <Card key={p.id} className="p-4 space-y-3">
+
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-400" />
+                        <span className="font-semibold">
+                          Paper #{index + 1}
+                        </span>
+                      </div>
+                      <StatusBadge status={p.status} />
                     </div>
-                    <StatusBadge status={p.status} />
-                  </div>
 
-                  <p className="text-xs text-gray-500">
-                    Assigned on {new Date(p.created_at).toLocaleDateString()}
-                  </p>
+                    <p className="text-xs text-gray-500">
+                      Submitted {new Date(p.created_at).toLocaleDateString()}
+                    </p>
 
-                  <ActionButtons paper={p} mobile />
+                    <p className="text-xs text-gray-500">
+                      Review: {p.reviewed_at
+                        ? new Date(p.reviewed_at).toLocaleDateString()
+                        : "Pending"}
+                    </p>
 
-                </Card>
+                    <ActionButtons paper={p} mobile />
 
-              ))}
+                  </Card>
+                );
+              })}
 
             </div>
           </>
@@ -194,18 +219,11 @@ function ActionButtons({
   mobile?: boolean;
 }) {
   return (
-    <div
-      className={`flex ${mobile ? "justify-start" : "justify-end"
-        } gap-2 flex-wrap`}
-    >
+    <div className={`flex ${mobile ? "justify-start" : "justify-end"} gap-2 flex-wrap`}>
 
       {paper.file_url && (
         <Button size="sm" variant="outline" asChild>
-          <a
-            href={paper.file_url}
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a href={paper.file_url} target="_blank" rel="noreferrer">
             <Eye className="h-4 w-4 mr-1" />
             View
           </a>
@@ -251,7 +269,7 @@ function StatusBadge({ status }: { status: string }) {
     );
   }
 
-  if (status === "under_review") {
+  if (status === "under_review" || status === "submitted") {
     return (
       <Badge className="bg-blue-100 text-blue-700">
         Under Review

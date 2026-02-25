@@ -23,8 +23,6 @@ import {
   LogOut,
 } from "lucide-react";
 
-const supabase = createClient();
-
 export default function SettingsPage() {
   const { profile } = useProfile();
   const [loading, setLoading] = useState(false);
@@ -33,6 +31,8 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("");
 
   const [emailNotif, setEmailNotif] = useState(true);
+
+  const supabase = createClient();
 
   useEffect(() => {
     if (!profile) return;

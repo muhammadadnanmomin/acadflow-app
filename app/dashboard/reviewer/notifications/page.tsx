@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 
 import { Card } from "@/components/ui/card";
@@ -15,12 +15,15 @@ import {
   AlertTriangle,
   Info,
 } from "lucide-react";
+import { Cossette_Texte } from "next/font/google";
 
 export default function ReviewerNotificationsPage() {
   const { profile } = useProfile();
 
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  const supabase = createClient()
 
   /* Load notifications */
   async function loadNotifications() {

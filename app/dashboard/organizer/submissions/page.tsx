@@ -59,15 +59,15 @@ export default function OrganizerSubmissions() {
     const { data: subs, error: subErr } = await supabase
       .from("paper_submissions")
       .select(`
-      id,
-      user_id,
-      conference_id,
-      reviewer_id,
-      file_url,
-      status,
-      created_at,
-      reviewed_at
-    `)
+        id,
+        user_id,
+        conference_id,
+        reviewer_id,
+        file_url,
+        status,
+        created_at,
+        reviewed_at
+      `)
       .in("conference_id", conferenceIds)
       .order("created_at", { ascending: false });
 
@@ -79,26 +79,49 @@ export default function OrganizerSubmissions() {
 
     setSubmissions(subs || []);
 
+    /* Load authors */
     const authorIds = [...new Set(subs?.map((s) => s.user_id))];
 
-    const { data: profs } = await supabase
-      .from("profiles")
-      .select("id, name, email")
-      .in("id", authorIds);
+    if (authorIds.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, name, email")
+        .in("id", authorIds);
 
-    const authorMap: Record<string, any> = {};
-    profs?.forEach((p) => {
-      authorMap[p.id] = p;
-    });
+      const authorMap: Record<string, any> = {};
+      profs?.forEach((p) => {
+        authorMap[p.id] = p;
+      });
 
-    setAuthors(authorMap);
+      setAuthors(authorMap);
+    }
 
-    const { data: revs } = await supabase
-      .from("profiles")
-      .select("id, name")
-      .eq("role", "reviewer");
+    /* ✅ Load reviewers registered for these conferences */
+   // Load reviewers registered for these conferences
+const { data: reviewerRegs, error: reviewerErr } = await supabase
+  .from("conference_registrations")
+  .select("conference_id, user_id, profiles(name)")
+  .in("conference_id", conferenceIds)
+  .eq("role", "reviewer");
 
-    setReviewers(revs || []);
+if (reviewerErr) {
+  console.error("Reviewer load error:", reviewerErr);
+}
+
+// extract reviewers (same method as reviewer page)
+const reviewerMap: Record<string, any> = {};
+
+reviewerRegs?.forEach((r: any) => {
+  if (r.user_id && !reviewerMap[r.user_id]) {
+    reviewerMap[r.user_id] = {
+      id: r.user_id,
+      name: r.profiles?.name ?? "Reviewer",
+    };
+  }
+});
+
+setReviewers(Object.values(reviewerMap));
+
     setLoading(false);
   }
 
@@ -174,7 +197,6 @@ export default function OrganizerSubmissions() {
               </thead>
 
               <tbody>
-
                 {submissions.map((s) => {
                   const author = authors[s.user_id];
                   const needsReviewer = !s.reviewer_id;
@@ -182,7 +204,6 @@ export default function OrganizerSubmissions() {
                   return (
                     <tr key={s.id} className="border-b last:border-0 hover:bg-gray-50">
 
-                      {/* Paper */}
                       <td className="py-3 px-2">
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-gray-400" />
@@ -190,13 +211,11 @@ export default function OrganizerSubmissions() {
                         </div>
                       </td>
 
-                      {/* Author */}
                       <td className="py-3 px-2 text-sm">
                         <p>{author?.name ?? "Unknown"}</p>
                         <p className="text-gray-500">{author?.email}</p>
                       </td>
 
-                      {/* Reviewer */}
                       <td className="py-3 px-2">
                         <select
                           value={s.reviewer_id ?? ""}
@@ -206,18 +225,16 @@ export default function OrganizerSubmissions() {
                           <option value="">Assign reviewer</option>
                           {reviewers.map((r) => (
                             <option key={r.id} value={r.id}>
-                              {r.name}
+                              {r.name || "Unnamed Reviewer"}
                             </option>
                           ))}
                         </select>
                       </td>
 
-                      {/* Status */}
                       <td className="py-3 px-2">
                         <StatusBadge status={s.status} />
                       </td>
 
-                      {/* Timeline */}
                       <td className="py-3 px-2 text-xs text-gray-600">
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
@@ -231,18 +248,15 @@ export default function OrganizerSubmissions() {
                         )}
                       </td>
 
-                      {/* Actions */}
                       <td className="py-3 px-2">
                         <div className="flex justify-end gap-2">
 
-                          {/* Open paper */}
                           <Button size="sm" variant="outline" asChild>
                             <a href={s.file_url} target="_blank" rel="noreferrer">
                               <Eye className="h-4 w-4" />
                             </a>
                           </Button>
 
-                          {/* Download */}
                           <Button size="sm" variant="outline" asChild>
                             <a href={s.file_url} download>
                               <Download className="h-4 w-4" />
@@ -250,21 +264,13 @@ export default function OrganizerSubmissions() {
                           </Button>
 
                           {s.status !== "accepted" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateStatus(s.id, "accepted")}
-                            >
+                            <Button size="sm" variant="outline" onClick={() => updateStatus(s.id, "accepted")}>
                               <CheckCircle className="h-4 w-4 text-green-600" />
                             </Button>
                           )}
 
                           {s.status !== "rejected" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateStatus(s.id, "rejected")}
-                            >
+                            <Button size="sm" variant="outline" onClick={() => updateStatus(s.id, "rejected")}>
                               <XCircle className="h-4 w-4 text-red-600" />
                             </Button>
                           )}
@@ -275,11 +281,9 @@ export default function OrganizerSubmissions() {
                     </tr>
                   );
                 })}
-
               </tbody>
 
             </table>
-
           </div>
         )}
 
