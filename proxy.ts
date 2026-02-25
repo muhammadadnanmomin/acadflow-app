@@ -60,23 +60,37 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Get user profile role
+    // Get user profile role (admin only matters now)
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
 
-    const role = profile?.role ?? "participant";
+    const role = profile?.role ?? "user";
 
     /* ================= ADMIN ================= */
     if (path.startsWith("/dashboard/admin") && role !== "admin") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
-    /* ================= ORGANIZER ================= */
-    if (path.startsWith("/dashboard/organizer") && role !== "organizer") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+    /* ================= ORGANIZER ACCESS ================= */
+    if (path.startsWith("/dashboard/organizer")) {
+      // allow admin always
+      if (role === "admin") {
+        return response;
+      }
+
+      // allow users who belong to an organization
+      const { data: membership } = await supabase
+        .from("organization_members")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
+
+      if (!membership || membership.length === 0) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
     }
 
     /* ================= REVIEWER ================= */

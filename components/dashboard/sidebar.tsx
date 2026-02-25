@@ -170,79 +170,78 @@ export function DashboardSidebar({
       )}
     >
       {/* Header */}
-<div
-  className={cn(
-    "flex h-16 items-center border-b px-4 bg-white",
-    collapsed ? "justify-center" : "gap-3"
-  )}
->
-  {/* Logo */}
-  <div className="flex items-center justify-center h-9 w-9 flex-shrink-0">
-    <Image
-      src="/logo.png"
-      alt="AcadFlow Logo"
-      width={32}
-      height={32}
-      priority
-      className="object-contain"
-    />
-  </div>
+      <div
+        className={cn(
+          "flex h-16 items-center border-b px-4 bg-white",
+          collapsed ? "justify-center" : "gap-3"
+        )}
+      >
+        {/* Logo */}
+        <div className="flex items-center justify-center h-9 w-9 flex-shrink-0">
+          <Image
+            src="/logo.png"
+            alt="AcadFlow Logo"
+            width={32}
+            height={32}
+            priority
+            className="object-contain"
+          />
+        </div>
 
-  {/* Brand Name */}
-  {!collapsed && (
-    <Link
-      href="/dashboard"
-      className="text-lg font-semibold tracking-tight leading-none text-gray-900"
-    >
-      AcadFlow
-    </Link>
-  )}
+        {/* Brand Name */}
+        {!collapsed && (
+          <Link
+            href="/dashboard"
+            className="text-lg font-semibold tracking-tight leading-none text-gray-900"
+          >
+            AcadFlow
+          </Link>
+        )}
 
-  {/* Mobile Close Button */}
-  <button
-    onClick={onMobileClose}
-    className="ml-auto md:hidden p-1 rounded-md hover:bg-gray-100 transition"
-  >
-    <X className="h-5 w-5 text-gray-600" />
-  </button>
-</div>
-
-      {/* Organization Workspace */}
-
-      <div className="px-3 pt-4 pb-2">
-  {!collapsed && (
-    <p className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase mb-2">
-      Organization
-    </p>
-  )}
-
-  <Link
-    href="/dashboard/organizer"
-    onClick={() => localStorage.setItem("activeRole", "organizer")}
-    className={cn(
-      "flex items-center gap-3 rounded-lg px-3 py-2 transition hover:bg-gray-100",
-      collapsed && "justify-center"
-    )}
-    title={organization?.name || "Organization"} // ⭐ shows full name on hover
-  >
-    {/* Avatar */}
-    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-indigo-100 text-indigo-600 font-semibold shrink-0">
-      {organization?.name?.charAt(0) || "O"}
-    </div>
-
-    {!collapsed && (
-      <div className="flex flex-col min-w-0">
-        {/* Org Name */}
-        <span className="font-medium truncate">
-          {organization?.name || "Organization"}
-        </span>
+        {/* Mobile Close Button */}
+        <button
+          onClick={onMobileClose}
+          className="ml-auto md:hidden p-1 rounded-md hover:bg-gray-100 transition"
+        >
+          <X className="h-5 w-5 text-gray-600" />
+        </button>
       </div>
-    )}
-  </Link>
 
-  <div className="mx-3 my-3 border-t border-gray-200" />
-</div>
+      {/* Organization Workspace (only if org exists) */}
+      {organization && (
+        <div className="px-3 pt-4 pb-2">
+          {!collapsed && (
+            <p className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase mb-2">
+              Organization
+            </p>
+          )}
 
+          <Link
+            href="/dashboard/organizer"
+            onClick={() => localStorage.setItem("activeRole", "organizer")}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 transition hover:bg-gray-100",
+              collapsed && "justify-center"
+            )}
+            title={organization.name}
+          >
+            {/* Avatar */}
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-indigo-100 text-indigo-600 font-semibold shrink-0">
+              {organization.name.charAt(0)}
+            </div>
+
+            {!collapsed && (
+              <div className="flex flex-col min-w-0">
+                <span className="font-medium truncate">
+                  {organization.name}
+                </span>
+              </div>
+            )}
+          </Link>
+
+          <div className="mx-3 my-3 border-t border-gray-200" />
+        </div>
+      )}
 
       {/* Navigation */}
       <ScrollArea className="flex-1 py-4">

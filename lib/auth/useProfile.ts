@@ -57,9 +57,9 @@ export function useProfile() {
       }
     }
 
-    /* Load current session */
-    supabase.auth.getSession().then(({ data }) => {
-      loadProfile(data.session?.user);
+    /* Load current user (server-validated, not from local storage) */
+    supabase.auth.getUser().then(({ data }) => {
+      loadProfile(data.user);
     });
 
     /* Listen for auth changes */
