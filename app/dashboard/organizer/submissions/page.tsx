@@ -18,6 +18,9 @@ import {
   CheckCircle,
   XCircle,
   FileText,
+  Eye,
+  Clock,
+  UserCheck
 } from "lucide-react";
 
 export default function OrganizerSubmissions() {
@@ -29,13 +32,11 @@ export default function OrganizerSubmissions() {
   const [reviewers, setReviewers] = useState<any[]>([]);
   const organization = useOrganization();
 
-  /* Load submissions */
   async function loadSubmissions() {
     if (!profile || !organization) return;
 
     setLoading(true);
 
-    /* 1️⃣ Get conferences owned by organizer */
     const { data: conferences, error: confErr } = await supabase
       .from("conferences")
       .select("id")
@@ -55,7 +56,6 @@ export default function OrganizerSubmissions() {
       return;
     }
 
-    /* 2️⃣ Load submissions for those conferences */
     const { data: subs, error: subErr } = await supabase
       .from("paper_submissions")
       .select(`
@@ -77,16 +77,9 @@ export default function OrganizerSubmissions() {
       return;
     }
 
-    if (!subs || subs.length === 0) {
-      setSubmissions([]);
-      setLoading(false);
-      return;
-    }
+    setSubmissions(subs || []);
 
-    setSubmissions(subs);
-
-    /* 3️⃣ Load authors safely */
-    const authorIds = [...new Set(subs.map((s) => s.user_id))];
+    const authorIds = [...new Set(subs?.map((s) => s.user_id))];
 
     const { data: profs } = await supabase
       .from("profiles")
@@ -100,7 +93,6 @@ export default function OrganizerSubmissions() {
 
     setAuthors(authorMap);
 
-    /* 4️⃣ Load reviewers */
     const { data: revs } = await supabase
       .from("profiles")
       .select("id, name")
@@ -110,17 +102,13 @@ export default function OrganizerSubmissions() {
     setLoading(false);
   }
 
- useEffect(() => {
-  if (profile && organization) {
-    loadSubmissions();
-  }
-}, [profile, organization]);
+  useEffect(() => {
+    if (profile && organization) {
+      loadSubmissions();
+    }
+  }, [profile, organization]);
 
-  /* Assign reviewer */
-  async function assignReviewer(
-    submissionId: string,
-    reviewerId: string
-  ) {
+  async function assignReviewer(submissionId: string, reviewerId: string) {
     const { error } = await supabase
       .from("paper_submissions")
       .update({ reviewer_id: reviewerId })
@@ -134,11 +122,7 @@ export default function OrganizerSubmissions() {
     loadSubmissions();
   }
 
-  /* Accept / Reject */
-  async function updateStatus(
-    id: string,
-    status: "accepted" | "rejected"
-  ) {
+  async function updateStatus(id: string, status: "accepted" | "rejected") {
     const { error } = await supabase
       .from("paper_submissions")
       .update({
@@ -158,12 +142,8 @@ export default function OrganizerSubmissions() {
   return (
     <div className="space-y-8">
 
-      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">
-          Paper Submissions
-        </h1>
-
+        <h1 className="text-3xl font-bold">Paper Submissions</h1>
         <p className="text-gray-500 mt-1">
           Review, assign reviewers, and decide acceptance
         </p>
@@ -171,20 +151,13 @@ export default function OrganizerSubmissions() {
 
       <Card className="p-6">
 
-        {loading && (
-          <p className="text-sm text-gray-500">
-            Loading submissions...
-          </p>
-        )}
+        {loading && <p className="text-sm text-gray-500">Loading submissions...</p>}
 
         {!loading && submissions.length === 0 && (
-          <p className="text-sm text-gray-500">
-            No submissions yet.
-          </p>
+          <p className="text-sm text-gray-500">No submissions yet.</p>
         )}
 
         {!loading && submissions.length > 0 && (
-
           <div className="overflow-x-auto">
 
             <table className="w-full border-collapse">
@@ -195,6 +168,7 @@ export default function OrganizerSubmissions() {
                   <th className="py-3 px-2">Author</th>
                   <th className="py-3 px-2">Reviewer</th>
                   <th className="py-3 px-2">Status</th>
+                  <th className="py-3 px-2">Timeline</th>
                   <th className="py-3 px-2 text-right">Actions</th>
                 </tr>
               </thead>
@@ -203,44 +177,33 @@ export default function OrganizerSubmissions() {
 
                 {submissions.map((s) => {
                   const author = authors[s.user_id];
+                  const needsReviewer = !s.reviewer_id;
 
                   return (
-                    <tr
-                      key={s.id}
-                      className="border-b last:border-0 hover:bg-gray-50"
-                    >
+                    <tr key={s.id} className="border-b last:border-0 hover:bg-gray-50">
 
                       {/* Paper */}
                       <td className="py-3 px-2">
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-gray-400" />
-                          <span className="font-medium">
-                            Paper Submission
-                          </span>
+                          <span className="font-medium">Paper Submission</span>
                         </div>
                       </td>
 
                       {/* Author */}
                       <td className="py-3 px-2 text-sm">
                         <p>{author?.name ?? "Unknown"}</p>
-                        <p className="text-gray-500">
-                          {author?.email}
-                        </p>
+                        <p className="text-gray-500">{author?.email}</p>
                       </td>
 
-                      {/* Reviewer Assignment */}
+                      {/* Reviewer */}
                       <td className="py-3 px-2">
                         <select
                           value={s.reviewer_id ?? ""}
-                          onChange={(e) =>
-                            assignReviewer(s.id, e.target.value)
-                          }
-                          className="border rounded px-2 py-1 text-sm"
+                          onChange={(e) => assignReviewer(s.id, e.target.value)}
+                          className={`border rounded px-2 py-1 text-sm ${needsReviewer ? "border-red-300" : ""}`}
                         >
-                          <option value="">
-                            Assign reviewer
-                          </option>
-
+                          <option value="">Assign reviewer</option>
                           {reviewers.map((r) => (
                             <option key={r.id} value={r.id}>
                               {r.name}
@@ -254,20 +217,34 @@ export default function OrganizerSubmissions() {
                         <StatusBadge status={s.status} />
                       </td>
 
+                      {/* Timeline */}
+                      <td className="py-3 px-2 text-xs text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(s.created_at).toLocaleDateString()}
+                        </div>
+                        {s.reviewed_at && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <UserCheck className="h-3 w-3" />
+                            {new Date(s.reviewed_at).toLocaleDateString()}
+                          </div>
+                        )}
+                      </td>
+
                       {/* Actions */}
                       <td className="py-3 px-2">
                         <div className="flex justify-end gap-2">
 
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            asChild
-                          >
-                            <a
-                              href={s.file_url}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
+                          {/* Open paper */}
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={s.file_url} target="_blank" rel="noreferrer">
+                              <Eye className="h-4 w-4" />
+                            </a>
+                          </Button>
+
+                          {/* Download */}
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={s.file_url} download>
                               <Download className="h-4 w-4" />
                             </a>
                           </Button>
@@ -276,9 +253,7 @@ export default function OrganizerSubmissions() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() =>
-                                updateStatus(s.id, "accepted")
-                              }
+                              onClick={() => updateStatus(s.id, "accepted")}
                             >
                               <CheckCircle className="h-4 w-4 text-green-600" />
                             </Button>
@@ -288,9 +263,7 @@ export default function OrganizerSubmissions() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() =>
-                                updateStatus(s.id, "rejected")
-                              }
+                              onClick={() => updateStatus(s.id, "rejected")}
                             >
                               <XCircle className="h-4 w-4 text-red-600" />
                             </Button>
@@ -308,7 +281,6 @@ export default function OrganizerSubmissions() {
             </table>
 
           </div>
-
         )}
 
       </Card>
@@ -322,5 +294,7 @@ function StatusBadge({ status }: { status: string }) {
     return <Badge className="bg-green-100 text-green-700">Accepted</Badge>;
   if (status === "rejected")
     return <Badge className="bg-red-100 text-red-700">Rejected</Badge>;
+  if (status === "submitted")
+    return <Badge className="bg-blue-100 text-blue-700">Under Review</Badge>;
   return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
 }

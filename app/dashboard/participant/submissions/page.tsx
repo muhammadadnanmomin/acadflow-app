@@ -10,9 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
-import { Upload, FileText } from "lucide-react";
+import { Upload, FileText, Clock, UserCheck } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-
 
 export default function ParticipantSubmissionsPage() {
   const { profile } = useProfile();
@@ -24,13 +23,12 @@ export default function ParticipantSubmissionsPage() {
   const [submitting, setSubmitting] = useState<string | null>(null);
 
   const { toast } = useToast();
-  const supabase = createClient()
+  const supabase = createClient();
 
   async function loadData() {
     if (!profile) return;
     setLoading(true);
 
-    // 1️⃣ Load author registrations (with deadline)
     const { data: regs, error: regErr } = await supabase
       .from("conference_registrations")
       .select(`
@@ -55,12 +53,19 @@ export default function ParticipantSubmissionsPage() {
 
     setRegistrations(regs);
 
-    // 2️⃣ Load submissions separately
     const confIds = regs.map((r) => r.conference_id);
 
     const { data: subs, error: subErr } = await supabase
       .from("paper_submissions")
-      .select("id, conference_id, file_url, status, created_at, reviewed_at")
+      .select(`
+        id,
+        conference_id,
+        file_url,
+        status,
+        created_at,
+        reviewed_at,
+        reviewer_id
+      `)
       .eq("user_id", profile.id)
       .in("conference_id", confIds);
 
@@ -70,7 +75,6 @@ export default function ParticipantSubmissionsPage() {
       return;
     }
 
-    // 3️⃣ Map submissions by conference_id
     const map: Record<string, any> = {};
     subs?.forEach((s) => {
       map[s.conference_id] = s;
@@ -179,6 +183,7 @@ export default function ParticipantSubmissionsPage() {
 
           return (
             <Card key={r.id} className="p-5 space-y-4">
+
               {/* Header */}
               <div className="flex justify-between">
                 <div className="flex gap-2 items-center">
@@ -192,6 +197,37 @@ export default function ParticipantSubmissionsPage() {
                   <StatusBadge status={submission.status} />
                 )}
               </div>
+
+              {/* Timeline Info */}
+              {submission && (
+                <div className="text-sm text-gray-600 space-y-1">
+
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Submitted:
+                    <span className="font-medium">
+                      {new Date(submission.created_at).toLocaleString()}
+                    </span>
+                  </div>
+
+                  {submission.reviewer_id && (
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4" />
+                      Reviewer assigned
+                    </div>
+                  )}
+
+                  {submission.reviewed_at && (
+                    <div>
+                      Decision made:
+                      <span className="font-medium ml-1">
+                        {new Date(submission.reviewed_at).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+
+                </div>
+              )}
 
               {/* Uploaded file */}
               {submission?.file_url && (
@@ -226,7 +262,7 @@ export default function ParticipantSubmissionsPage() {
                   disabled={reviewLocked || deadlinePassed}
                   onChange={(e) =>
                     setFiles(prev => ({
-                      ...files,
+                      ...prev,
                       [r.conference_id]:
                         e.target.files?.[0] || null,
                     }))
@@ -258,10 +294,10 @@ export default function ParticipantSubmissionsPage() {
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "accepted")
-    return <Badge className="bg-green-100">Accepted</Badge>;
+    return <Badge className="bg-green-100 text-green-700">Accepted</Badge>;
   if (status === "rejected")
-    return <Badge className="bg-red-100">Rejected</Badge>;
+    return <Badge className="bg-red-100 text-red-700">Rejected</Badge>;
   if (status === "submitted")
-    return <Badge className="bg-blue-100">Submitted</Badge>;
-  return <Badge>Pending</Badge>;
+    return <Badge className="bg-blue-100 text-blue-700">Under Review</Badge>;
+  return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
 }
