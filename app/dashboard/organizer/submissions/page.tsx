@@ -35,12 +35,11 @@ export default function OrganizerSubmissions() {
 
     setLoading(true);
 
-    /* 1️⃣ Get conferences owned by organization */
+    /* 1️⃣ Get conferences owned by organizer */
     const { data: conferences, error: confErr } = await supabase
-      .from("conference_registrations")
-      .select("conference_id")
-      .eq("user_id", profile.id)
-      .in("role", ["organizer", "owner"]);
+      .from("conferences")
+      .select("id")
+      .eq("organizer_id", profile.id);
 
     if (confErr) {
       console.error(confErr);
@@ -48,7 +47,7 @@ export default function OrganizerSubmissions() {
       return;
     }
 
-    const conferenceIds = conferences?.map(c => c.conference_id) || [];
+    const conferenceIds = conferences?.map(c => c.id) || [];
 
     if (conferenceIds.length === 0) {
       setSubmissions([]);

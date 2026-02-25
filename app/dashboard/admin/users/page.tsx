@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 
 import { Button } from "@/components/ui/button";
 
 export default function AdminUsersPage() {
   const { profile, loading } = useProfile();
+
+  const supabase = createClient()
 
   const [users, setUsers] = useState<any[]>([]);
   const [savingId, setSavingId] = useState<string | null>(null);
