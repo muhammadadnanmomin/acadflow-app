@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import RoleGuard from "@/lib/auth/RoleGuard";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,8 @@ import {
 export default function AdminPaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState<any[]>([]);
+
+  const supabase = createClient();
 
   /* Load payments */
   async function loadPayments() {

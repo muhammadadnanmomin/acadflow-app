@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import RoleGuard from "@/lib/auth/RoleGuard";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,8 @@ import {
 
 export default function AdminReportsPage() {
   const [loading, setLoading] = useState(true);
+
+  const supabase = createClient();
 
   const [stats, setStats] = useState({
     users: 0,

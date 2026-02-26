@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import RoleGuard from "@/lib/auth/RoleGuard";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ import {
 export default function AdminConferencesPage() {
   const [loading, setLoading] = useState(true);
   const [conferences, setConferences] = useState<any[]>([]);
+
+  const supabase = createClient();
 
   /* Load conferences */
   async function loadConferences() {

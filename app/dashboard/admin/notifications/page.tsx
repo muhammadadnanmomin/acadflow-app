@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import RoleGuard from "@/lib/auth/RoleGuard";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import { Bell, Send } from "lucide-react";
 export default function AdminNotificationsPage() {
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  const supabase = createClient();
 
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
