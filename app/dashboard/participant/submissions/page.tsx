@@ -1,35 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
+import { useRouter } from "next/navigation";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-
-import { Upload, FileText, Clock, UserCheck } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+
+import {
+  Upload,
+  FileText,
+  Clock,
+  UserCheck,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Lock,
+} from "lucide-react";
 
 export default function ParticipantSubmissionsPage() {
   const { profile } = useProfile();
+  const supabase = createClient();
+  const router = useRouter();
+  const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [submissions, setSubmissions] = useState<Record<string, any>>({});
   const [files, setFiles] = useState<Record<string, File | null>>({});
-  const [submitting, setSubmitting] = useState<string | null>(null);
-
-  const { toast } = useToast();
-  const supabase = createClient();
+  const [uploading, setUploading] = useState<string | null>(null);
 
   async function loadData() {
     if (!profile) return;
     setLoading(true);
 
-    const { data: regs, error: regErr } = await supabase
+    const { data: regs } = await supabase
       .from("conference_registrations")
       .select(`
         id,
@@ -39,23 +48,11 @@ export default function ParticipantSubmissionsPage() {
       .eq("user_id", profile.id)
       .eq("role", "author");
 
-    if (regErr) {
-      console.error(regErr);
-      setLoading(false);
-      return;
-    }
+    setRegistrations(regs || []);
 
-    if (!regs || regs.length === 0) {
-      setRegistrations([]);
-      setLoading(false);
-      return;
-    }
+    const confIds = regs?.map(r => r.conference_id) || [];
 
-    setRegistrations(regs);
-
-    const confIds = regs.map((r) => r.conference_id);
-
-    const { data: subs, error: subErr } = await supabase
+    const { data: subs } = await supabase
       .from("paper_submissions")
       .select(`
         id,
@@ -63,20 +60,14 @@ export default function ParticipantSubmissionsPage() {
         file_url,
         status,
         created_at,
-        reviewed_at,
-        reviewer_id
+        reviewer_id,
+        payment_status
       `)
       .eq("user_id", profile.id)
       .in("conference_id", confIds);
 
-    if (subErr) {
-      console.error(subErr);
-      setLoading(false);
-      return;
-    }
-
     const map: Record<string, any> = {};
-    subs?.forEach((s) => {
+    subs?.forEach(s => {
       map[s.conference_id] = s;
     });
 
@@ -88,206 +79,202 @@ export default function ParticipantSubmissionsPage() {
     loadData();
   }, [profile]);
 
-  async function submitPaper(confId: string) {
+  async function uploadPaper(confId: string) {
     const file = files[confId];
+
     if (!file) {
-      toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please choose a PDF file before uploading.",
-      });
+      toast({ variant: "destructive", title: "Select a PDF file first" });
       return;
     }
 
-    setSubmitting(confId);
+    setUploading(confId);
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session) {
-      toast({
-        variant: "destructive",
-        title: "Session expired",
-        description: "Please log in again.",
-      });
-      setSubmitting(null);
-      return;
-    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
 
     const path = `${session.user.id}/${confId}/${Date.now()}_${file.name}`;
 
-    const { error: uploadErr } = await supabase.storage
-      .from("papers")
-      .upload(path, file, { upsert: true });
+    await supabase.storage.from("papers").upload(path, file, { upsert: true });
 
-    if (uploadErr) {
-      toast({
-        variant: "destructive",
-        title: "Upload failed",
-        description: uploadErr.message,
-      });
-      setSubmitting(null);
-      return;
-    }
+    const url = supabase.storage.from("papers").getPublicUrl(path).data.publicUrl;
 
-    const url = supabase.storage
-      .from("papers")
-      .getPublicUrl(path).data.publicUrl;
+    await supabase.from("paper_submissions").upsert({
+      user_id: session.user.id,
+      conference_id: confId,
+      file_url: url,
+      status: "submitted",
+    });
 
-    const { error } = await supabase
-      .from("paper_submissions")
-      .upsert({
-        user_id: session.user.id,
-        conference_id: confId,
-        file_url: url,
-        status: "submitted",
-      });
+    toast({ title: "Paper uploaded successfully ✅" });
 
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Submission failed",
-        description: error.message,
-      });
-    } else {
-      toast({
-        title: "Paper submitted ✅",
-        description: "Your paper was uploaded successfully.",
-      });
-      loadData();
-    }
-
-    setSubmitting(null);
+    setUploading(null);
+    loadData();
   }
 
   return (
     <div className="space-y-8 max-w-6xl">
-      <h1 className="text-3xl font-bold">My Submissions</h1>
+
+      <div>
+        <h1 className="text-3xl font-bold">My Submissions</h1>
+        <p className="text-gray-500 mt-1">
+          Upload and track your paper submissions
+        </p>
+      </div>
 
       {loading && <p>Loading...</p>}
 
-      {!loading && registrations.length === 0 && (
-        <p>You are not registered as an author.</p>
-      )}
+      {!loading && registrations.map(reg => {
+        const submission = submissions[reg.conference_id];
+        const deadline = reg.conferences?.submission_deadline;
 
-      {!loading &&
-        registrations.map((r) => {
-          const submission = submissions[r.conference_id];
+        const deadlinePassed =
+          deadline && new Date(deadline) < new Date();
 
-          const deadlinePassed =
-            r.conferences?.submission_deadline &&
-            new Date() > new Date(r.conferences.submission_deadline);
+        const isAccepted = submission?.status === "accepted";
+        const isRejected = submission?.status === "rejected";
+        const isUnderReview = submission?.status === "submitted";
 
-          const reviewLocked = Boolean(submission?.reviewed_at);
+        const locked =
+          deadlinePassed || isAccepted || isRejected;
 
-          return (
-            <Card key={r.id} className="p-5 space-y-4">
+        return (
+          <Card key={reg.id} className="p-5 space-y-4">
 
-              {/* Header */}
-              <div className="flex justify-between">
-                <div className="flex gap-2 items-center">
-                  <FileText className="h-4 w-4" />
-                  <span className="font-semibold">
-                    {r.conferences?.title}
-                  </span>
-                </div>
-
-                {submission && (
-                  <StatusBadge status={submission.status} />
-                )}
+            {/* Header */}
+            <div className="flex justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="font-semibold">
+                  {reg.conferences?.title}
+                </span>
               </div>
+              {submission && <StatusBadge status={submission.status} />}
+            </div>
 
-              {/* Timeline Info */}
-              {submission && (
-                <div className="text-sm text-gray-600 space-y-1">
+            {deadline && (
+              <div className="text-sm text-gray-500">
+                Submission Deadline: {deadline}
+              </div>
+            )}
 
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    Submitted:
-                    <span className="font-medium">
-                      {new Date(submission.created_at).toLocaleString()}
-                    </span>
-                  </div>
-
-                  {submission.reviewer_id && (
-                    <div className="flex items-center gap-2">
-                      <UserCheck className="h-4 w-4" />
-                      Reviewer assigned
-                    </div>
-                  )}
-
-                  {submission.reviewed_at && (
-                    <div>
-                      Decision made:
-                      <span className="font-medium ml-1">
-                        {new Date(submission.reviewed_at).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-
-                </div>
-              )}
-
-              {/* Uploaded file */}
-              {submission?.file_url && (
-                <a
-                  href={submission.file_url}
-                  target="_blank"
-                  className="text-blue-600 underline"
-                >
-                  View Uploaded Paper
-                </a>
-              )}
-
-              {/* Review lock */}
-              {reviewLocked && (
-                <p className="text-xs text-gray-500">
-                  Review completed. Upload locked.
-                </p>
-              )}
-
-              {/* Deadline lock */}
-              {deadlinePassed && (
-                <p className="text-sm text-red-600">
-                  Submission deadline has passed.
-                </p>
-              )}
-
-              {/* Upload */}
+            {/* Upload */}
+            {!submission && !deadlinePassed && (
               <div className="flex gap-3">
                 <Input
                   type="file"
                   accept=".pdf"
-                  disabled={reviewLocked || deadlinePassed}
                   onChange={(e) =>
                     setFiles(prev => ({
                       ...prev,
-                      [r.conference_id]:
-                        e.target.files?.[0] || null,
+                      [reg.conference_id]: e.target.files?.[0] || null,
                     }))
                   }
                 />
-
                 <Button
-                  disabled={
-                    submitting === r.conference_id ||
-                    reviewLocked ||
-                    deadlinePassed
-                  }
-                  onClick={() => submitPaper(r.conference_id)}
+                  disabled={uploading === reg.conference_id}
+                  onClick={() => uploadPaper(reg.conference_id)}
                 >
                   <Upload className="h-4 w-4 mr-1" />
-                  {submitting === r.conference_id
-                    ? "Uploading..."
-                    : submission
-                      ? "Re-upload"
-                      : "Upload"}
+                  Upload
                 </Button>
               </div>
-            </Card>
-          );
-        })}
+            )}
+
+            {deadlinePassed && !submission && (
+              <StatusNote icon={<Lock className="h-4 w-4" />} text="Submission deadline has passed." />
+            )}
+
+            {/* Submission Details */}
+            {submission && (
+              <div className="space-y-2 text-sm">
+
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Clock className="h-4 w-4" />
+                  Submitted: {new Date(submission.created_at).toLocaleString()}
+                </div>
+
+                {submission.reviewer_id && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <UserCheck className="h-4 w-4" />
+                    Reviewer Assigned
+                  </div>
+                )}
+
+                {isUnderReview && (
+                  <StatusNote
+                    icon={<AlertCircle className="h-4 w-4" />}
+                    text="Your paper is under review."
+                  />
+                )}
+
+                {isAccepted && (
+                  <>
+                    <StatusNote
+                      icon={<CheckCircle className="h-4 w-4" />}
+                      text="Congratulations! Your paper is accepted."
+                    />
+
+                    {submission.payment_status !== "paid" && (
+                      <Button
+                        className="mt-2"
+                        onClick={() => router.push("/dashboard/participant/payments")}
+                      >
+                        Proceed to Payment
+                      </Button>
+                    )}
+
+                    {submission.payment_status === "paid" && (
+                      <StatusNote
+                        icon={<CheckCircle className="h-4 w-4" />}
+                        text="Payment completed. Await presentation schedule."
+                      />
+                    )}
+                  </>
+                )}
+
+                {isRejected && (
+                  <StatusNote
+                    icon={<XCircle className="h-4 w-4" />}
+                    text="Your paper was not accepted."
+                  />
+                )}
+
+                {/* Re-upload allowed only before review & deadline */}
+                {!locked && (
+                  <div className="flex gap-3 pt-2">
+                    <Input
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) =>
+                        setFiles(prev => ({
+                          ...prev,
+                          [reg.conference_id]: e.target.files?.[0] || null,
+                        }))
+                      }
+                    />
+                    <Button
+                      size="sm"
+                      disabled={uploading === reg.conference_id}
+                      onClick={() => uploadPaper(reg.conference_id)}
+                    >
+                      Re-upload
+                    </Button>
+                  </div>
+                )}
+
+                {locked && !isAccepted && !isRejected && (
+                  <StatusNote
+                    icon={<Lock className="h-4 w-4" />}
+                    text="Re-upload is locked."
+                  />
+                )}
+
+              </div>
+            )}
+
+          </Card>
+        );
+      })}
     </div>
   );
 }
@@ -300,4 +287,13 @@ function StatusBadge({ status }: { status: string }) {
   if (status === "submitted")
     return <Badge className="bg-blue-100 text-blue-700">Under Review</Badge>;
   return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
+}
+
+function StatusNote({ icon, text }: any) {
+  return (
+    <div className="flex items-center gap-2 text-gray-700">
+      {icon}
+      {text}
+    </div>
+  );
 }

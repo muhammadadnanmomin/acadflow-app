@@ -51,10 +51,11 @@ export default function OrganizerConferences() {
   const [venue, setVenue] = useState("");
   const [mode, setMode] = useState("offline");
 
-  const [participantFee, setParticipantFee] = useState("");
-  const [paperFee, setPaperFee] = useState("");
-  const [publicationFee, setPublicationFee] = useState("");
-  const [abstractFee, setAbstractFee] = useState("");
+  const [registrationFee, setRegistrationFee] = useState("");
+  const [physicalFee, setPhysicalFee] = useState("");
+  const [virtualFee, setVirtualFee] = useState("");
+  const [fullPublicationFee, setFullPublicationFee] = useState("");
+  const [abstractPublicationFee, setAbstractPublicationFee] = useState("");
 
   const [deadline, setDeadline] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
@@ -122,10 +123,11 @@ export default function OrganizerConferences() {
       venue,
       mode,
 
-      participant_fee: participantFee || null,
-      paper_fee: paperFee || null,
-      publication_fee: publicationFee || null,
-      abstract_fee: abstractFee || null,
+      registration_fee: registrationFee || null,
+      physical_presentation_fee: physicalFee || null,
+      virtual_presentation_fee: virtualFee || null,
+      full_paper_publication_fee: fullPublicationFee || null,
+      abstract_publication_fee: abstractPublicationFee || null,
 
       submission_deadline: deadline || null,
       max_participants: maxParticipants || null,
@@ -159,10 +161,11 @@ export default function OrganizerConferences() {
     setVenue("");
     setMode("offline");
 
-    setParticipantFee("");
-    setPaperFee("");
-    setPublicationFee("");
-    setAbstractFee("");
+    setRegistrationFee("");
+    setPhysicalFee("");
+    setVirtualFee("");
+    setFullPublicationFee("");
+    setAbstractPublicationFee("");
 
     setDeadline("");
     setMaxParticipants("");
@@ -307,43 +310,49 @@ export default function OrganizerConferences() {
           </div>
 
           {/* Fees */}
+          {/* Fees */}
           <div className="space-y-1">
-            <label className="text-sm font-medium">Participant Fee</label>
+            <label className="text-sm font-medium">Registration Fee</label>
             <Input
-              placeholder=""
               type="number"
-              value={participantFee}
-              onChange={(e) => setParticipantFee(e.target.value)}
+              value={registrationFee}
+              onChange={(e) => setRegistrationFee(e.target.value)}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Paper Presentation Fee</label>
+            <label className="text-sm font-medium">Physical Presentation Fee</label>
             <Input
-              placeholder=""
               type="number"
-              value={paperFee}
-              onChange={(e) => setPaperFee(e.target.value)}
+              value={physicalFee}
+              onChange={(e) => setPhysicalFee(e.target.value)}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">Publication Fee</label>
+            <label className="text-sm font-medium">Virtual Presentation Fee</label>
             <Input
-              placeholder=""
               type="number"
-              value={publicationFee}
-              onChange={(e) => setPublicationFee(e.target.value)}
+              value={virtualFee}
+              onChange={(e) => setVirtualFee(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Full Paper Publication Fee</label>
+            <Input
+              type="number"
+              value={fullPublicationFee}
+              onChange={(e) => setFullPublicationFee(e.target.value)}
             />
           </div>
 
           <div className="space-y-1">
             <label className="text-sm font-medium">Abstract Publication Fee</label>
             <Input
-              placeholder=""
               type="number"
-              value={abstractFee}
-              onChange={(e) => setAbstractFee(e.target.value)}
+              value={abstractPublicationFee}
+              onChange={(e) => setAbstractPublicationFee(e.target.value)}
             />
           </div>
 

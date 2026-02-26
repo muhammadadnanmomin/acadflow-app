@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 
 import { Card } from "@/components/ui/card";
@@ -19,6 +19,8 @@ export default function OrganizerPayments() {
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
+
+  const supabase = createClient()
 
   /* Load payments */
   async function loadPayments() {

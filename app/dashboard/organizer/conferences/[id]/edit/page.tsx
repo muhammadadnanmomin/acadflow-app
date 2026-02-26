@@ -17,7 +17,7 @@ export default function EditConference() {
   const params = useParams();
   const router = useRouter();
 
-  const supabase = createClient()
+  const supabase = createClient();
 
   const { profile, loading } = useProfile();
 
@@ -35,6 +35,13 @@ export default function EditConference() {
   const [mode, setMode] = useState("offline");
   const [deadline, setDeadline] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
+
+  /* ✅ Fee fields */
+  const [registrationFee, setRegistrationFee] = useState("");
+  const [physicalFee, setPhysicalFee] = useState("");
+  const [virtualFee, setVirtualFee] = useState("");
+  const [fullPublicationFee, setFullPublicationFee] = useState("");
+  const [abstractPublicationFee, setAbstractPublicationFee] = useState("");
 
   /* Load */
   async function loadConference() {
@@ -68,6 +75,13 @@ export default function EditConference() {
     setDeadline(data.submission_deadline || "");
     setMaxParticipants(data.max_participants || "");
 
+    /* ✅ Load fees */
+    setRegistrationFee(data.registration_fee || "");
+    setPhysicalFee(data.physical_presentation_fee || "");
+    setVirtualFee(data.virtual_presentation_fee || "");
+    setFullPublicationFee(data.full_paper_publication_fee || "");
+    setAbstractPublicationFee(data.abstract_publication_fee || "");
+
     setPageLoading(false);
   }
 
@@ -99,6 +113,13 @@ export default function EditConference() {
         mode,
         submission_deadline: deadline || null,
         max_participants: maxParticipants || null,
+
+        /* ✅ Save fees */
+        registration_fee: registrationFee || null,
+        physical_presentation_fee: physicalFee || null,
+        virtual_presentation_fee: virtualFee || null,
+        full_paper_publication_fee: fullPublicationFee || null,
+        abstract_publication_fee: abstractPublicationFee || null,
       })
       .eq("id", id)
       .eq("organizer_id", profile.id);
@@ -111,7 +132,6 @@ export default function EditConference() {
         title: "Update failed",
         description: error.message,
       });
-
       return;
     }
 
@@ -129,7 +149,6 @@ export default function EditConference() {
 
   return (
     <div className="max-w-3xl space-y-6">
-
       <h1 className="text-3xl font-bold">
         Edit Conference
       </h1>
@@ -139,34 +158,24 @@ export default function EditConference() {
         {/* Title */}
         <div className="space-y-1">
           <label className="text-sm font-medium">Title *</label>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
         {/* Description */}
         <div className="space-y-1">
           <label className="text-sm font-medium">Description</label>
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
 
         {/* Venue */}
         <div className="space-y-1">
           <label className="text-sm font-medium">Venue</label>
-          <Input
-            value={venue}
-            onChange={(e) => setVenue(e.target.value)}
-          />
+          <Input value={venue} onChange={(e) => setVenue(e.target.value)} />
         </div>
 
         {/* Mode */}
         <div className="space-y-1">
           <label className="text-sm font-medium">Mode</label>
-
           <select
             className="w-full rounded-md border px-3 py-2"
             value={mode}
@@ -180,52 +189,26 @@ export default function EditConference() {
 
         {/* Dates */}
         <div className="grid grid-cols-2 gap-4">
-
           <div className="space-y-1">
-            <label className="text-sm font-medium">
-              Start Date *
-            </label>
-
-            <Input
-              type="date"
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-            />
+            <label className="text-sm font-medium">Start Date *</label>
+            <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium">
-              End Date *
-            </label>
-
-            <Input
-              type="date"
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-            />
+            <label className="text-sm font-medium">End Date *</label>
+            <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
           </div>
-
         </div>
 
         {/* Deadline */}
         <div className="space-y-1">
-          <label className="text-sm font-medium">
-            Submission Deadline
-          </label>
-
-          <Input
-            type="date"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-          />
+          <label className="text-sm font-medium">Submission Deadline</label>
+          <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
         </div>
 
         {/* Max */}
         <div className="space-y-1">
-          <label className="text-sm font-medium">
-            Max Participants
-          </label>
-
+          <label className="text-sm font-medium">Max Participants</label>
           <Input
             type="number"
             value={maxParticipants}
@@ -233,26 +216,46 @@ export default function EditConference() {
           />
         </div>
 
+        {/* ✅ Fees */}
+        <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Registration Fee</label>
+            <Input type="number" value={registrationFee} onChange={(e) => setRegistrationFee(e.target.value)} />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Physical Presentation Fee</label>
+            <Input type="number" value={physicalFee} onChange={(e) => setPhysicalFee(e.target.value)} />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Virtual Presentation Fee</label>
+            <Input type="number" value={virtualFee} onChange={(e) => setVirtualFee(e.target.value)} />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Full Paper Publication Fee</label>
+            <Input type="number" value={fullPublicationFee} onChange={(e) => setFullPublicationFee(e.target.value)} />
+          </div>
+
+          <div className="space-y-1 col-span-2">
+            <label className="text-sm font-medium">Abstract Publication Fee</label>
+            <Input type="number" value={abstractPublicationFee} onChange={(e) => setAbstractPublicationFee(e.target.value)} />
+          </div>
+        </div>
+
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4">
-
-          <Button
-            variant="outline"
-            onClick={() =>
-              router.push("/dashboard/organizer/conferences")
-            }
-          >
+          <Button variant="outline" onClick={() => router.push("/dashboard/organizer/conferences")}>
             Cancel
           </Button>
 
           <Button onClick={handleSave} disabled={saving}>
             {saving ? "Saving..." : "Save Changes"}
           </Button>
-
         </div>
 
       </Card>
-
     </div>
   );
 }

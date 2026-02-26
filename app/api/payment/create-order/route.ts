@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     const order = await razorpay.orders.create({
       amount: amount * 100,
       currency: "INR",
-      receipt: `acadflow_${conferenceId}_${userId}`,
+      receipt: `acf_${conferenceId.slice(0,8)}_${userId.slice(0,8)}`,
     });
 
     return NextResponse.json(order);

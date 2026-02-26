@@ -66,6 +66,7 @@ export default function OrganizerDashboard() {
 
       const conferenceIds = conferences?.map(c => c.id) || [];
 
+      /* submissions count */
       let submissions = 0;
 
       if (conferenceIds.length > 0) {
@@ -77,10 +78,25 @@ export default function OrganizerDashboard() {
         submissions = count || 0;
       }
 
+      /* ✅ reviewer count (unique reviewers across conferences) */
+      let reviewerCount = 0;
+
+      if (conferenceIds.length > 0) {
+        const { data } = await supabase
+          .from("conference_registrations")
+          .select("user_id")
+          .in("conference_id", conferenceIds)
+          .eq("role", "reviewer");
+
+        reviewerCount = new Set(
+          data?.map(r => r.user_id)
+        ).size;
+      }
+
       setStats({
         conferences: conferences?.length || 0,
         submissions,
-        reviewers: 0,
+        reviewers: reviewerCount,
         revenue: 0,
       });
 
@@ -100,7 +116,7 @@ export default function OrganizerDashboard() {
             Organizer Dashboard
           </h1>
 
-          {/* ✅ Organization Workspace Indicator */}
+          {/* Organization indicator */}
           {organization ? (
             <p className="text-gray-500 mt-1 flex items-center gap-2">
               <Building2 className="h-4 w-4" />
@@ -123,7 +139,7 @@ export default function OrganizerDashboard() {
           )}
 
           <Button asChild>
-            <Link href="/dashboard/organizer/conferences">
+            <Link href="/dashboard/organizer/conferences/new">
               <Plus className="h-4 w-4 mr-1" />
               New Conference
             </Link>
@@ -139,7 +155,7 @@ export default function OrganizerDashboard() {
         <Stat title="Revenue" value={`₹${stats.revenue}`} icon={CreditCard} />
       </div>
 
-      {/* Recent */}
+      {/* Recent Conferences */}
       <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster";
+import Script from "next/script"; // ✅ added
 
 import "./globals.css";
 
@@ -53,12 +54,16 @@ export default function RootLayout({
           bg-white text-gray-900
         `}
       >
-
         {children}
 
         {/* ✅ REQUIRED FOR TOASTS */}
         <Toaster />
 
+        {/* ✅ Razorpay Checkout Script */}
+        <Script
+          src="https://checkout.razorpay.com/v1/checkout.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

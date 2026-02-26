@@ -141,10 +141,11 @@ export default function ConferenceDetails() {
           Registration Fees
         </h2>
 
-        <Detail label="Participant Fee" value={conference.participant_fee} />
-        <Detail label="Paper Fee" value={conference.paper_fee} />
-        <Detail label="Publication Fee" value={conference.publication_fee} />
-        <Detail label="Abstract Fee" value={conference.abstract_fee} />
+        <Detail label="Registration Fee" value={conference.registration_fee} />
+        <Detail label="Physical Presentation Fee" value={conference.physical_presentation_fee} />
+        <Detail label="Virtual Presentation Fee" value={conference.virtual_presentation_fee} />
+        <Detail label="Full Paper Publication Fee" value={conference.full_paper_publication_fee} />
+        <Detail label="Abstract Publication Fee" value={conference.abstract_publication_fee} />
 
       </Card>
 
