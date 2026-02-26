@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ export default function OrganizerSettings() {
   const { profile } = useProfile();
 
   const [loading, setLoading] = useState(false);
+
+  const supabse = createClient();
 
   /* Profile */
   const [name, setName] = useState("");

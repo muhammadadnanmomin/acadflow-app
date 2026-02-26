@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ export default function SubmitPage() {
   const [file, setFile] = useState<File | null>(null);
   const [type, setType] = useState("paper");
   const [loading, setLoading] = useState(false);
+
+  const supabase = createClient();
 
   /* Upload */
   async function handleSubmit() {
