@@ -39,6 +39,7 @@ export default function OrganizerSubmissions() {
     setLoading(true);
 
     /* Load conferences */
+    if (!profile) return;
     const { data: conferences, error: confErr } = await supabase
       .from("conferences")
       .select("id, title")

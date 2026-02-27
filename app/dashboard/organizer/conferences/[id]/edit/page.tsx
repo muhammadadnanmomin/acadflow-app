@@ -101,7 +101,8 @@ export default function EditConference() {
     }
 
     setSaving(true);
-
+    
+    if (!profile) return;
     const { error } = await supabase
       .from("conferences")
       .update({
