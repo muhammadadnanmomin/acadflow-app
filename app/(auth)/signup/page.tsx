@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signUp } from "@/lib/auth/auth";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,14 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupInner />
+    </Suspense>
+  );
+}
+
+function SignupInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -36,14 +44,7 @@ export default function SignupPage() {
       return;
     }
 
-    // ✅ ALL users are created as "user"
-    const role = "user";
-
-    const { error } = await signUp(
-      email,
-      password,
-      username
-    );
+    const { error } = await signUp(email, password, username);
 
     setLoading(false);
 
