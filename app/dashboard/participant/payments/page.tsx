@@ -34,7 +34,7 @@ export default function ParticipantPaymentsPage() {
     if (!profile) return;
 
     setLoading(true);
-    
+
     if (!profile) return;
 
     const { data } = await supabase
@@ -146,10 +146,22 @@ export default function ParticipantPaymentsPage() {
     if (payLoading === confId) return;
     setPayLoading(confId);
 
+    if (!profile) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "User not loaded",
+      });
+      return;
+    }
     const res = await fetch("/api/payment/create-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount, conferenceId: confId, userId: profile.id }),
+      body: JSON.stringify({
+        amount,
+        conferenceId: confId,
+        userId: profile.id,
+      }),
     });
 
     const order = await res.json();

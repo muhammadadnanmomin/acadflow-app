@@ -45,6 +45,15 @@ export default function PayButton({
     }
 
     // Create order
+    if (!profile) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "User not loaded",
+      });
+      return;
+    }
+
     const res = await fetch("/api/payment/create-order", {
       method: "POST",
       headers: {
