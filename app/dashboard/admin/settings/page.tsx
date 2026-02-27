@@ -177,7 +177,7 @@ export default function AdminSettingsPage() {
 
               <Switch
                 checked={settings.allow_free_events}
-                onCheckedChange={(val) =>
+                onCheckedChange={(val: boolean) =>
                   setSettings({
                     ...settings,
                     allow_free_events: val,
@@ -210,7 +210,7 @@ export default function AdminSettingsPage() {
 
             <Switch
               checked={settings.maintenance_mode}
-              onCheckedChange={(val) =>
+              onCheckedChange={(val: boolean) =>
                 setSettings({
                   ...settings,
                   maintenance_mode: val,
