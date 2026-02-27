@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Toast } from "@/components/ui/toast";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function ResetPasswordPage() {
     const router = useRouter();
@@ -18,10 +18,7 @@ export default function ResetPasswordPage() {
 
     const supabase = createClient();
 
-    const [toast, setToast] = useState<{
-        message: string;
-        type: "success" | "error" | "info";
-    } | null>(null);
+    const { toast } = useToast();
 
     /* Handle recovery token */
     useEffect(() => {
@@ -65,15 +62,16 @@ export default function ResetPasswordPage() {
         if (error) {
             setError(error.message);
 
-            setToast({
-                message: error.message,
-                type: "error",
+            toast({
+                title: "Error",
+                description: error.message,
+                variant: "destructive",
             });
 
         } else {
-            setToast({
-                message: "Password updated successfully!",
-                type: "success",
+            toast({
+                title: "Success",
+                description: "Password updated successfully!",
             });
 
             setTimeout(() => {
@@ -132,13 +130,6 @@ export default function ResetPasswordPage() {
                 </form>
 
             </div>
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    onClose={() => setToast(null)}
-                />
-            )}
 
         </div>
     );
