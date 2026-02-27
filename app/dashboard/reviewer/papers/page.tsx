@@ -25,6 +25,7 @@ export default function ReviewerPapersPage() {
 
     setLoading(true);
 
+    if (!profile) return;
     const { data, error } = await supabase
       .from("paper_submissions")
       .select(`

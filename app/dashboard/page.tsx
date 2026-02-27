@@ -20,6 +20,7 @@ export default function DashboardRedirect() {
     if (!profile) return;
 
     async function checkReviewer() {
+      if (!profile) return;
       const { data } = await supabase
         .from("paper_submissions")
         .select("id")

@@ -34,7 +34,8 @@ export default function ReviewerDashboard() {
     if (!profile) return;
 
     setLoading(true);
-
+    
+    if (!profile) return;
     const { data, error } = await supabase
       .from("paper_submissions")
       .select(`

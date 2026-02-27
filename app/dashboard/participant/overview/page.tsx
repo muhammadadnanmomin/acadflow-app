@@ -79,6 +79,7 @@ export default function DashboardOverview() {
       setCertificates(count || 0);
 
       /* 🔹 Reviewer tasks */
+      if (!profile) return;
       const { data: reviews } = await supabase
         .from("paper_submissions")
         .select("id, conferences(title)")
