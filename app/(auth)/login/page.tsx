@@ -1,24 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
-
 import { signIn } from "@/lib/auth/auth";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
+  );
+}
+
+function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const supabase = createClient();
 
   const redirect = searchParams.get("redirect");
-
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,19 +45,13 @@ export default function LoginPage() {
       return;
     }
 
-    // Wait until session is available
     const {
       data: { session },
     } = await supabase.auth.getSession();
 
     if (session) {
-      if (redirect) {
-        router.push(redirect);
-      } else {
-        router.push("/dashboard");
-      }
-
-      router.refresh(); // force reload auth state
+      router.push(redirect ?? "/dashboard");
+      router.refresh();
     }
 
     setLoading(false);
@@ -64,7 +63,6 @@ export default function LoginPage() {
       suppressHydrationWarning
     >
       <div className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-lg sm:p-8">
-
         {/* Title */}
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-gray-900">
@@ -78,7 +76,6 @@ export default function LoginPage() {
 
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
-
           {/* Email */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">
@@ -117,19 +114,13 @@ export default function LoginPage() {
           )}
 
           {/* Submit */}
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full"
-          >
+          <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Logging in..." : "Log In"}
           </Button>
-
         </form>
 
         {/* Footer */}
         <div className="mt-6 text-center space-y-2 text-sm text-gray-500">
-
           <div>
             Don’t have an account?{" "}
             <button
@@ -148,9 +139,7 @@ export default function LoginPage() {
               Forgot password?
             </button>
           </div>
-
         </div>
-
       </div>
     </div>
   );
