@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useProfile } from "@/lib/auth/useProfile";
+import { toast } from "@/components/ui/use-toast";
 
 declare global {
   interface Window {
