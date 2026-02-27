@@ -50,7 +50,7 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <RoleGuard allowed={["admin"]}>
+    <RoleGuard adminOnly={true}>
 
       <div className="space-y-8 max-w-6xl">
 

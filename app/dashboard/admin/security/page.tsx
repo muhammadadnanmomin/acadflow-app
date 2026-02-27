@@ -46,7 +46,7 @@ export default function AdminSecurityPage() {
   }, []);
 
   return (
-    <RoleGuard allowed={["admin"]}>
+    <RoleGuard adminOnly={true}>
 
       <div className="space-y-8 max-w-7xl">
 
