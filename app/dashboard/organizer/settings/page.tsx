@@ -24,7 +24,7 @@ export default function OrganizerSettings() {
 
   const [loading, setLoading] = useState(false);
 
-  const supabse = createClient();
+  const supabase = createClient();
 
   /* Profile */
   const [name, setName] = useState("");
