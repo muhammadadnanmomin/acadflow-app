@@ -79,7 +79,7 @@ export default function DashboardRootLayout({
       >
         <DashboardHeader
           userName={profile.name || "User"}
-          userEmail={profile.email}
+          userEmail={profile.email ?? ""}
           userRole={dashboardRole}
           userAvatar={profile.avatar_url}
           onMenuClick={() => setMobileOpen(true)}
