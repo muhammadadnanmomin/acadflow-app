@@ -25,6 +25,8 @@ export default function ParticipantNotificationsPage() {
   async function loadData() {
     if (!profile) return;
 
+    if (!profile) return;
+    
     const { data } = await supabase
       .from("notifications")
       .select("*")

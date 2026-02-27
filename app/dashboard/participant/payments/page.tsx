@@ -34,6 +34,8 @@ export default function ParticipantPaymentsPage() {
     if (!profile) return;
 
     setLoading(true);
+    
+    if (!profile) return;
 
     const { data } = await supabase
       .from("paper_submissions")

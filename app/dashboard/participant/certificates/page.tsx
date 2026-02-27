@@ -29,6 +29,8 @@ export default function ParticipantCertificatesPage() {
 
     setLoading(true);
 
+    if (!profile) return;
+    
     const { data, error } = await supabase
       .from("certificates")
       .select(`

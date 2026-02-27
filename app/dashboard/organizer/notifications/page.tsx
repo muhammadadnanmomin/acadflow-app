@@ -30,6 +30,8 @@ export default function OrganizerNotifications() {
 
     setLoading(true);
 
+    if (!profile) return;
+
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
@@ -50,6 +52,8 @@ export default function OrganizerNotifications() {
   async function markAllRead() {
     if (!profile) return;
 
+    if (!profile) return;
+    
     await supabase
       .from("notifications")
       .update({ is_read: true })

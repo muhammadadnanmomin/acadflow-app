@@ -31,6 +31,8 @@ export default function ParticipantConferencesPage() {
 
     setLoading(true);
 
+    if (!profile) return;
+    
     const { data, error } = await supabase
       .from("conference_registrations")
       .select(`

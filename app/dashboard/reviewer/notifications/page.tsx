@@ -31,6 +31,8 @@ export default function ReviewerNotificationsPage() {
 
     setLoading(true);
 
+    if (!profile) return;
+    
     const { data, error } = await supabase
       .from("notifications")
       .select("*")

@@ -38,6 +38,8 @@ export default function ParticipantSubmissionsPage() {
     if (!profile) return;
     setLoading(true);
 
+    if (!profile) return;
+
     const { data: regs } = await supabase
       .from("conference_registrations")
       .select(`
@@ -52,6 +54,8 @@ export default function ParticipantSubmissionsPage() {
 
     const confIds = regs?.map(r => r.conference_id) || [];
 
+    if (!profile) return;
+    
     const { data: subs } = await supabase
       .from("paper_submissions")
       .select(`

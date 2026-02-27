@@ -15,6 +15,8 @@ export function useOrganization() {
 
     async function loadOrganization() {
       // 🔹 try membership first
+      if (!profile) return;
+      
       const { data, error } = await supabase
         .from("organization_members")
         .select(`organization:organizations(*)`)

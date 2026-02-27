@@ -60,6 +60,8 @@ export default function DashboardOverview() {
       setRecommended(recs || []);
 
       /* 🔹 Submission status */
+      if (!profile) return;
+
       const { data: subs } = await supabase
         .from("paper_submissions")
         .select("id, status, conference_id, conferences(title)")
@@ -70,6 +72,8 @@ export default function DashboardOverview() {
       setSubmissions(subs || []);
 
       /* 🔹 Certificates */
+      if (!profile) return;
+      
       const { count } = await supabase
         .from("paper_submissions")
         .select("*", { count: "exact", head: true })

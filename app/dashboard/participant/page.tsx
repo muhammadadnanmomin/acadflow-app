@@ -36,12 +36,16 @@ export default function ParticipantDashboard() {
 
     try {
       /* Submissions */
+      if (!profile) return;
+
       const { count: subCount } = await supabase
         .from("paper_submissions")
         .select("*", { count: "exact", head: true })
         .eq("user_id", profile.id);
 
       /* Registrations (participant only) */
+      if (!profile) return;
+
       const { count: regCount } = await supabase
         .from("conference_registrations")
         .select("*", { count: "exact", head: true })
@@ -49,6 +53,8 @@ export default function ParticipantDashboard() {
         .eq("role", "participant");
 
       /* Certificates */
+      if (!profile) return;
+      
       const { count: certCount } = await supabase
         .from("paper_submissions")
         .select("*", { count: "exact", head: true })

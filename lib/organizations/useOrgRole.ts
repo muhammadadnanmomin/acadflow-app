@@ -16,6 +16,7 @@ export function useOrgRole() {
     if (!profile || !organization) return;
 
     async function loadRole() {
+      if (!profile) return;
       const { data } = await supabase
         .from("organization_members")
         .select("role")
