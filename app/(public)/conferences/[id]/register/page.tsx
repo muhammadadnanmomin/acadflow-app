@@ -97,9 +97,10 @@ export default function ConferenceRegisterPage() {
 
   /* ---------- Register ---------- */
   async function handleRegister() {
+    if (!user) return;
+
     setSubmitting(true);
 
-    // Check existing registration (allowed by SELECT policy)
     const { data: existing, error: fetchError } = await supabase
       .from("conference_registrations")
       .select("role, paid")
