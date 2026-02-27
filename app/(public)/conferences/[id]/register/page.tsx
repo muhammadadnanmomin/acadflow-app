@@ -182,9 +182,7 @@ export default function ConferenceRegisterPage() {
 
         <RadioGroup
           value={role}
-          onValueChange={(value) =>
-            setRole(value as "author" | "attendee")
-          }
+          onValueChange={(value: "author" | "attendee") => setRole(value)}
           className="space-y-4"
         >
           <div className="flex items-center space-x-3">
