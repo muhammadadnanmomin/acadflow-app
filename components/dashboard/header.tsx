@@ -55,6 +55,7 @@ export function DashboardHeader({
   }, [userRole]);
 
   /* ✅ load roles user actually has */
+  /* ✅ load roles user actually has */
   useEffect(() => {
     async function loadRoles() {
       const {
@@ -68,7 +69,7 @@ export function DashboardHeader({
       // everyone is participant
       roles.add("participant");
 
-      // get profile role
+      // 🔹 get profile role
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
@@ -83,7 +84,7 @@ export function DashboardHeader({
         roles.add("admin");
       }
 
-      // check reviewer registration
+      // 🔹 reviewer role
       const { data: reviewerRegs } = await supabase
         .from("conference_registrations")
         .select("id")
@@ -93,6 +94,26 @@ export function DashboardHeader({
 
       if (reviewerRegs?.length) {
         roles.add("reviewer");
+      }
+
+      // 🔹 organization membership roles
+      const { data: orgMemberships } = await supabase
+        .from("organization_members")
+        .select("role")
+        .eq("user_id", user.id);
+
+      if (orgMemberships?.length) {
+        // member of any organization can organize
+        roles.add("organizer");
+
+        // check if any org role is admin
+        const isOrgAdmin = orgMemberships.some(
+          (org) => org.role === "admin"
+        );
+
+        if (isOrgAdmin) {
+          roles.add("admin");
+        }
       }
 
       setAvailableRoles(Array.from(roles));
