@@ -145,7 +145,7 @@ export default function ParticipantSubmissionsPage() {
     const authorsToInsert = [
       {
         submission_id: submission.id,
-        name: profile.full_name || "Primary Author",
+        name: profile?.full_name || "Primary Author",
         email: session.user.email,
         affiliation: affiliations[confId],
         is_primary: true,
