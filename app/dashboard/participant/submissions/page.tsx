@@ -14,12 +14,6 @@ import { useToast } from "@/components/ui/use-toast";
 import {
   Upload,
   FileText,
-  Clock,
-  UserCheck,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Lock,
 } from "lucide-react";
 
 export default function ParticipantSubmissionsPage() {
@@ -32,20 +26,25 @@ export default function ParticipantSubmissionsPage() {
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [submissions, setSubmissions] = useState<Record<string, any>>({});
   const [files, setFiles] = useState<Record<string, File | null>>({});
+  const [titles, setTitles] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState<string | null>(null);
+
+  const [affiliations, setAffiliations] = useState<Record<string, string>>({});
+  const [emails, setEmails] = useState<Record<string, string>>({});
+  const [contacts, setContacts] = useState<Record<string, string>>({});
+  const [declarations, setDeclarations] = useState<Record<string, any>>({});
+  const [coAuthors, setCoAuthors] = useState<Record<string, any[]>>({});
 
   async function loadData() {
     if (!profile) return;
     setLoading(true);
-
-    if (!profile) return;
 
     const { data: regs } = await supabase
       .from("conference_registrations")
       .select(`
         id,
         conference_id,
-        conferences ( title, submission_deadline )
+        conferences ( title )
       `)
       .eq("user_id", profile.id)
       .eq("role", "author");
@@ -54,19 +53,9 @@ export default function ParticipantSubmissionsPage() {
 
     const confIds = regs?.map(r => r.conference_id) || [];
 
-    if (!profile) return;
-    
     const { data: subs } = await supabase
       .from("paper_submissions")
-      .select(`
-        id,
-        conference_id,
-        file_url,
-        status,
-        created_at,
-        reviewer_id,
-        payment_status
-      `)
+      .select("*")
       .eq("user_id", profile.id)
       .in("conference_id", confIds);
 
@@ -80,14 +69,47 @@ export default function ParticipantSubmissionsPage() {
   }
 
   useEffect(() => {
+  if (profile?.id) {
     loadData();
-  }, [profile]);
+  }
+}, [profile?.id]);
+
+  function addAuthor(confId: string) {
+    setCoAuthors(prev => ({
+      ...prev,
+      [confId]: [...(prev[confId] || []), { name: "", email: "", affiliation: "" }],
+    }));
+  }
+
+  function updateAuthor(confId: string, index: number, field: string, value: string) {
+    const list = [...(coAuthors[confId] || [])];
+    list[index][field] = value;
+    setCoAuthors(prev => ({ ...prev, [confId]: list }));
+  }
+
+  function removeAuthor(confId: string, index: number) {
+    const list = [...(coAuthors[confId] || [])];
+    list.splice(index, 1);
+    setCoAuthors(prev => ({ ...prev, [confId]: list }));
+  }
 
   async function uploadPaper(confId: string) {
     const file = files[confId];
+    const title = titles[confId];
+
+    if (!title || !emails[confId]) {
+      toast({ variant: "destructive", title: "Please fill all required fields" });
+      return;
+    }
+
+    const d = declarations[confId];
+    if (!d?.original || !d?.notSubmitted || !d?.noPlagiarism || !d?.approved) {
+      toast({ variant: "destructive", title: "Please accept all declarations" });
+      return;
+    }
 
     if (!file) {
-      toast({ variant: "destructive", title: "Select a PDF file first" });
+      toast({ variant: "destructive", title: "Please upload the PDF file" });
       return;
     }
 
@@ -99,17 +121,49 @@ export default function ParticipantSubmissionsPage() {
     const path = `${session.user.id}/${confId}/${Date.now()}_${file.name}`;
 
     await supabase.storage.from("papers").upload(path, file, { upsert: true });
-
     const url = supabase.storage.from("papers").getPublicUrl(path).data.publicUrl;
 
-    await supabase.from("paper_submissions").upsert({
-      user_id: session.user.id,
-      conference_id: confId,
-      file_url: url,
-      status: "submitted",
-    });
+    const { data: submission } = await supabase
+      .from("paper_submissions")
+      .upsert({
+        user_id: session.user.id,
+        conference_id: confId,
+        file_url: url,
+        title,
+        affiliation: affiliations[confId],
+        email: emails[confId],
+        contact_number: contacts[confId],
+        declaration_original: d.original,
+        declaration_not_submitted: d.notSubmitted,
+        declaration_no_plagiarism: d.noPlagiarism,
+        declaration_author_approval: d.approved,
+        status: "submitted",
+      })
+      .select()
+      .single();
 
-    toast({ title: "Paper uploaded successfully ✅" });
+    const authorsToInsert = [
+      {
+        submission_id: submission.id,
+        name: profile.full_name || "Primary Author",
+        email: session.user.email,
+        affiliation: affiliations[confId],
+        is_primary: true,
+        author_order: 1,
+      },
+      ...(coAuthors[confId] || []).map((a, i) => ({
+        submission_id: submission.id,
+        name: a.name,
+        email: a.email,
+        affiliation: a.affiliation,
+        is_primary: false,
+        author_order: i + 2,
+      })),
+    ];
+
+    await supabase.from("paper_authors").insert(authorsToInsert);
+
+    toast({ title: "Paper submitted successfully ✅" });
 
     setUploading(null);
     loadData();
@@ -117,7 +171,6 @@ export default function ParticipantSubmissionsPage() {
 
   return (
     <div className="space-y-8 max-w-6xl">
-
       <div>
         <h1 className="text-3xl font-bold">My Submissions</h1>
         <p className="text-gray-500 mt-1">
@@ -125,26 +178,11 @@ export default function ParticipantSubmissionsPage() {
         </p>
       </div>
 
-      {loading && <p>Loading...</p>}
-
       {!loading && registrations.map(reg => {
         const submission = submissions[reg.conference_id];
-        const deadline = reg.conferences?.submission_deadline;
-
-        const deadlinePassed =
-          deadline && new Date(deadline) < new Date();
-
-        const isAccepted = submission?.status === "accepted";
-        const isRejected = submission?.status === "rejected";
-        const isUnderReview = submission?.status === "submitted";
-
-        const locked =
-          deadlinePassed || isAccepted || isRejected;
 
         return (
           <Card key={reg.id} className="p-5 space-y-4">
-
-            {/* Header */}
             <div className="flex justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
@@ -155,127 +193,119 @@ export default function ParticipantSubmissionsPage() {
               {submission && <StatusBadge status={submission.status} />}
             </div>
 
-            {deadline && (
-              <div className="text-sm text-gray-500">
-                Submission Deadline: {deadline}
-              </div>
-            )}
+            {!submission && (
+              <div className="space-y-4">
 
-            {/* Upload */}
-            {!submission && !deadlinePassed && (
-              <div className="flex gap-3">
-                <Input
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) =>
-                    setFiles(prev => ({
-                      ...prev,
-                      [reg.conference_id]: e.target.files?.[0] || null,
-                    }))
-                  }
-                />
+                <div>
+                  <label className="text-sm font-medium">Paper Title *</label>
+                  <Input
+                    placeholder="Enter full paper title"
+                    onChange={e => setTitles(p => ({ ...p, [reg.conference_id]: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Primary Author Affiliation</label>
+                  <Input
+                    placeholder="e.g. ABC College of Engineering"
+                    onChange={e => setAffiliations(p => ({ ...p, [reg.conference_id]: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Primary Author Email *</label>
+                  <Input
+                    type="email"
+                    placeholder="author@email.com"
+                    onChange={e => setEmails(p => ({ ...p, [reg.conference_id]: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Contact Number</label>
+                  <Input
+                    placeholder="+91 9876543210"
+                    onChange={e => setContacts(p => ({ ...p, [reg.conference_id]: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-base mt-2">Co-Authors (Optional)</h3>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Add co-authors in the order they should appear in the publication.
+                  </p>
+
+                  {(coAuthors[reg.conference_id] || []).map((a, i) => (
+                    <div key={i} className="flex gap-2 mb-2">
+                      <Input placeholder="Author Name"
+                        onChange={e => updateAuthor(reg.conference_id, i, "name", e.target.value)} />
+                      <Input placeholder="Email Address"
+                        onChange={e => updateAuthor(reg.conference_id, i, "email", e.target.value)} />
+                      <Input placeholder="Affiliation"
+                        onChange={e => updateAuthor(reg.conference_id, i, "affiliation", e.target.value)} />
+                      <Button size="sm" onClick={() => removeAuthor(reg.conference_id, i)}>✕</Button>
+                    </div>
+                  ))}
+
+                  <Button size="sm" onClick={() => addAuthor(reg.conference_id)}>
+                    + Add Co-Author
+                  </Button>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">
+                    Upload Paper (PDF only) *
+                  </label>
+                  <Input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) =>
+                      setFiles(prev => ({
+                        ...prev,
+                        [reg.conference_id]: e.target.files?.[0] || null
+                      }))
+                    }
+                  />
+                </div>
+
+                <div>
+                  <h3 className="font-semibold mt-3">Author Declaration</h3>
+                  <p className="text-xs text-gray-500 mb-1">
+                    Please confirm the following before submission.
+                  </p>
+
+                  {[
+                    ["original","This paper is original work"],
+                    ["notSubmitted","This paper is not submitted elsewhere"],
+                    ["noPlagiarism","This paper contains no plagiarism"],
+                    ["approved","All authors have approved this submission"]
+                  ].map(([key,label]) => (
+                    <label key={key} className="flex gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        onChange={e => setDeclarations(p => ({
+                          ...p,
+                          [reg.conference_id]: {
+                            ...p[reg.conference_id],
+                            [key]: e.target.checked
+                          }
+                        }))}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+
                 <Button
                   disabled={uploading === reg.conference_id}
                   onClick={() => uploadPaper(reg.conference_id)}
                 >
                   <Upload className="h-4 w-4 mr-1" />
-                  Upload
+                  Submit Paper for Review
                 </Button>
-              </div>
-            )}
-
-            {deadlinePassed && !submission && (
-              <StatusNote icon={<Lock className="h-4 w-4" />} text="Submission deadline has passed." />
-            )}
-
-            {/* Submission Details */}
-            {submission && (
-              <div className="space-y-2 text-sm">
-
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Clock className="h-4 w-4" />
-                  Submitted: {new Date(submission.created_at).toLocaleString()}
-                </div>
-
-                {submission.reviewer_id && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <UserCheck className="h-4 w-4" />
-                    Reviewer Assigned
-                  </div>
-                )}
-
-                {isUnderReview && (
-                  <StatusNote
-                    icon={<AlertCircle className="h-4 w-4" />}
-                    text="Your paper is under review."
-                  />
-                )}
-
-                {isAccepted && (
-                  <>
-                    <StatusNote
-                      icon={<CheckCircle className="h-4 w-4" />}
-                      text="Congratulations! Your paper is accepted."
-                    />
-
-                    {submission.payment_status !== "paid" && (
-                      <Button
-                        className="mt-2"
-                        onClick={() => router.push("/dashboard/participant/payments")}
-                      >
-                        Proceed to Payment
-                      </Button>
-                    )}
-
-                    {submission.payment_status === "paid" && (
-                      <StatusNote
-                        icon={<CheckCircle className="h-4 w-4" />}
-                        text="Payment completed. Await presentation schedule."
-                      />
-                    )}
-                  </>
-                )}
-
-                {isRejected && (
-                  <StatusNote
-                    icon={<XCircle className="h-4 w-4" />}
-                    text="Your paper was not accepted."
-                  />
-                )}
-
-                {/* Re-upload allowed only before review & deadline */}
-                {!locked && (
-                  <div className="flex gap-3 pt-2">
-                    <Input
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) =>
-                        setFiles(prev => ({
-                          ...prev,
-                          [reg.conference_id]: e.target.files?.[0] || null,
-                        }))
-                      }
-                    />
-                    <Button
-                      size="sm"
-                      disabled={uploading === reg.conference_id}
-                      onClick={() => uploadPaper(reg.conference_id)}
-                    >
-                      Re-upload
-                    </Button>
-                  </div>
-                )}
-
-                {locked && !isAccepted && !isRejected && (
-                  <StatusNote
-                    icon={<Lock className="h-4 w-4" />}
-                    text="Re-upload is locked."
-                  />
-                )}
 
               </div>
             )}
-
           </Card>
         );
       })}
@@ -291,13 +321,4 @@ function StatusBadge({ status }: { status: string }) {
   if (status === "submitted")
     return <Badge className="bg-blue-100 text-blue-700">Under Review</Badge>;
   return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
-}
-
-function StatusNote({ icon, text }: any) {
-  return (
-    <div className="flex items-center gap-2 text-gray-700">
-      {icon}
-      {text}
-    </div>
-  );
 }

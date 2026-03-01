@@ -1,379 +1,364 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
-import { useOrganization } from "@/lib/organizations/useOrganization";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import {
-  Download,
-  CheckCircle,
-  XCircle,
-  FileText,
-  Eye,
-  Clock,
-  UserCheck,
-} from "lucide-react";
+import { FileText, Eye, Clock } from "lucide-react";
 
 const supabase = createClient();
 
-export default function OrganizerSubmissions() {
+export default function OrganizerSubmissionsSummary() {
   const { profile } = useProfile();
-  const organization = useOrganization();
 
   const [loading, setLoading] = useState(true);
-  const [submissions, setSubmissions] = useState<any[]>([]);
-  const [authors, setAuthors] = useState<Record<string, any>>({});
-  const [reviewers, setReviewers] = useState<any[]>([]);
-  const [conferenceList, setConferenceList] = useState<any[]>([]);
-  const [selectedConference, setSelectedConference] = useState("all");
+  const [papers, setPapers] = useState<any[]>([]);
+  const [reviewersByConference, setReviewersByConference] =
+    useState<Record<string, any[]>>({});
+  const [tab, setTab] = useState<"pending" | "reviewed">("pending");
 
-  async function loadSubmissions() {
-    if (!profile || !organization) return;
+  /* ---------- LOAD REVIEWERS ---------- */
 
-    setLoading(true);
+  async function loadReviewers(conferenceIds: string[]) {
+    if (!conferenceIds.length) return {};
 
-    /* Load conferences */
-    if (!profile) return;
-    const { data: conferences, error: confErr } = await supabase
-      .from("conferences")
-      .select("id, title")
-      .eq("organizer_id", profile.id);
-
-    if (confErr) {
-      console.error(confErr);
-      setLoading(false);
-      return;
-    }
-
-    setConferenceList(conferences || []);
-    const conferenceIds = conferences?.map((c) => c.id) || [];
-
-    if (conferenceIds.length === 0) {
-      setSubmissions([]);
-      setLoading(false);
-      return;
-    }
-
-    /* Load submissions with conference + presentation info */
-    const { data: subs, error: subErr } = await supabase
-      .from("paper_submissions")
+    const { data, error } = await supabase
+      .from("conference_registrations")
       .select(`
-        id,
         user_id,
         conference_id,
-        reviewer_id,
-        file_url,
-        status,
-        payment_status,
-        presentation_type,
-        publication_type,
-        created_at,
-        reviewed_at,
-        conferences (
-          title
-        )
+        profiles ( id, name, email )
       `)
-      .in("conference_id", conferenceIds)
-      .order("created_at", { ascending: false });
-
-    if (subErr) {
-      console.error(subErr);
-      setLoading(false);
-      return;
-    }
-
-    setSubmissions(subs || []);
-
-    /* Load authors */
-    const authorIds = [...new Set(subs?.map((s) => s.user_id))];
-
-    if (authorIds.length > 0) {
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("id, name, email")
-        .in("id", authorIds);
-
-      const authorMap: Record<string, any> = {};
-      profs?.forEach((p) => {
-        authorMap[p.id] = p;
-      });
-
-      setAuthors(authorMap);
-    }
-
-    /* Load reviewers */
-    const { data: reviewerRegs } = await supabase
-      .from("conference_registrations")
-      .select("conference_id, user_id, profiles(name)")
       .in("conference_id", conferenceIds)
       .eq("role", "reviewer");
 
-    const reviewerMap: Record<string, any> = {};
+    if (error || !data) return {};
 
-    reviewerRegs?.forEach((r: any) => {
-      if (r.user_id && !reviewerMap[r.user_id]) {
-        reviewerMap[r.user_id] = {
-          id: r.user_id,
-          name: r.profiles?.name ?? "Reviewer",
-        };
-      }
+    const map: Record<string, any[]> = {};
+
+    data.forEach((r: any) => {
+      if (!map[r.conference_id]) map[r.conference_id] = [];
+
+      map[r.conference_id].push({
+        id: r.user_id,
+        name: r.profiles?.name || "Reviewer",
+        email: r.profiles?.email,
+      });
     });
 
-    setReviewers(Object.values(reviewerMap));
+    return map;
+  }
+
+  /* ---------- LOAD PAPERS ---------- */
+
+  async function loadPapers() {
+    if (!profile) return;
+
+    setLoading(true);
+
+    try {
+      const { data: conferences } = await supabase
+        .from("conferences")
+        .select("id")
+        .eq("organizer_id", profile.id);
+
+      const ids = conferences?.map(c => c.id) || [];
+
+      const reviewerMap = await loadReviewers(ids);
+      setReviewersByConference(reviewerMap);
+
+      const { data, error } = await supabase
+        .from("paper_submissions")
+        .select(`
+          id,
+          conference_id,
+          title,
+          author_names,
+          email,
+          presentation_type,
+          publication_type,
+          revision_number,
+          status,
+          reviewer_id,
+          review_comment,
+          reviewed_at,
+          decision_at,
+          plagiarism_status,
+          declaration_original,
+          declaration_no_plagiarism,
+          declaration_author_approval,
+          presentation_fee_paid,
+          payment_status,
+          created_at,
+          conferences ( title )
+        `)
+        .in("conference_id", ids)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      setPapers(data || []);
+    } catch (err) {
+      console.error("Error loading papers:", err);
+      setPapers([]);
+    }
+
     setLoading(false);
   }
 
-  useEffect(() => {
-    if (profile && organization) {
-      loadSubmissions();
-    }
-  }, [profile, organization]);
+  /* ---------- ASSIGN REVIEWER ---------- */
 
   async function assignReviewer(submissionId: string, reviewerId: string) {
-    const { error } = await supabase
+    const paper = papers.find(p => p.id === submissionId);
+    if (paper?.reviewer_id === reviewerId) return;
+
+    await supabase
       .from("paper_submissions")
-      .update({ reviewer_id: reviewerId })
+      .update({ reviewer_id: reviewerId || null })
       .eq("id", submissionId);
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    loadSubmissions();
+    loadPapers();
   }
 
-  async function updateStatus(id: string, status: "accepted" | "rejected") {
-    const { error } = await supabase
-      .from("paper_submissions")
-      .update({
-        status,
-        reviewed_at: new Date(),
-      })
-      .eq("id", id);
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) loadPapers();
+    return () => {
+      mounted = false;
+    };
+  }, [profile]);
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+  /* ---------- WORKFLOW FILTER ---------- */
 
-    loadSubmissions();
-  }
+  const pending = papers.filter(p => !p.decision_at);
+  const reviewed = papers.filter(p => p.decision_at);
+  const visible = tab === "pending" ? pending : reviewed;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 max-w-5xl mx-auto px-3 sm:px-6">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Paper Submissions</h1>
+        <h1 className="text-3xl font-bold">Submissions</h1>
         <p className="text-gray-500 mt-1">
-          Review, assign reviewers, and decide acceptance
+          Overview of submitted papers & review status
         </p>
       </div>
 
-      {/* Filter */}
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium">Filter:</span>
-        <select
-          value={selectedConference}
-          onChange={(e) => setSelectedConference(e.target.value)}
-          className="border rounded px-2 py-1 text-sm"
-        >
-          <option value="all">All Conferences</option>
-          {conferenceList.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title}
-            </option>
-          ))}
-        </select>
+      {/* Tabs */}
+      <div className="flex gap-3">
+        <TabButton
+          label="Pending Decision"
+          count={pending.length}
+          active={tab === "pending"}
+          onClick={() => setTab("pending")}
+        />
+        <TabButton
+          label="Reviewed"
+          count={reviewed.length}
+          active={tab === "reviewed"}
+          onClick={() => setTab("reviewed")}
+        />
       </div>
 
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6 space-y-4">
         {loading && (
-          <p className="text-sm text-gray-500">Loading submissions...</p>
+          <p className="text-sm text-gray-500">Loading submissions…</p>
         )}
 
-        {!loading && submissions.length === 0 && (
-          <p className="text-sm text-gray-500">No submissions yet.</p>
+        {!loading && visible.length === 0 && (
+          <p className="text-sm text-gray-500">
+            No papers in this category.
+          </p>
         )}
 
-        {!loading && (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b text-left text-sm text-gray-500">
-                  <th className="py-3 px-2">Paper</th>
-                  <th className="py-3 px-2">Conference</th>
-                  <th className="py-3 px-2">Author</th>
-                  <th className="py-3 px-2">Reviewer</th>
-                  <th className="py-3 px-2">Payment</th>
-                  <th className="py-3 px-2">Presentation</th>
-                  <th className="py-3 px-2">Publication</th>
-                  <th className="py-3 px-2">Status</th>
-                  <th className="py-3 px-2">Timeline</th>
-                  <th className="py-3 px-2 text-right">Actions</th>
-                </tr>
-              </thead>
+        {!loading && visible.map((p) => {
+          const title = p.title || `Paper #${p.id.slice(0, 6)}`;
+          const reviewers = reviewersByConference[p.conference_id] || [];
+          const needsReviewer = !p.reviewer_id;
 
-              <tbody>
-                {submissions
-                  .filter(
-                    (s) =>
-                      selectedConference === "all" ||
-                      s.conference_id === selectedConference
-                  )
-                  .map((s) => {
-                    const author = authors[s.user_id];
-                    const needsReviewer = !s.reviewer_id;
+          return (
+            <div
+              key={p.id}
+              className={`border rounded-lg p-4 transition ${
+                needsReviewer ? "bg-red-50" : "hover:bg-gray-50"
+              }`}
+            >
+              <div className="flex justify-between gap-3">
+                <div className="flex gap-3">
+                  <FileText className="h-5 w-5 text-gray-400 mt-1" />
 
-                    return (
-                      <tr
-                        key={s.id}
-                        className="border-b last:border-0 hover:bg-gray-50"
-                      >
-                        <td className="py-3 px-2">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-gray-400" />
-                            <span className="font-medium">
-                              Paper Submission
-                            </span>
-                          </div>
-                        </td>
+                  <div className="space-y-1">
+                    <p className="font-medium">{title}</p>
 
-                        <td className="py-3 px-2 font-medium">
-                          {s.conferences?.title || "Unknown"}
-                        </td>
+                    <p className="text-xs text-gray-500">
+                      Conference: {p.conferences?.title || "—"}
+                    </p>
 
-                        <td className="py-3 px-2 text-sm">
-                          <p>{author?.name ?? "Unknown"}</p>
-                          <p className="text-gray-500">{author?.email}</p>
-                        </td>
+                    {p.author_names && (
+                      <p className="text-xs text-gray-500">
+                        Authors: {p.author_names}
+                      </p>
+                    )}
 
-                        <td className="py-3 px-2">
-                          <select
-                            value={s.reviewer_id ?? ""}
-                            onChange={(e) =>
-                              assignReviewer(s.id, e.target.value)
-                            }
-                            className={`border rounded px-2 py-1 text-sm ${
-                              needsReviewer ? "border-red-300" : ""
-                            }`}
-                          >
-                            <option value="">Assign reviewer</option>
-                            {reviewers.map((r) => (
-                              <option key={r.id} value={r.id}>
-                                {r.name || "Unnamed Reviewer"}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
+                    {p.email && (
+                      <p className="text-xs text-gray-500">
+                        Contact: {p.email}
+                      </p>
+                    )}
 
-                        <td className="py-3 px-2">
-                          <PaymentBadge status={s.payment_status} />
-                        </td>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <Clock className="h-3 w-3" />
+                      Submitted{" "}
+                      {new Date(p.created_at).toLocaleDateString()}
+                    </div>
 
-                        <td className="py-3 px-2 text-sm">
-                          {s.presentation_type || "—"}
-                        </td>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      <WorkflowBadge paper={p} />
 
-                        <td className="py-3 px-2 text-sm">
-                          {s.publication_type || "—"}
-                        </td>
+                      <Badge className={
+                        p.plagiarism_status === "passed"
+                          ? "bg-green-100 text-green-700"
+                          : p.plagiarism_status === "flagged"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      }>
+                        Plagiarism: {p.plagiarism_status || "pending"}
+                      </Badge>
 
-                        
+                      {needsReviewer && (
+                        <Badge className="bg-red-100 text-red-700">
+                          No Reviewer
+                        </Badge>
+                      )}
 
-                        <td className="py-3 px-2">
-                          <StatusBadge status={s.status} />
-                        </td>
+                      {p.review_comment && (
+                        <Badge className="bg-purple-100 text-purple-700">
+                          Comment Added
+                        </Badge>
+                      )}
 
-                        <td className="py-3 px-2 text-xs text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {new Date(s.created_at).toLocaleDateString()}
-                          </div>
-                          {s.reviewed_at && (
-                            <div className="flex items-center gap-1 mt-1">
-                              <UserCheck className="h-3 w-3" />
-                              {new Date(
-                                s.reviewed_at
-                              ).toLocaleDateString()}
-                            </div>
-                          )}
-                        </td>
+                      {p.presentation_fee_paid && (
+                        <Badge className="bg-green-100 text-green-700">
+                          Presentation Paid
+                        </Badge>
+                      )}
 
-                        <td className="py-3 px-2">
-                          <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="outline" asChild>
-                              <a
-                                href={s.file_url}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </a>
-                            </Button>
+                      {p.payment_status === "pending" && (
+                        <Badge className="bg-yellow-100 text-yellow-700">
+                          Payment Pending
+                        </Badge>
+                      )}
 
-                            <Button size="sm" variant="outline" asChild>
-                              <a href={s.file_url} download>
-                                <Download className="h-4 w-4" />
-                              </a>
-                            </Button>
+                      {p.revision_number > 1 && (
+                        <Badge className="bg-gray-100 text-gray-700">
+                          Revision {p.revision_number}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-                            {s.status !== "accepted" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  updateStatus(s.id, "accepted")
-                                }
-                              >
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                              </Button>
-                            )}
+                <div className="flex flex-col gap-2 items-end">
+                  <select
+                    value={p.reviewer_id || ""}
+                    onChange={(e) =>
+                      assignReviewer(p.id, e.target.value)
+                    }
+                    className={`border rounded-md px-2 py-1 text-sm bg-white ${
+                      !p.reviewer_id ? "border-red-300" : ""
+                    }`}
+                  >
+                    <option value="">Assign reviewer</option>
 
-                            {s.status !== "rejected" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  updateStatus(s.id, "rejected")
-                                }
-                              >
-                                <XCircle className="h-4 w-4 text-red-600" />
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                    {reviewers.map((r: any) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <Button size="sm" asChild>
+                    <Link href={`/dashboard/organizer/submissions/${p.id}`}>
+                      <Eye className="h-4 w-4 mr-1" />
+                      Review
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-500 mt-3 flex flex-wrap gap-4">
+                {p.presentation_type && (
+                  <span>Presentation: {p.presentation_type}</span>
+                )}
+                {p.publication_type && (
+                  <span>Publication: {p.publication_type}</span>
+                )}
+                {p.decision_at && (
+                  <span>
+                    Decision:{" "}
+                    {new Date(p.decision_at).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </Card>
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === "accepted")
+/* ---------- WORKFLOW BADGE ---------- */
+
+function WorkflowBadge({ paper }: { paper: any }) {
+  if (paper.status === "accepted")
     return <Badge className="bg-green-100 text-green-700">Accepted</Badge>;
-  if (status === "rejected")
+
+  if (paper.status === "rejected")
     return <Badge className="bg-red-100 text-red-700">Rejected</Badge>;
-  if (status === "submitted")
+
+  if (paper.reviewed_at)
+    return (
+      <Badge className="bg-yellow-100 text-yellow-700">
+        Awaiting Decision
+      </Badge>
+    );
+
+  if (paper.reviewer_id)
     return <Badge className="bg-blue-100 text-blue-700">Under Review</Badge>;
-  return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
+
+  return <Badge className="bg-gray-100 text-gray-700">Submitted</Badge>;
 }
 
-function PaymentBadge({ status }: { status: string }) {
-  if (status === "paid")
-    return <Badge className="bg-green-100 text-green-700">Paid</Badge>;
-  if (status === "failed")
-    return <Badge className="bg-red-100 text-red-700">Failed</Badge>;
-  return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
+/* ---------- TAB BUTTON ---------- */
+
+function TabButton({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 rounded-lg text-sm font-medium border transition ${
+        active
+          ? "bg-black text-white border-black"
+          : "bg-white hover:bg-gray-50"
+      }`}
+    >
+      {label} ({count})
+    </button>
+  );
 }

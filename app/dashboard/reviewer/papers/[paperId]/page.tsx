@@ -11,9 +11,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 
-import { Eye, CheckCircle, XCircle, Clock } from "lucide-react";
-
-/* ---------- PAGE ---------- */
+import {
+  Eye,
+  Download,
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileText,
+  AlertTriangle
+} from "lucide-react";
 
 export default function ReviewerReviewPage() {
   const { paperId } = useParams();
@@ -22,13 +28,13 @@ export default function ReviewerReviewPage() {
 
   const [loading, setLoading] = useState(true);
   const [paper, setPaper] = useState<any>(null);
+  const [authors, setAuthors] = useState<any[]>([]);
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient()
+  const supabase = createClient();
 
-  /* Load saved draft comments */
+  /* Load draft */
   useEffect(() => {
     if (paperId) {
       const saved = localStorage.getItem(`review-draft-${paperId}`);
@@ -43,190 +49,265 @@ export default function ReviewerReviewPage() {
 
       setLoading(true);
 
-      if (!profile) return;
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("paper_submissions")
         .select(`
           id,
+          title,
           file_url,
+          camera_ready_url,
           status,
+          plagiarism_status,
+          review_comment,
           reviewer_id,
           reviewed_at,
-          created_at
+          created_at,
+          revision_number
         `)
         .eq("id", paperId)
         .eq("reviewer_id", profile.id)
         .maybeSingle();
 
-      if (error || !data) {
-        setError("You are not allowed to review this paper.");
-        setLoading(false);
-        return;
-      }
-
-      if (data.reviewed_at) {
-        setError("You have already submitted a review for this paper.");
-        setLoading(false);
+      if (!data) {
+        router.push("/dashboard/reviewer/papers");
         return;
       }
 
       setPaper(data);
+
+      if (data.review_comment) {
+        setComments(data.review_comment);
+      }
+
+      // load authors (optional for blind review — remove if double blind)
+      const { data: authorRows } = await supabase
+        .from("paper_authors")
+        .select("name, affiliation, author_order, is_primary")
+        .eq("submission_id", paperId)
+        .order("author_order", { ascending: true });
+
+      setAuthors(authorRows || []);
+
       setLoading(false);
     }
 
     loadPaper();
   }, [profile, paperId]);
 
-  /* Auto-save draft */
+  /* autosave draft */
   useEffect(() => {
     if (paperId) {
       localStorage.setItem(`review-draft-${paperId}`, comments);
     }
   }, [comments, paperId]);
 
-  /* Submit review */
   async function submitReview(decision: "accepted" | "rejected") {
     if (!comments.trim()) {
-      setError("Please write review comments before submitting.");
+      alert("Please write review comments.");
       return;
     }
 
     const confirmDecision = confirm(
-      `Are you sure you want to ${decision.toUpperCase()} this paper?\nThis action cannot be changed.`
+      `Submit review as ${decision.toUpperCase()}?`
     );
-
     if (!confirmDecision) return;
 
     setSubmitting(true);
-    setError(null);
 
-    const { error } = await supabase
+    await supabase
       .from("paper_submissions")
       .update({
         status: decision,
-        review_comments: comments,
+        review_comment: comments,
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", paper.id)
       .eq("reviewer_id", profile!.id);
 
-    if (error) {
-      setError(error.message);
-      setSubmitting(false);
-      return;
-    }
-
     localStorage.removeItem(`review-draft-${paperId}`);
     router.push("/dashboard/reviewer/papers");
   }
-
-  /* ---------- STATES ---------- */
 
   if (loading) {
     return <p className="p-10 text-sm text-gray-500">Loading paper…</p>;
   }
 
-  if (error) {
-    return (
-      <div className="max-w-md mx-auto p-8">
-        <Card className="p-6 text-center space-y-3">
-          <h1 className="text-xl font-semibold">Review Error</h1>
-          <p className="text-sm text-gray-500">{error}</p>
-
-          <Button
-            variant="outline"
-            onClick={() => router.push("/dashboard/reviewer/papers")}
-          >
-            Back to Papers
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
-  const wordCount = comments.trim().split(/\s+/).filter(Boolean).length;
-
-  /* ---------- UI ---------- */
+  const reviewed = !!paper.reviewed_at;
+  const title = paper.title || `Paper #${paper.id.slice(0, 6)}`;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
 
-      {/* Header */}
+      {/* HEADER */}
       <div>
-        <h1 className="text-2xl font-bold">Review Paper</h1>
+        <h1 className="text-2xl font-bold">{title}</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Please review the paper carefully and submit your decision.
+          Evaluate and submit your review decision
         </p>
       </div>
 
-      {/* Paper Info */}
+      {/* PAPER STATUS */}
       <Card className="p-5 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="font-semibold">
-            Paper #{paper.id.slice(0, 8)}
-          </span>
-          <Badge className="bg-blue-100 text-blue-700">
-            Under Review
-          </Badge>
+          <WorkflowBadge paper={paper} />
         </div>
 
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <Clock className="h-3 w-3" />
-          Submitted on {new Date(paper.created_at).toLocaleDateString()}
+          Submitted {new Date(paper.created_at).toLocaleDateString()}
         </div>
 
-        {paper.file_url && (
-          <Button size="sm" variant="outline" asChild>
-            <a href={paper.file_url} target="_blank" rel="noreferrer">
-              <Eye className="h-4 w-4 mr-1" />
-              View Paper PDF
-            </a>
-          </Button>
+        {paper.revision_number > 1 && (
+          <Badge className="bg-gray-100 text-gray-700">
+            Revision {paper.revision_number}
+          </Badge>
+        )}
+
+        {/* plagiarism */}
+        <Badge className={
+          paper.plagiarism_status === "passed"
+            ? "bg-green-100 text-green-700"
+            : paper.plagiarism_status === "flagged"
+            ? "bg-red-100 text-red-700"
+            : "bg-yellow-100 text-yellow-700"
+        }>
+          Plagiarism: {paper.plagiarism_status}
+        </Badge>
+
+        {paper.plagiarism_status === "flagged" && (
+          <div className="flex items-center gap-2 text-red-600 text-sm">
+            <AlertTriangle size={16} />
+            Similarity flagged — review carefully
+          </div>
+        )}
+
+        {/* file actions */}
+        <div className="flex gap-3 flex-wrap">
+
+          {paper.file_url && (
+            <Button size="sm" variant="outline" asChild>
+              <a href={paper.file_url} target="_blank">
+                <Eye className="h-4 w-4 mr-1" />
+                View Paper
+              </a>
+            </Button>
+          )}
+
+          {paper.file_url && (
+            <Button size="sm" variant="outline" asChild>
+              <a href={paper.file_url} download>
+                <Download className="h-4 w-4 mr-1" />
+                Download
+              </a>
+            </Button>
+          )}
+
+          {paper.camera_ready_url && (
+            <Button size="sm" variant="outline" asChild>
+              <a href={paper.camera_ready_url} target="_blank">
+                Camera Ready
+              </a>
+            </Button>
+          )}
+        </div>
+
+        {reviewed && (
+          <p className="text-xs text-gray-500">
+            Reviewed on {new Date(paper.reviewed_at).toLocaleDateString()}
+          </p>
         )}
       </Card>
 
-      {/* Review Box */}
+      {/* AUTHORS (optional for blind review) */}
+      {authors.length > 0 && (
+        <Card className="p-5 space-y-3">
+          <h2 className="font-semibold flex items-center gap-2">
+            <FileText size={16} /> Authors
+          </h2>
+
+          {authors.map((a, i) => (
+            <div key={i} className="text-sm border rounded p-2">
+              {a.name}
+              {a.is_primary && (
+                <span className="ml-2 text-xs text-blue-600">
+                  (Primary)
+                </span>
+              )}
+              <div className="text-xs text-gray-500">{a.affiliation}</div>
+            </div>
+          ))}
+        </Card>
+      )}
+
+      {/* REVIEW COMMENTS */}
       <Card className="p-5 space-y-4">
-        <h2 className="font-semibold">Review Comments</h2>
+        <h2 className="font-semibold">Reviewer Notes</h2>
 
         <Textarea
-          placeholder="Write your detailed review comments here..."
+          placeholder="Write strengths, weaknesses, and suggestions..."
           value={comments}
           onChange={(e) => setComments(e.target.value)}
           rows={8}
+          disabled={reviewed}
         />
 
         <div className="flex justify-between text-xs text-gray-500">
-          <span>Tip: include strengths, weaknesses & suggestions</span>
-          <span>{wordCount} words</span>
+          <span>Include strengths & suggestions</span>
+          <span>
+            {comments.trim().split(/\s+/).filter(Boolean).length} words
+          </span>
         </div>
 
-        {error && (
-          <p className="text-sm text-red-600">{error}</p>
+        {!reviewed && (
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="destructive"
+              disabled={submitting}
+              onClick={() => submitReview("rejected")}
+            >
+              <XCircle className="h-4 w-4 mr-1" />
+              Reject
+            </Button>
+
+            <Button
+              disabled={submitting}
+              onClick={() => submitReview("accepted")}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Accept
+            </Button>
+          </div>
         )}
 
-        <div className="flex justify-end gap-3">
-
-          <Button
-            variant="destructive"
-            disabled={submitting}
-            onClick={() => submitReview("rejected")}
-          >
-            <XCircle className="h-4 w-4 mr-1" />
-            Reject
-          </Button>
-
-          <Button
-            disabled={submitting}
-            onClick={() => submitReview("accepted")}
-          >
-            <CheckCircle className="h-4 w-4 mr-1" />
-            Accept
-          </Button>
-
-        </div>
+        {reviewed && (
+          <Badge className="bg-gray-100 text-gray-700">
+            Review submitted — editing locked
+          </Badge>
+        )}
       </Card>
-
     </div>
+  );
+}
+
+/* ---------- WORKFLOW BADGE ---------- */
+
+function WorkflowBadge({ paper }: { paper: any }) {
+  if (paper.status === "accepted")
+    return <Badge className="bg-green-100 text-green-700">Accepted</Badge>;
+
+  if (paper.status === "rejected")
+    return <Badge className="bg-red-100 text-red-700">Rejected</Badge>;
+
+  if (paper.reviewed_at)
+    return (
+      <Badge className="bg-yellow-100 text-yellow-700">
+        Review Complete
+      </Badge>
+    );
+
+  return (
+    <Badge className="bg-blue-100 text-blue-700">
+      Under Review
+    </Badge>
   );
 }
