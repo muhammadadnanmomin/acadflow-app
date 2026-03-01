@@ -69,10 +69,10 @@ export default function ParticipantSubmissionsPage() {
   }
 
   useEffect(() => {
-  if (profile?.id) {
-    loadData();
-  }
-}, [profile?.id]);
+    if (profile?.id) {
+      loadData();
+    }
+  }, [profile?.id]);
 
   function addAuthor(confId: string) {
     setCoAuthors(prev => ({
@@ -145,7 +145,8 @@ export default function ParticipantSubmissionsPage() {
     const authorsToInsert = [
       {
         submission_id: submission.id,
-        name: profile?.full_name || "Primary Author",
+
+        name: profile?.name || "Primary Author",
         email: session.user.email,
         affiliation: affiliations[confId],
         is_primary: true,
@@ -275,11 +276,11 @@ export default function ParticipantSubmissionsPage() {
                   </p>
 
                   {[
-                    ["original","This paper is original work"],
-                    ["notSubmitted","This paper is not submitted elsewhere"],
-                    ["noPlagiarism","This paper contains no plagiarism"],
-                    ["approved","All authors have approved this submission"]
-                  ].map(([key,label]) => (
+                    ["original", "This paper is original work"],
+                    ["notSubmitted", "This paper is not submitted elsewhere"],
+                    ["noPlagiarism", "This paper contains no plagiarism"],
+                    ["approved", "All authors have approved this submission"]
+                  ].map(([key, label]) => (
                     <label key={key} className="flex gap-2 text-sm">
                       <input
                         type="checkbox"
