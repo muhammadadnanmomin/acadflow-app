@@ -106,6 +106,68 @@ export const paperRejected = (name: string, conf: string) => `
 `;
 
 
+export const paperRevisionRequired = (
+  name: string,
+  conference: string,
+  comments?: string
+) => `
+  <div style="font-family: Arial, sans-serif; line-height:1.6; color:#222;">
+    
+    <p>Dear ${name || "Author"},</p>
+
+    <p>
+      Thank you for submitting your paper to
+      <strong>${conference}</strong>.
+    </p>
+
+    <p>
+      After careful evaluation, the review committee has determined that your
+      submission requires <strong>revisions</strong> before a final decision
+      can be made.
+    </p>
+
+    ${comments
+    ? `
+    <div style="background:#fef9e7; border-left:4px solid #f39c12; padding:12px 16px; margin:16px 0; border-radius:4px;">
+      <p style="margin:0 0 6px; font-weight:bold; color:#7d6608;">Reviewer Comments</p>
+      <p style="margin:0; white-space:pre-wrap;">${comments}</p>
+    </div>
+    `
+    : ""
+  }
+
+    <p><strong>Next Steps:</strong></p>
+    <ul style="margin:4px 0 16px; padding-left:20px;">
+      <li>Please review the feedback provided above carefully.</li>
+      <li>Revise your paper accordingly and resubmit through the platform.</li>
+      <li>Ensure all requested changes are addressed before resubmission.</li>
+    </ul>
+
+    <p>
+      We encourage you to submit your revised manuscript at your earliest
+      convenience. Timely resubmission will help ensure your paper is
+      considered in the current review cycle.
+    </p>
+
+    <p>
+      If you have any questions regarding the feedback or the revision
+      process, please do not hesitate to contact the conference organizing
+      committee.
+    </p>
+
+    <br/>
+
+    <p>
+      Kind regards,<br/>
+      <strong>Conference Organizing Committee</strong><br/>
+      ${conference}<br/>
+      <em>Powered by AcadFlow</em>
+    </p>
+
+  </div>
+`;
+
+
 export const reviewerInviteEmail = (
   name: string,
   conference: string,

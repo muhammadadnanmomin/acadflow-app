@@ -139,6 +139,9 @@ export default function OrganizerPaperReviewPage() {
           name: cleanName,
           conference: paper.conferences?.title,
           status,
+          ...(status === "revision_required" && note.trim()
+            ? { comments: note.trim() }
+            : {}),
         }),
       });
     }
@@ -483,9 +486,9 @@ export default function OrganizerPaperReviewPage() {
 
         {/* Current status alert */}
         <div className={`rounded-md p-3 text-sm flex items-center gap-2 ${paper.plagiarism_status === "passed" ? "bg-green-50 text-green-700 border border-green-200"
-            : paper.plagiarism_status === "flagged" ? "bg-red-50 text-red-700 border border-red-200"
-              : paper.plagiarism_status === "checking" ? "bg-blue-50 text-blue-700 border border-blue-200"
-                : "bg-yellow-50 text-yellow-700 border border-yellow-200"
+          : paper.plagiarism_status === "flagged" ? "bg-red-50 text-red-700 border border-red-200"
+            : paper.plagiarism_status === "checking" ? "bg-blue-50 text-blue-700 border border-blue-200"
+              : "bg-yellow-50 text-yellow-700 border border-yellow-200"
           }`}>
           {paper.plagiarism_status === "passed" ? <CheckCircle2 className="h-4 w-4" />
             : paper.plagiarism_status === "flagged" ? <AlertTriangle className="h-4 w-4" />
