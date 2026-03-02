@@ -271,3 +271,53 @@ export const paymentSuccess = (name: string, conf: string) => `
   <p>Your payment for <b>${conf}</b> is confirmed.</p>
   <p>Receipt and participation details will follow.</p>
 `;
+
+
+export const reviewerDecisionNotification = (
+  reviewerName: string,
+  paperTitle: string,
+  conference: string,
+  decision: string
+) => {
+  const decisionLabel =
+    decision === "accepted"
+      ? "Accept"
+      : decision === "rejected"
+        ? "Reject"
+        : decision === "revision_required"
+          ? "Revision Required"
+          : decision;
+
+  return `
+  <div style="font-family: Arial, sans-serif; line-height:1.6; color:#222;">
+
+    <p>Dear Organizer,</p>
+
+    <p>
+      A reviewer has submitted their evaluation for a paper in
+      <strong>${conference}</strong>.
+    </p>
+
+    <div style="background:#f3f6fb; border-left:4px solid #3b82f6; padding:12px 16px; margin:16px 0; border-radius:4px;">
+      <p style="margin:0 0 6px;"><strong>Reviewer:</strong> ${reviewerName || "Reviewer"}</p>
+      <p style="margin:0 0 6px;"><strong>Paper:</strong> ${paperTitle || "Paper Submission"}</p>
+      <p style="margin:0;"><strong>Decision:</strong> ${decisionLabel}</p>
+    </div>
+
+    <p>
+      Please log in to your organizer dashboard to review this decision
+      and take any necessary action.
+    </p>
+
+    <br/>
+
+    <p>
+      Regards,<br/>
+      <strong>Conference Management System</strong><br/>
+      ${conference}<br/>
+      <em>Powered by AcadFlow</em>
+    </p>
+
+  </div>
+`;
+};

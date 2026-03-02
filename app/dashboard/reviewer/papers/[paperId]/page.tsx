@@ -120,6 +120,23 @@ export default function ReviewerReviewPage() {
     }
   }, [comments, paperId]);
 
+  /* ─── Notify Organizer Helper ─── */
+  async function notifyOrganizer(decision: string) {
+    try {
+      await fetch("/api/send-reviewer-decision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submissionId: paper.id,
+          reviewerName: profile?.name || "Reviewer",
+          decision,
+        }),
+      });
+    } catch (err) {
+      console.error("Reviewer decision email failed:", err);
+    }
+  }
+
   async function submitReview(decision: "accepted" | "rejected") {
     if (!comments.trim()) {
       alert("Please write review comments.");
@@ -137,6 +154,8 @@ export default function ReviewerReviewPage() {
       })
       .eq("id", paper.id)
       .eq("reviewer_id", profile!.id);
+
+    notifyOrganizer(decision);
 
     localStorage.removeItem(`review-draft-${paperId}`);
     router.push("/dashboard/reviewer/papers");
@@ -160,6 +179,8 @@ export default function ReviewerReviewPage() {
       })
       .eq("id", paper.id)
       .eq("reviewer_id", profile!.id);
+
+    notifyOrganizer("revision_required");
 
     localStorage.removeItem(`review-draft-${paperId}`);
     router.push("/dashboard/reviewer/papers");
