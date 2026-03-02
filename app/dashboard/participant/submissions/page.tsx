@@ -28,6 +28,8 @@ import {
   RotateCcw,
   ChevronDown,
   ChevronUp,
+  ArrowRight,
+  PartyPopper,
 } from "lucide-react";
 
 export default function ParticipantSubmissionsPage() {
@@ -662,6 +664,15 @@ export default function ParticipantSubmissionsPage() {
                         <CreditCard className="h-3.5 w-3.5 mr-1" /> Pay Fee
                       </Button>
                     )}
+                    {submission.status === "accepted" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.push("/dashboard/participant/payments")}
+                      >
+                        <ArrowRight className="h-3.5 w-3.5 mr-1" /> View Payment Details
+                      </Button>
+                    )}
                   </div>
 
                   {/* ── Plagiarism Status ── */}
@@ -801,30 +812,98 @@ export default function ParticipantSubmissionsPage() {
                       </div>
                     )}
 
+                  {/* ── Acceptance Congratulations Banner ── */}
+                  {submission.status === "accepted" && (
+                    <div className="border border-green-200 bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 rounded-xl p-5 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <div className="flex items-center justify-center h-10 w-10 rounded-full bg-green-100 flex-shrink-0">
+                          <PartyPopper className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-green-800 text-base">🎉 Your paper has been accepted!</h3>
+                          <p className="text-sm text-green-700 mt-1">
+                            {submission.payment_status === "paid"
+                              ? "Payment completed. You are confirmed for the conference."
+                              : "Complete payment to confirm your presentation & publication slot."}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs text-gray-500">Payment Status:</span>
+                            {submission.payment_status === "paid" ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+                                <CheckCircle2 className="h-3 w-3" /> Payment Completed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 border border-yellow-200">
+                                <Clock className="h-3 w-3" /> Payment Required
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* ── Payment Section (only when accepted + unpaid + fee > 0) ── */}
                   {submission.status === "accepted" &&
                     submission.presentation_fee > 0 &&
                     submission.payment_status !== "paid" && (
-                      <div className="border border-indigo-200 bg-indigo-50 rounded-lg p-4 space-y-3">
-                        <div className="flex items-center justify-between">
+                      <div className="border border-indigo-200 bg-indigo-50 rounded-xl p-5 space-y-4 shadow-sm">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
                           <div className="flex items-center gap-2">
-                            <CreditCard className="h-4 w-4 text-indigo-600" />
-                            <span className="font-semibold text-sm text-indigo-700">Presentation / Publication Fee</span>
+                            <CreditCard className="h-5 w-5 text-indigo-600" />
+                            <span className="font-semibold text-indigo-700">Presentation / Publication Fee</span>
                           </div>
-                          <span className="text-lg font-bold text-indigo-800">
+                          <span className="text-xl font-bold text-indigo-800">
                             ₹{Number(submission.presentation_fee).toLocaleString("en-IN")}
                           </span>
                         </div>
-                        <Button
-                          disabled={paying === confId}
-                          onClick={() => handlePayment(confId, submission)}
-                        >
-                          {paying === confId ? (
-                            <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Processing…</>
-                          ) : (
-                            <><CreditCard className="h-4 w-4 mr-1" /> Pay Now</>
-                          )}
-                        </Button>
+
+                        {/* Reminder notice */}
+                        <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                          <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                          <span>Payment is required to include your paper in the conference schedule and proceedings.</span>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button
+                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                            disabled={paying === confId}
+                            onClick={() => handlePayment(confId, submission)}
+                          >
+                            {paying === confId ? (
+                              <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Processing…</>
+                            ) : (
+                              <><CreditCard className="h-4 w-4 mr-1" /> Pay Now</>
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => router.push("/dashboard/participant/payments")}
+                          >
+                            <ArrowRight className="h-4 w-4 mr-1" /> Proceed to Payment Page
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* ── Payment Completed Success State ── */}
+                  {submission.status === "accepted" &&
+                    submission.payment_status === "paid" && (
+                      <div className="border border-green-200 bg-green-50 rounded-xl p-5 space-y-3 shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center h-10 w-10 rounded-full bg-green-100 flex-shrink-0">
+                            <CheckCircle2 className="h-6 w-6 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-green-800">✔ Payment Completed</p>
+                            <p className="text-sm text-green-700">Your presentation slot is confirmed. Ready for the conference!</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-green-600 pt-1 border-t border-green-200">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          <span>Presentation & publication registration is complete.</span>
+                        </div>
                       </div>
                     )}
 
