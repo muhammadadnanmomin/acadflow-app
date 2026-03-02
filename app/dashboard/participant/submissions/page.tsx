@@ -123,6 +123,10 @@ export default function ParticipantSubmissionsPage() {
     await supabase.storage.from("papers").upload(path, file, { upsert: true });
     const url = supabase.storage.from("papers").getPublicUrl(path).data.publicUrl;
 
+    const conferenceTitle =
+      registrations.find(r => r.conference_id === confId)
+        ?.conferences?.title || "Conference";
+
     const { data: submission } = await supabase
       .from("paper_submissions")
       .upsert({
@@ -163,6 +167,32 @@ export default function ParticipantSubmissionsPage() {
     ];
 
     await supabase.from("paper_authors").insert(authorsToInsert);
+
+    // 📧 send submission confirmation email
+    // 📧 send submission confirmation email to ALL authors
+    try {
+      for (const author of authorsToInsert) {
+        if (!author.email) continue;
+
+        const cleanName =
+          author.name &&
+            !author.name.toLowerCase().includes("author")
+            ? author.name.trim()
+            : "Author";
+
+        await fetch("/api/send-submission-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: author.email,
+            name: cleanName,
+            conference: conferenceTitle,
+          }),
+        });
+      }
+    } catch (err) {
+      console.error("Submission email failed:", err);
+    }
 
     toast({ title: "Paper submitted successfully ✅" });
 

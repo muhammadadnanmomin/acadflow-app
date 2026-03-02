@@ -28,27 +28,48 @@ export default function OrganizerSubmissionsSummary() {
   async function loadReviewers(conferenceIds: string[]) {
     if (!conferenceIds.length) return {};
 
-    const { data, error } = await supabase
+    /* 1️⃣ get reviewers from registrations */
+    const { data: registrations, error: regError } = await supabase
       .from("conference_registrations")
-      .select(`
-        user_id,
-        conference_id,
-        profiles ( id, name, email )
-      `)
+      .select("user_id, conference_id")
       .in("conference_id", conferenceIds)
       .eq("role", "reviewer");
 
-    if (error || !data) return {};
+    if (regError || !registrations) return {};
 
+    const userIds = registrations.map(r => r.user_id);
+
+    if (userIds.length === 0) return {};
+
+    /* 2️⃣ fetch profile info */
+    const { data: profiles, error: profError } = await supabase
+      .from("profiles")
+      .select("id, name, email")
+      .in("id", userIds);
+
+    if (profError) {
+      console.error("Profile fetch error:", profError);
+      return {};
+    }
+
+    /* 3️⃣ map profiles by id */
+    const profileMap: Record<string, any> = {};
+    profiles?.forEach(p => {
+      profileMap[p.id] = p;
+    });
+
+    /* 4️⃣ group reviewers by conference */
     const map: Record<string, any[]> = {};
 
-    data.forEach((r: any) => {
+    registrations.forEach(r => {
       if (!map[r.conference_id]) map[r.conference_id] = [];
+
+      const profile = profileMap[r.user_id];
 
       map[r.conference_id].push({
         id: r.user_id,
-        name: r.profiles?.name || "Reviewer",
-        email: r.profiles?.email,
+        name: profile?.name || profile?.email || "Reviewer",
+        email: profile?.email,
       });
     });
 
@@ -95,6 +116,7 @@ export default function OrganizerSubmissionsSummary() {
           declaration_author_approval,
           presentation_fee_paid,
           payment_status,
+          decision_email_sent,
           created_at,
           conferences ( title )
         `)
@@ -116,12 +138,42 @@ export default function OrganizerSubmissionsSummary() {
 
   async function assignReviewer(submissionId: string, reviewerId: string) {
     const paper = papers.find(p => p.id === submissionId);
-    if (paper?.reviewer_id === reviewerId) return;
+    if (!paper) return;
 
+    // prevent duplicate assignment
+    if (String(paper.reviewer_id) === String(reviewerId)) return;
+
+    // update reviewer
     await supabase
       .from("paper_submissions")
       .update({ reviewer_id: reviewerId || null })
       .eq("id", submissionId);
+
+    // send email only if reviewer selected
+    if (reviewerId) {
+      const reviewers =
+        reviewersByConference[paper.conference_id] || [];
+
+      const reviewer = reviewers.find(
+        r => String(r.id) === String(reviewerId)
+      );
+
+      console.log("Reviewer selected:", reviewer);
+
+      try {
+        await fetch("/api/send-reviewer-assigned", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reviewerId: reviewer.id,
+            conference: paper.conferences?.title,
+            paperTitle: paper.title || `Paper #${paper.id.slice(0, 6)}`,
+          }),
+        });
+      } catch (err) {
+        console.error("Reviewer email failed:", err);
+      }
+    }
 
     loadPapers();
   }
@@ -185,9 +237,8 @@ export default function OrganizerSubmissionsSummary() {
           return (
             <div
               key={p.id}
-              className={`border rounded-lg p-4 transition ${
-                needsReviewer ? "bg-red-50" : "hover:bg-gray-50"
-              }`}
+              className={`border rounded-lg p-4 transition ${needsReviewer ? "bg-red-50" : "hover:bg-gray-50"
+                }`}
             >
               <div className="flex justify-between gap-3">
                 <div className="flex gap-3">
@@ -225,8 +276,8 @@ export default function OrganizerSubmissionsSummary() {
                         p.plagiarism_status === "passed"
                           ? "bg-green-100 text-green-700"
                           : p.plagiarism_status === "flagged"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-yellow-100 text-yellow-700"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-yellow-100 text-yellow-700"
                       }>
                         Plagiarism: {p.plagiarism_status || "pending"}
                       </Badge>
@@ -260,6 +311,12 @@ export default function OrganizerSubmissionsSummary() {
                           Revision {p.revision_number}
                         </Badge>
                       )}
+
+                      {p.decision_email_sent && (
+                        <Badge className="bg-green-100 text-green-700">
+                          Email Sent
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -270,9 +327,8 @@ export default function OrganizerSubmissionsSummary() {
                     onChange={(e) =>
                       assignReviewer(p.id, e.target.value)
                     }
-                    className={`border rounded-md px-2 py-1 text-sm bg-white ${
-                      !p.reviewer_id ? "border-red-300" : ""
-                    }`}
+                    className={`border rounded-md px-2 py-1 text-sm bg-white ${!p.reviewer_id ? "border-red-300" : ""
+                      }`}
                   >
                     <option value="">Assign reviewer</option>
 
@@ -352,11 +408,10 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 rounded-lg text-sm font-medium border transition ${
-        active
-          ? "bg-black text-white border-black"
-          : "bg-white hover:bg-gray-50"
-      }`}
+      className={`px-4 py-2 rounded-lg text-sm font-medium border transition ${active
+        ? "bg-black text-white border-black"
+        : "bg-white hover:bg-gray-50"
+        }`}
     >
       {label} ({count})
     </button>

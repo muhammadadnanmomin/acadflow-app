@@ -72,20 +72,68 @@ export default function OrganizerPaperReviewPage() {
     loadPaper();
   }, [paperId]);
 
-  async function updateStatus(status: "accepted" | "rejected") {
-    setSubmitting(true);
+async function updateStatus(status: "accepted" | "rejected") {
+  setSubmitting(true);
 
+  // prevent duplicate decision
+  if (paper.status === status && paper.decision_email_sent) {
+    router.push("/dashboard/organizer/submissions");
+    return;
+  }
+
+  // 1️⃣ Update DB
+  await supabase
+    .from("paper_submissions")
+    .update({
+      status,
+      decision_at: new Date().toISOString(),
+      review_comment: note,
+    })
+    .eq("id", paper.id);
+
+  try {
+    // 2️⃣ send email to ALL authors
+    for (const author of authors) {
+      if (!author.email) continue;
+
+      const cleanName =
+        author.name &&
+        !author.name.toLowerCase().includes("author")
+          ? author.name.trim()
+          : "Author";
+
+      const res = await fetch("/api/send-decision-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: author.email,
+          name: cleanName,
+          conference: paper.conferences?.title,
+          status,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error("Email API error");
+      }
+    }
+
+    // 3️⃣ mark email sent
     await supabase
       .from("paper_submissions")
-      .update({
-        status,
-        decision_at: new Date().toISOString(),
-        review_comment: note,
-      })
+      .update({ decision_email_sent: true })
       .eq("id", paper.id);
 
-    router.push("/dashboard/organizer/submissions");
+  } catch (err) {
+    console.error("Email failed:", err);
   }
+
+  // small delay ensures requests complete
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  // 4️⃣ redirect
+  router.push("/dashboard/organizer/submissions");
+}
 
   async function uploadCameraReady(file: File) {
     const path = `camera-ready/${paper.id}_${file.name}`;
@@ -137,8 +185,8 @@ export default function OrganizerPaperReviewPage() {
             paper.plagiarism_status === "passed"
               ? "bg-green-100 text-green-700"
               : paper.plagiarism_status === "flagged"
-              ? "bg-red-100 text-red-700"
-              : "bg-yellow-100 text-yellow-700"
+                ? "bg-red-100 text-red-700"
+                : "bg-yellow-100 text-yellow-700"
           }>
             Plagiarism: {paper.plagiarism_status || "pending"}
           </Badge>
@@ -154,6 +202,12 @@ export default function OrganizerPaperReviewPage() {
               Presentation Paid
             </Badge>
           )}
+
+{paper.decision_email_sent && (
+  <Badge className="bg-green-100 text-green-700">
+    Email Sent
+  </Badge>
+)}
         </div>
 
         <div className="text-xs text-gray-500 flex gap-4 flex-wrap">
@@ -194,9 +248,8 @@ export default function OrganizerPaperReviewPage() {
         {authors.map((a, i) => (
           <div
             key={a.id}
-            className={`border rounded-md p-3 ${
-              a.is_primary ? "bg-blue-50 border-blue-200" : ""
-            }`}
+            className={`border rounded-md p-3 ${a.is_primary ? "bg-blue-50 border-blue-200" : ""
+              }`}
           >
             <p className="font-medium text-sm">
               {a.author_order}. {a.name}
