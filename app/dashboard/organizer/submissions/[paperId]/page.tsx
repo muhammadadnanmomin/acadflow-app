@@ -32,6 +32,7 @@ import {
   ChevronUp,
   Loader2,
   History,
+  MessageSquare,
 } from "lucide-react";
 
 const supabase = createClient();
@@ -78,7 +79,7 @@ export default function OrganizerPaperReviewPage() {
     }
 
     setPaper(data);
-    setNote(data.review_comment || "");
+    setNote(data.organizer_note || "");
     setPlagiarismStatus(data.plagiarism_status || "pending");
 
     // Load authors
@@ -158,21 +159,23 @@ export default function OrganizerPaperReviewPage() {
     }
   }
 
-  /* ─── Accept / Reject ─── */
+  /* ─── Accept / Reject (final decision) ─── */
   async function updateStatus(status: "accepted" | "rejected") {
     setSubmitting(true);
 
-    if (paper.status === status && paper.decision_email_sent) {
+    // Prevent duplicate final decisions
+    const isFinal = paper.status === "accepted" || paper.status === "rejected";
+    if (isFinal && paper.decision_email_sent) {
       router.push("/dashboard/organizer/submissions");
       return;
     }
 
+    // Only update status, decision_at, decision_email_sent — NOT review_comment
     await supabase
       .from("paper_submissions")
       .update({
         status,
         decision_at: new Date().toISOString(),
-        review_comment: note,
       })
       .eq("id", paper.id);
 
@@ -194,11 +197,11 @@ export default function OrganizerPaperReviewPage() {
   async function requestRevision() {
     setSubmitting(true);
 
+    // Only update status — do NOT set review_comment
     await supabase
       .from("paper_submissions")
       .update({
         status: "revision_required",
-        review_comment: note,
         decision_at: null,
       })
       .eq("id", paper.id);
@@ -270,9 +273,10 @@ export default function OrganizerPaperReviewPage() {
     );
   }
 
+  // Multi-round locking logic
+  const isFinalDecision = paper.status === "accepted" || paper.status === "rejected";
   const title = paper.title || `Paper #${paper.id.slice(0, 8)}`;
-  const primaryAuthor = authors.find(a => a.is_primary);
-  const needsAction = !paper.decision_at && (paper.reviewed_at || !paper.reviewer_id);
+  const latestReview = reviewHistory.length > 0 ? reviewHistory[reviewHistory.length - 1] : null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6 pb-28">
@@ -282,17 +286,41 @@ export default function OrganizerPaperReviewPage() {
         <Button variant="ghost" size="sm" className="mb-2 text-gray-500" onClick={() => router.push("/dashboard/organizer/submissions")}>
           ← Back to Submissions
         </Button>
-        <h1 className="text-2xl font-bold">{title}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">{title}</h1>
+          {paper.revision_number > 1 && (
+            <Badge className="bg-purple-100 text-purple-700 text-xs">
+              <RotateCcw className="h-3 w-3 mr-1" />
+              Revision v{paper.revision_number}
+            </Badge>
+          )}
+        </div>
         <p className="text-gray-500 text-sm mt-1">
           Conference: {paper.conferences?.title}
         </p>
       </div>
 
       {/* ── Action Required Banner ── */}
-      {needsAction && !paper.decision_at && (
+      {!isFinalDecision && reviewHistory.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-          <span className="text-sm text-amber-800 font-medium">Action required — this paper is awaiting your decision.</span>
+          <span className="text-sm text-amber-800 font-medium">
+            {paper.status === "resubmitted"
+              ? `Revised paper (v${paper.revision_number}) received — awaiting reviewer re-review or your decision.`
+              : `Action required — reviewer has submitted ${reviewHistory.length} review${reviewHistory.length > 1 ? "s" : ""}. Please make a decision.`}
+          </span>
+        </div>
+      )}
+
+      {/* ── Final Decision Banner ── */}
+      {isFinalDecision && (
+        <div className={`${paper.status === "accepted" ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"} border rounded-lg p-3 flex items-center gap-2`}>
+          {paper.status === "accepted"
+            ? <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+            : <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />}
+          <span className={`text-sm font-medium ${paper.status === "accepted" ? "text-green-800" : "text-red-800"}`}>
+            Final decision: {paper.status === "accepted" ? "Accepted" : "Rejected"} — further reviewing is locked.
+          </span>
         </div>
       )}
 
@@ -326,20 +354,31 @@ export default function OrganizerPaperReviewPage() {
           <div className="flex flex-wrap gap-2">
             <StepPill label="Submitted" done={!!paper.created_at} />
             <StepPill label="Reviewer Assigned" done={!!paper.reviewer_id} />
-            <StepPill label="Reviewed" done={!!paper.reviewed_at} />
             <StepPill
-              label={paper.status === "rejected" ? "Rejected" : paper.status === "accepted" ? "Accepted" : paper.status === "revision_required" ? "Revision Requested" : "Decision"}
-              done={!!paper.decision_at || paper.status === "revision_required"}
-              variant={paper.status === "rejected" ? "red" : paper.status === "accepted" ? "green" : paper.status === "revision_required" ? "orange" : undefined}
+              label={reviewHistory.length > 0 ? `Reviews Submitted (${reviewHistory.length})` : "Reviewed"}
+              done={reviewHistory.length > 0 || !!paper.reviewed_at}
+            />
+            {(paper.status === "revision_required" || paper.status === "resubmitted" || paper.revision_number > 1) && (
+              <StepPill
+                label={paper.status === "resubmitted" ? `Resubmitted (v${paper.revision_number})` : "Revision Requested"}
+                done={true}
+                variant={paper.status === "resubmitted" ? "purple" : "orange"}
+              />
+            )}
+            <StepPill
+              label={paper.status === "rejected" ? "Rejected" : paper.status === "accepted" ? "Accepted" : "Final Decision"}
+              done={isFinalDecision}
+              variant={paper.status === "rejected" ? "red" : paper.status === "accepted" ? "green" : undefined}
             />
           </div>
         </div>
 
         {/* Date row */}
         <div className="flex gap-4 flex-wrap text-xs text-gray-400 mt-3">
-          {paper.reviewed_at && <span>Reviewed: {new Date(paper.reviewed_at).toLocaleDateString()}</span>}
+          {paper.reviewed_at && <span>Last reviewed: {new Date(paper.reviewed_at).toLocaleDateString()}</span>}
           {paper.decision_at && <span>Decision: {new Date(paper.decision_at).toLocaleDateString()}</span>}
-          {paper.revision_number > 1 && <span>Revision v{paper.revision_number}</span>}
+          {paper.revision_number > 1 && <span>Current revision: v{paper.revision_number}</span>}
+          {reviewHistory.length > 0 && <span>Total review rounds: {reviewHistory.length}</span>}
         </div>
       </Card>
 
@@ -569,80 +608,116 @@ export default function OrganizerPaperReviewPage() {
       </CollapsibleCard>
 
       {/* ── Review History (from reviews table) ── */}
-      {reviewHistory.length > 0 && (
-        <Card className="p-5 space-y-4">
+      <Card className="p-5 space-y-4">
+        <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <History className="h-4 w-4" /> Review History ({reviewHistory.length} round{reviewHistory.length > 1 ? "s" : ""})
+            <History className="h-4 w-4" /> Review History
           </h2>
-          <div className="space-y-4">
+          {reviewHistory.length > 0 && (
+            <span className="text-xs text-gray-400">
+              Total Rounds: {reviewHistory.length}
+              {latestReview && (
+                <> | Latest: <ReviewDecisionBadge decision={latestReview.decision} /></>
+              )}
+            </span>
+          )}
+        </div>
+
+        {reviewHistory.length === 0 ? (
+          <div className="bg-gray-50 rounded-md p-4 text-center">
+            <MessageSquare className="h-6 w-6 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">No review rounds submitted yet.</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {paper.reviewer_id
+                ? "The assigned reviewer has not submitted any reviews."
+                : "No reviewer has been assigned to this paper."}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
             {reviewHistory.map((review, index) => (
-              <div key={review.id} className="border rounded-lg p-4 space-y-2">
-                <div className="flex items-center justify-between">
+              <div key={review.id} className="border rounded-lg overflow-hidden">
+                {/* Round header */}
+                <div className="flex items-center justify-between px-4 py-3 bg-gray-50/80">
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-blue-100 text-blue-700 text-xs">
+                    <Badge className="bg-blue-100 text-blue-700 text-xs font-semibold">
                       Round {index + 1}
                     </Badge>
-                    {review.revision_number > 1 && (
-                      <Badge className="bg-purple-100 text-purple-700 text-xs">
-                        v{review.revision_number}
-                      </Badge>
-                    )}
+                    <Badge className="bg-purple-100 text-purple-700 text-xs">
+                      v{review.revision_number}
+                    </Badge>
                     <ReviewDecisionBadge decision={review.decision} />
                   </div>
                   <span className="text-xs text-gray-400">
-                    {new Date(review.created_at).toLocaleDateString()}
+                    {new Date(review.created_at).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
                 </div>
+                {/* Comments */}
                 {review.comments && (
-                  <div className="bg-gray-50 rounded-md p-3">
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{review.comments}</p>
+                  <div className="px-4 py-3 border-t">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{review.comments}</p>
                   </div>
                 )}
               </div>
             ))}
           </div>
-        </Card>
-      )}
+        )}
 
-      {/* ── Legacy Reviewer Comments (pre-migration data, read-only) ── */}
-      {paper.review_comment && reviewHistory.length === 0 && (
-        <Card className="p-5 space-y-2">
-          <h2 className="text-sm font-semibold text-gray-700">Reviewer Comments</h2>
-          <div className="bg-gray-50 rounded-md p-3">
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{paper.review_comment}</p>
+        {/* Legacy reviewer comment fallback */}
+        {paper.review_comment && reviewHistory.length === 0 && (
+          <div className="border-t pt-4 mt-2">
+            <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Legacy Reviewer Comment</p>
+            <div className="bg-gray-50 rounded-md p-3">
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{paper.review_comment}</p>
+            </div>
           </div>
-        </Card>
-      )}
+        )}
+      </Card>
 
       {/* ── Organizer Decision Notes ── */}
       <Card className="p-5 space-y-3">
         <h2 className="text-sm font-semibold text-gray-700">Organizer Decision Notes</h2>
+        <p className="text-xs text-gray-400">These notes are separate from reviewer comments and are for your internal reference.</p>
 
-        <Textarea
-          value={note}
-          onChange={e => setNote(e.target.value)}
-          placeholder="Add final decision notes..."
-          rows={4}
-        />
+        {isFinalDecision ? (
+          <div className="bg-gray-50 rounded-md p-4">
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{note || "No decision notes added."}</p>
+          </div>
+        ) : (
+          <>
+            <Textarea
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="Add final decision notes..."
+              rows={4}
+            />
 
-        {/* Quick note templates */}
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            "Accept with minor revisions",
-            "Accept for poster presentation",
-            "Revise and resubmit",
-            "Reject – out of scope",
-            "Reject – quality concerns",
-          ].map(tpl => (
-            <button
-              key={tpl}
-              className="text-xs px-2.5 py-1 rounded-full border border-gray-200 hover:bg-gray-100 text-gray-600 transition-colors"
-              onClick={() => setNote(prev => prev ? `${prev}\n${tpl}` : tpl)}
-            >
-              {tpl}
-            </button>
-          ))}
-        </div>
+            {/* Quick note templates */}
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                "Accept with minor revisions",
+                "Accept for poster presentation",
+                "Revise and resubmit",
+                "Reject – out of scope",
+                "Reject – quality concerns",
+              ].map(tpl => (
+                <button
+                  key={tpl}
+                  className="text-xs px-2.5 py-1 rounded-full border border-gray-200 hover:bg-gray-100 text-gray-600 transition-colors"
+                  onClick={() => setNote(prev => prev ? `${prev}\n${tpl}` : tpl)}
+                >
+                  {tpl}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </Card>
 
       {/* ── Email Status ── */}
@@ -680,6 +755,9 @@ export default function OrganizerPaperReviewPage() {
 
             <div className="text-sm space-y-2">
               <p><strong>Paper:</strong> {title}</p>
+              {reviewHistory.length > 0 && (
+                <p><strong>Review Rounds:</strong> {reviewHistory.length}</p>
+              )}
               <p><strong>Action:</strong>{" "}
                 <StatusBadge status={confirmAction} />
               </p>
@@ -692,10 +770,17 @@ export default function OrganizerPaperReviewPage() {
               </div>
             )}
 
-            {!paper.reviewed_at && confirmAction !== "revision_required" && (
+            {reviewHistory.length === 0 && paper.review_comment === null && confirmAction !== "revision_required" && (
               <div className="bg-amber-50 border border-amber-200 rounded p-2 text-sm text-amber-700 flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                Review has not been completed yet.
+                No reviews have been submitted for this paper yet.
+              </div>
+            )}
+
+            {(confirmAction === "accepted" || confirmAction === "rejected") && (
+              <div className="bg-blue-50 border border-blue-200 rounded p-2 text-sm text-blue-700 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                This is a final decision and will lock further reviewing.
               </div>
             )}
 
@@ -721,35 +806,50 @@ export default function OrganizerPaperReviewPage() {
             <span className="font-medium text-gray-700">{title}</span>
             <span className="mx-2">·</span>
             <StatusBadge status={paper.status} />
+            {paper.revision_number > 1 && (
+              <>
+                <span className="mx-2">·</span>
+                <Badge className="bg-purple-100 text-purple-700 text-xs">v{paper.revision_number}</Badge>
+              </>
+            )}
           </div>
 
           <div className="flex gap-2 ml-auto">
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={submitting}
-              onClick={() => setConfirmAction("rejected")}
-            >
-              <XCircle className="h-4 w-4 mr-1" /> Reject
-            </Button>
+            {isFinalDecision ? (
+              <Badge className={paper.status === "accepted" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                {paper.status === "accepted" ? "Accepted" : "Rejected"} — Locked
+              </Badge>
+            ) : (
+              <>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={submitting}
+                  onClick={() => setConfirmAction("rejected")}
+                >
+                  <XCircle className="h-4 w-4 mr-1" /> Reject
+                </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={submitting || !note.trim()}
-              className="border-orange-300 text-orange-700 hover:bg-orange-50"
-              onClick={() => setConfirmAction("revision_required")}
-            >
-              <RotateCcw className="h-4 w-4 mr-1" /> Revision
-            </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={submitting}
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                  onClick={() => setConfirmAction("revision_required")}
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" /> Revision
+                </Button>
 
-            <Button
-              size="sm"
-              disabled={submitting}
-              onClick={() => setConfirmAction("accepted")}
-            >
-              <CheckCircle className="h-4 w-4 mr-1" /> Accept
-            </Button>
+                <Button
+                  size="sm"
+                  disabled={submitting}
+                  onClick={() => setConfirmAction("accepted")}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" /> Accept
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -791,12 +891,13 @@ function ReviewDecisionBadge({ decision }: { decision: string }) {
   return <Badge className={d.cls}>{d.label}</Badge>;
 }
 
-function StepPill({ label, done, variant }: { label: string; done: boolean; variant?: "green" | "red" | "orange" }) {
+function StepPill({ label, done, variant }: { label: string; done: boolean; variant?: "green" | "red" | "orange" | "purple" }) {
   const base = done
     ? variant === "red" ? "bg-red-100 text-red-700 border-red-200"
       : variant === "green" ? "bg-green-100 text-green-700 border-green-200"
         : variant === "orange" ? "bg-orange-100 text-orange-700 border-orange-200"
-          : "bg-blue-100 text-blue-700 border-blue-200"
+          : variant === "purple" ? "bg-purple-100 text-purple-700 border-purple-200"
+            : "bg-blue-100 text-blue-700 border-blue-200"
     : "bg-gray-100 text-gray-400 border-gray-200";
 
   return (
