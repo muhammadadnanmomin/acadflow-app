@@ -141,16 +141,95 @@ export default function ParticipantPaymentsPage() {
     return true;
   }
 
-  function generateInvoice(title: string, amount: number, organizerName?: string) {
+  function generateInvoice(
+    title: string,
+    organizer: string,
+    amount: number,
+    paymentId: string,
+    orderId: string
+  ) {
     const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text("Payment Receipt", 20, 20);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
+
+    // ── Header ──
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment Receipt", 20, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text("Powered by AcadFlow", 20, y);
+    doc.setTextColor(0);
+    y += 6;
+
+    // divider
+    doc.setDrawColor(200);
+    doc.line(20, y, pageWidth - 20, y);
+    y += 12;
+
+    // ── Conference Details ──
     doc.setFontSize(12);
-    doc.text(`Conference: ${title}`, 20, 38);
-    doc.text(`Organized By: ${organizerName || "Conference Organizer"}`, 20, 48);
-    doc.text(`Platform: AcadFlow`, 20, 58);
-    doc.text(`Amount Paid: ₹${amount}`, 20, 68);
-    doc.text(`Date: ${new Date().toLocaleString()}`, 20, 78);
+    doc.setFont("helvetica", "bold");
+    doc.text("Conference Details", 20, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Conference Name: ${title}`, 20, y);
+    y += 6;
+    doc.text(`Organized By: ${organizer}`, 20, y);
+    y += 12;
+
+    // divider
+    doc.line(20, y, pageWidth - 20, y);
+    y += 12;
+
+    // ── Payment Details ──
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment Details", 20, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Razorpay Payment ID: ${paymentId}`, 20, y);
+    y += 6;
+    doc.text(`Razorpay Order ID: ${orderId}`, 20, y);
+    y += 6;
+    y += 4;
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Amount Paid", 20, y);
+
+    y += 8;
+    doc.setFontSize(18);
+    doc.setTextColor(40, 40, 40);
+    doc.text(`Rs. ${amount.toLocaleString("en-IN")}`, 20, y);
+
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    y += 8;
+    y += 6;
+    doc.text(`Date & Time: ${new Date().toLocaleString("en-IN")}`, 20, y);
+    y += 12;
+
+    // divider
+    doc.line(20, y, pageWidth - 20, y);
+    y += 12;
+
+    // ── Transparency Section ──
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Transparency Notice", 20, y);
+    y += 8;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80);
+    doc.text(`Payment has been transferred to ${organizer}.`, 20, y);
+    y += 5;
+    doc.text("AcadFlow provides the technology platform for conference management.", 20, y);
+    doc.setTextColor(0);
+
     doc.save("AcadFlow_Receipt.pdf");
   }
 
@@ -229,7 +308,13 @@ export default function ParticipantPaymentsPage() {
           )
         );
 
-        generateInvoice(fees[confId].title, amount, fees[confId]?.organizer_name);
+        generateInvoice(
+          fees[confId].title,
+          fees[confId]?.organizer_name || "Conference Organizer",
+          amount,
+          response.razorpay_payment_id,
+          order.id
+        );
         setPaymentSuccess(true);
 
         await loadData();
@@ -380,17 +465,23 @@ export default function ParticipantPaymentsPage() {
                     <Button
                       variant="outline"
                       className="flex-1"
-                      onClick={() => generateInvoice(fees[confId]?.title || "Conference", totalFee || 0, fees[confId]?.organizer_name)}
+                      onClick={() => generateInvoice(
+                        fees[confId]?.title || "Conference",
+                        fees[confId]?.organizer_name || "Conference Organizer",
+                        totalFee || 0,
+                        "N/A",
+                        "N/A"
+                      )}
                     >
                       <Receipt className="h-4 w-4 mr-2" /> Download Receipt
                     </Button>
-                    <Button
+                    {/* <Button
                       variant="outline"
                       className="flex-1"
                       onClick={() => generateInvoice(fees[confId]?.title || "Conference", totalFee || 0, fees[confId]?.organizer_name)}
                     >
                       <Download className="h-4 w-4 mr-2" /> View Invoice
-                    </Button>
+                    </Button> */}
                   </div>
                 </div>
               )}
