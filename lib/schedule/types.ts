@@ -50,8 +50,10 @@ export interface Session {
     platform: string | null;
     meeting_link: string | null;
     timezone: string | null;
-    chairperson_id: string | null;
-    coordinator_id: string | null;
+    chairperson_name: string | null;
+    chairperson_email: string | null;
+    coordinator_name: string | null;
+    coordinator_email: string | null;
     status: SessionStatus;
     created_at: string;
     // Joined fields (optional)
@@ -92,8 +94,10 @@ export interface SessionFormData {
     platform?: string;
     meeting_link?: string;
     timezone?: string;
-    chairperson_id?: string;
-    coordinator_id?: string;
+    chairperson_name?: string;
+    chairperson_email?: string;
+    coordinator_name?: string;
+    coordinator_email?: string;
     paper_ids?: string[];
 }
 
@@ -147,6 +151,10 @@ export interface ScheduleExport {
                 room: string | null;
                 platform: string | null;
                 meeting_link: string | null;
+                chairperson_name: string | null;
+                chairperson_email: string | null;
+                coordinator_name: string | null;
+                coordinator_email: string | null;
                 status: SessionStatus;
                 presentations: {
                     paper_title: string;

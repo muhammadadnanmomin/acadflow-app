@@ -59,15 +59,15 @@ export async function detectRoomConflict(
 
 /** Check if chairperson is already assigned during the same time */
 export async function detectChairpersonConflict(
-    chairpersonId: string,
+    chairpersonName: string,
     startTime: string,
     endTime: string,
     excludeId?: string
 ): Promise<ConflictResult[]> {
-    if (!chairpersonId) return [];
+    if (!chairpersonName) return [];
 
     const { data, error } = await supabase.rpc("check_chairperson_conflict", {
-        p_chairperson_id: chairpersonId,
+        p_chairperson_name: chairpersonName,
         p_start_time: startTime,
         p_end_time: endTime,
         p_exclude_id: excludeId ?? null,
@@ -125,10 +125,10 @@ export async function detectAllConflicts(
         ),
     ];
 
-    if (formData.chairperson_id) {
+    if (formData.chairperson_name) {
         checks.push(
             detectChairpersonConflict(
-                formData.chairperson_id,
+                formData.chairperson_name,
                 formData.start_time,
                 formData.end_time,
                 excludeSessionId

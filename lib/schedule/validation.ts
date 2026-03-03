@@ -40,8 +40,10 @@ export const sessionFormSchema = z
         platform: z.string().optional(),
         meeting_link: z.string().url("Must be a valid URL").optional().or(z.literal("")),
         timezone: z.string().optional(),
-        chairperson_id: z.string().uuid().optional().or(z.literal("")),
-        coordinator_id: z.string().uuid().optional().or(z.literal("")),
+        chairperson_name: z.string().optional(),
+        chairperson_email: z.string().email("Must be a valid email").optional().or(z.literal("")),
+        coordinator_name: z.string().optional(),
+        coordinator_email: z.string().email("Must be a valid email").optional().or(z.literal("")),
         paper_ids: z.array(z.string().uuid()).optional(),
     })
     .superRefine((data, ctx) => {

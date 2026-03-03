@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
     Select,
     SelectContent,
@@ -30,10 +29,7 @@ import type {
 } from "@/lib/schedule/types";
 import { createSession, updateSession } from "@/lib/schedule/actions";
 import { detectAllConflicts } from "@/lib/schedule/conflicts";
-import {
-    getAcceptedPapers,
-    getConferenceMembers,
-} from "@/lib/schedule/queries";
+import { getAcceptedPapers } from "@/lib/schedule/queries";
 
 interface SessionModalProps {
     open: boolean;
@@ -91,9 +87,6 @@ export function SessionModal({
     const [loading, setLoading] = useState(false);
     const [conflicts, setConflicts] = useState<ConflictResult[]>([]);
     const [papers, setPapers] = useState<{ id: string; title: string }[]>([]);
-    const [members, setMembers] = useState<
-        { user_id: string; profiles: { id: string; full_name: string; email: string } }[]
-    >([]);
 
     const [form, setForm] = useState<SessionFormData>({
         day_id: "",
@@ -108,25 +101,23 @@ export function SessionModal({
         platform: "",
         meeting_link: "",
         timezone: "",
-        chairperson_id: "",
-        coordinator_id: "",
+        chairperson_name: "",
+        chairperson_email: "",
+        coordinator_name: "",
+        coordinator_email: "",
         paper_ids: [],
     });
 
-    // Load papers and members on open
+    // Load papers on open
     useEffect(() => {
         if (!open) return;
 
         async function loadData() {
             try {
-                const [p, m] = await Promise.all([
-                    getAcceptedPapers(conferenceId),
-                    getConferenceMembers(conferenceId),
-                ]);
+                const p = await getAcceptedPapers(conferenceId);
                 setPapers(p);
-                setMembers(m);
             } catch {
-                // Silent - these are optional
+                // Silent - papers are optional
             }
         }
         loadData();
@@ -146,8 +137,10 @@ export function SessionModal({
                 platform: editSession.platform || "",
                 meeting_link: editSession.meeting_link || "",
                 timezone: editSession.timezone || "",
-                chairperson_id: editSession.chairperson_id || "",
-                coordinator_id: editSession.coordinator_id || "",
+                chairperson_name: editSession.chairperson_name || "",
+                chairperson_email: editSession.chairperson_email || "",
+                coordinator_name: editSession.coordinator_name || "",
+                coordinator_email: editSession.coordinator_email || "",
                 paper_ids: editSession.presentations?.map((p) => p.paper_id) || [],
             });
         } else {
@@ -164,8 +157,10 @@ export function SessionModal({
                 platform: "",
                 meeting_link: "",
                 timezone: "",
-                chairperson_id: "",
-                coordinator_id: "",
+                chairperson_name: "",
+                chairperson_email: "",
+                coordinator_name: "",
+                coordinator_email: "",
                 paper_ids: [],
             });
         }
@@ -228,22 +223,8 @@ export function SessionModal({
             // Send notifications (fire and forget)
             try {
                 const day = days.find((d) => d.id === form.day_id);
-                const sessionPapers = papers.filter((p) =>
-                    form.paper_ids?.includes(p.id)
-                );
 
-                if (sessionPapers.length || form.chairperson_id) {
-                    const speakers = sessionPapers
-                        .map((paper) => {
-                            // We don't have speaker info per paper here, so skip detailed speaker emails
-                            return null;
-                        })
-                        .filter(Boolean);
-
-                    const chairperson = form.chairperson_id
-                        ? members.find((m) => m.user_id === form.chairperson_id)
-                        : null;
-
+                if (form.chairperson_name && form.chairperson_email) {
                     await fetch("/api/send-schedule-notification", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -254,13 +235,11 @@ export function SessionModal({
                             mode: form.mode,
                             venue: form.venue,
                             meeting_link: form.meeting_link,
-                            speakers: speakers,
-                            chairperson: chairperson
-                                ? {
-                                    name: chairperson.profiles.full_name,
-                                    email: chairperson.profiles.email,
-                                }
-                                : undefined,
+                            speakers: [],
+                            chairperson: {
+                                name: form.chairperson_name,
+                                email: form.chairperson_email,
+                            },
                         }),
                     });
                 }
@@ -505,49 +484,46 @@ export function SessionModal({
                         </div>
                     )}
 
-                    {/* Chairperson + Coordinator */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <Label className="text-xs font-medium">Chairperson</Label>
-                            <Select
-                                value={form.chairperson_id || "none"}
-                                onValueChange={(v) =>
-                                    updateField("chairperson_id", v === "none" ? "" : v)
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select chairperson" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">None</SelectItem>
-                                    {members.map((m) => (
-                                        <SelectItem key={m.user_id} value={m.user_id}>
-                                            {m.profiles.full_name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                    {/* Session Leadership — Manual Entry */}
+                    <div className="rounded-lg border border-violet-100 bg-violet-50/50 p-3 space-y-3">
+                        <p className="text-xs font-semibold text-violet-700">Session Leadership</p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label className="text-xs font-medium">Chairperson Name</Label>
+                                <Input
+                                    value={form.chairperson_name}
+                                    onChange={(e) => updateField("chairperson_name", e.target.value)}
+                                    placeholder="Dr. Jane Smith"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-xs font-medium">Chairperson Email</Label>
+                                <Input
+                                    type="email"
+                                    value={form.chairperson_email}
+                                    onChange={(e) => updateField("chairperson_email", e.target.value)}
+                                    placeholder="jane@example.com"
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <Label className="text-xs font-medium">Coordinator</Label>
-                            <Select
-                                value={form.coordinator_id || "none"}
-                                onValueChange={(v) =>
-                                    updateField("coordinator_id", v === "none" ? "" : v)
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select coordinator" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">None</SelectItem>
-                                    {members.map((m) => (
-                                        <SelectItem key={m.user_id} value={m.user_id}>
-                                            {m.profiles.full_name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label className="text-xs font-medium">Coordinator Name</Label>
+                                <Input
+                                    value={form.coordinator_name}
+                                    onChange={(e) => updateField("coordinator_name", e.target.value)}
+                                    placeholder="John Doe"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-xs font-medium">Coordinator Email</Label>
+                                <Input
+                                    type="email"
+                                    value={form.coordinator_email}
+                                    onChange={(e) => updateField("coordinator_email", e.target.value)}
+                                    placeholder="john@example.com"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -566,8 +542,8 @@ export function SessionModal({
                                             type="button"
                                             onClick={() => togglePaper(paper.id)}
                                             className={`w-full text-left text-sm px-2 py-1.5 rounded transition ${selected
-                                                    ? "bg-indigo-50 text-indigo-700 font-medium"
-                                                    : "hover:bg-gray-50"
+                                                ? "bg-indigo-50 text-indigo-700 font-medium"
+                                                : "hover:bg-gray-50"
                                                 }`}
                                         >
                                             <span className="mr-2">{selected ? "✓" : "○"}</span>

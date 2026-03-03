@@ -130,8 +130,10 @@ export async function createSession(
             platform: data.platform || null,
             meeting_link: data.meeting_link || null,
             timezone: data.timezone || null,
-            chairperson_id: data.chairperson_id || null,
-            coordinator_id: data.coordinator_id || null,
+            chairperson_name: data.chairperson_name || null,
+            chairperson_email: data.chairperson_email || null,
+            coordinator_name: data.coordinator_name || null,
+            coordinator_email: data.coordinator_email || null,
         })
         .select()
         .single();
@@ -178,10 +180,14 @@ export async function updateSession(
         updatePayload.meeting_link = data.meeting_link || null;
     if (data.timezone !== undefined)
         updatePayload.timezone = data.timezone || null;
-    if (data.chairperson_id !== undefined)
-        updatePayload.chairperson_id = data.chairperson_id || null;
-    if (data.coordinator_id !== undefined)
-        updatePayload.coordinator_id = data.coordinator_id || null;
+    if (data.chairperson_name !== undefined)
+        updatePayload.chairperson_name = data.chairperson_name || null;
+    if (data.chairperson_email !== undefined)
+        updatePayload.chairperson_email = data.chairperson_email || null;
+    if (data.coordinator_name !== undefined)
+        updatePayload.coordinator_name = data.coordinator_name || null;
+    if (data.coordinator_email !== undefined)
+        updatePayload.coordinator_email = data.coordinator_email || null;
 
     const { error } = await supabaseServer
         .from("sessions")
@@ -275,6 +281,10 @@ export async function exportScheduleJSON(
                                 room: string | null;
                                 platform: string | null;
                                 meeting_link: string | null;
+                                chairperson_name: string | null;
+                                chairperson_email: string | null;
+                                coordinator_name: string | null;
+                                coordinator_email: string | null;
                                 status: string;
                                 session_presentations: Array<{
                                     presentation_order: number;
@@ -290,6 +300,10 @@ export async function exportScheduleJSON(
                                 room: s.room,
                                 platform: s.platform,
                                 meeting_link: s.meeting_link,
+                                chairperson_name: s.chairperson_name ?? null,
+                                chairperson_email: s.chairperson_email ?? null,
+                                coordinator_name: s.coordinator_name ?? null,
+                                coordinator_email: s.coordinator_email ?? null,
                                 status: s.status as ScheduleExport["days"][0]["tracks"][0]["sessions"][0]["status"],
                                 presentations: (s.session_presentations || []).map(
                                     (p: {

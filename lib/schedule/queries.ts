@@ -80,17 +80,4 @@ export async function getAcceptedPapers(conferenceId: string) {
     return data as { id: string; title: string; status: string }[];
 }
 
-/** Get conference registrations for chairperson/coordinator pickers */
-export async function getConferenceMembers(conferenceId: string) {
-    const { data, error } = await supabase
-        .from("conference_registrations")
-        .select("user_id, role, profiles:user_id(id, full_name, email)")
-        .eq("conference_id", conferenceId);
 
-    if (error) throw error;
-    return (data as unknown) as {
-        user_id: string;
-        role: string;
-        profiles: { id: string; full_name: string; email: string };
-    }[];
-}
