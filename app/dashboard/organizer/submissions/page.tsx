@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/client";
@@ -10,7 +10,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { FileText, Eye, Clock } from "lucide-react";
+import {
+  FileText,
+  Eye,
+  Clock,
+  Search,
+  X,
+  SlidersHorizontal,
+  RotateCcw,
+} from "lucide-react";
 
 const supabase = createClient();
 
@@ -22,6 +30,14 @@ export default function OrganizerSubmissionsSummary() {
   const [reviewersByConference, setReviewersByConference] =
     useState<Record<string, any[]>>({});
   const [tab, setTab] = useState<"pending" | "reviewed">("pending");
+
+  // ── Filter States ──
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [plagiarismFilter, setPlagiarismFilter] = useState("all");
+  const [reviewerFilter, setReviewerFilter] = useState("all");
+  const [revisionFilter, setRevisionFilter] = useState("all");
+  const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
 
   /* ---------- LOAD REVIEWERS ---------- */
 
@@ -186,20 +202,111 @@ export default function OrganizerSubmissionsSummary() {
     };
   }, [profile]);
 
-  /* ---------- WORKFLOW FILTER ---------- */
+  /* ---------- ALL UNIQUE REVIEWERS (for filter dropdown) ---------- */
+
+  const allReviewers = useMemo(() => {
+    const map = new Map<string, string>();
+    Object.values(reviewersByConference).forEach(reviewerList => {
+      reviewerList.forEach(r => {
+        if (!map.has(r.id)) map.set(r.id, r.name);
+      });
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [reviewersByConference]);
+
+  /* ---------- WORKFLOW FILTER + ADVANCED FILTERS ---------- */
 
   const pending = papers.filter(p => !p.decision_at);
-  const reviewed = papers.filter(p => p.decision_at);
-  const visible = tab === "pending" ? pending : reviewed;
+  const completed = papers.filter(p => p.decision_at);
+  const tabFiltered = tab === "pending" ? pending : completed;
+
+  const filteredPapers = useMemo(() => {
+    let result = [...tabFiltered];
+
+    // 1. Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(p =>
+        (p.title || "").toLowerCase().includes(q) ||
+        (p.author_names || "").toLowerCase().includes(q) ||
+        (p.email || "").toLowerCase().includes(q)
+      );
+    }
+
+    // 2. Status filter
+    if (statusFilter !== "all") {
+      result = result.filter(p => p.status === statusFilter);
+    }
+
+    // 3. Plagiarism filter
+    if (plagiarismFilter !== "all") {
+      result = result.filter(p => (p.plagiarism_status || "pending") === plagiarismFilter);
+    }
+
+    // 4. Reviewer filter
+    if (reviewerFilter !== "all") {
+      if (reviewerFilter === "unassigned") {
+        result = result.filter(p => !p.reviewer_id);
+      } else {
+        result = result.filter(p => p.reviewer_id === reviewerFilter);
+      }
+    }
+
+    // 5. Revision filter
+    if (revisionFilter !== "all") {
+      if (revisionFilter === "original") {
+        result = result.filter(p => !p.revision_number || p.revision_number === 1);
+      } else {
+        result = result.filter(p => p.revision_number > 1);
+      }
+    }
+
+    // 6. Sort by created_at
+    result.sort((a, b) => {
+      const da = new Date(a.created_at).getTime();
+      const db = new Date(b.created_at).getTime();
+      return dateSort === "newest" ? db - da : da - db;
+    });
+
+    return result;
+  }, [tabFiltered, searchQuery, statusFilter, plagiarismFilter, reviewerFilter, revisionFilter, dateSort]);
+
+  /* ---------- ACTIVE FILTER COUNT ---------- */
+
+  const activeFilterCount = [
+    searchQuery.trim() ? 1 : 0,
+    statusFilter !== "all" ? 1 : 0,
+    plagiarismFilter !== "all" ? 1 : 0,
+    reviewerFilter !== "all" ? 1 : 0,
+    revisionFilter !== "all" ? 1 : 0,
+    dateSort !== "newest" ? 1 : 0,
+  ].reduce((a, b) => a + b, 0);
+
+  function clearFilters() {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setPlagiarismFilter("all");
+    setReviewerFilter("all");
+    setRevisionFilter("all");
+    setDateSort("newest");
+  }
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto px-3 sm:px-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Submissions</h1>
-        <p className="text-gray-500 mt-1">
-          Overview of submitted papers & review status
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Submissions</h1>
+          <p className="text-gray-500 mt-1">
+            Overview of submitted papers & review status
+          </p>
+        </div>
+        {activeFilterCount > 0 && (
+          <Badge className="bg-blue-100 text-blue-700 text-xs">
+            <SlidersHorizontal className="h-3 w-3 mr-1" />
+            {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} applied
+          </Badge>
+        )}
       </div>
 
       {/* Tabs */}
@@ -211,25 +318,160 @@ export default function OrganizerSubmissionsSummary() {
           onClick={() => setTab("pending")}
         />
         <TabButton
-          label="Reviewed"
-          count={reviewed.length}
+          label="Completed"
+          count={completed.length}
           active={tab === "reviewed"}
           onClick={() => setTab("reviewed")}
         />
       </div>
 
+      {/* ── Filter Panel ── */}
+      <Card className="p-4 space-y-4">
+        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Filters</h3>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search by title, author, or email…"
+            className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter Dropdowns */}
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Status</label>
+            <FilterSelect
+              label="Status"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: "all", label: "All Statuses" },
+                { value: "submitted", label: "Submitted" },
+                { value: "under_review", label: "Under Review" },
+                { value: "revision_required", label: "Revision Required" },
+                { value: "resubmitted", label: "Resubmitted" },
+                { value: "accepted", label: "Accepted" },
+                { value: "rejected", label: "Rejected" },
+              ]}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Plagiarism</label>
+            <FilterSelect
+              label="Plagiarism"
+              value={plagiarismFilter}
+              onChange={setPlagiarismFilter}
+              options={[
+                { value: "all", label: "All" },
+                { value: "pending", label: "Pending" },
+                { value: "checking", label: "Checking" },
+                { value: "passed", label: "Passed" },
+                { value: "flagged", label: "Flagged" },
+              ]}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Reviewer</label>
+            <FilterSelect
+              label="Reviewer"
+              value={reviewerFilter}
+              onChange={setReviewerFilter}
+              options={[
+                { value: "all", label: "All Reviewers" },
+                { value: "unassigned", label: "Unassigned" },
+                ...allReviewers.map(r => ({ value: r.id, label: r.name })),
+              ]}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Revision</label>
+            <FilterSelect
+              label="Revision"
+              value={revisionFilter}
+              onChange={setRevisionFilter}
+              options={[
+                { value: "all", label: "All" },
+                { value: "original", label: "Original (v1)" },
+                { value: "revised", label: "Revised (v2+)" },
+              ]}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Sort By</label>
+            <FilterSelect
+              label="Sort"
+              value={dateSort}
+              onChange={(v) => setDateSort(v as "newest" | "oldest")}
+              options={[
+                { value: "newest", label: "Newest First" },
+                { value: "oldest", label: "Oldest First" },
+              ]}
+            />
+          </div>
+
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Clear Filters
+            </button>
+          )}
+        </div>
+
+        {/* Results count */}
+        {!loading && (
+          <p className="text-xs text-gray-400">
+            Showing {filteredPapers.length} of {tabFiltered.length} submission{tabFiltered.length !== 1 ? "s" : ""}
+            {activeFilterCount > 0 && ` (${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} active)`}
+          </p>
+        )}
+      </Card>
+
+      {/* ── Submissions List ── */}
       <Card className="p-4 sm:p-6 space-y-4">
         {loading && (
           <p className="text-sm text-gray-500">Loading submissions…</p>
         )}
 
-        {!loading && visible.length === 0 && (
-          <p className="text-sm text-gray-500">
-            No papers in this category.
-          </p>
+        {!loading && filteredPapers.length === 0 && (
+          <div className="text-center py-8">
+            <Search className="h-8 w-8 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm text-gray-500 font-medium">
+              {activeFilterCount > 0
+                ? "No submissions match current filters."
+                : "No papers in this category."}
+            </p>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={clearFilters}
+                className="mt-2 text-xs text-blue-600 hover:underline"
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
         )}
 
-        {!loading && visible.map((p) => {
+        {!loading && filteredPapers.map((p) => {
           const title = p.title || `Paper #${p.id.slice(0, 6)}`;
           const reviewers = reviewersByConference[p.conference_id] || [];
           const needsReviewer = !p.reviewer_id;
@@ -245,7 +487,9 @@ export default function OrganizerSubmissionsSummary() {
                   <FileText className="h-5 w-5 text-gray-400 mt-1" />
 
                   <div className="space-y-1">
-                    <p className="font-medium">{title}</p>
+                    <p className="font-medium">
+                      <HighlightMatch text={title} query={searchQuery} />
+                    </p>
 
                     <p className="text-xs text-gray-500">
                       Conference: {p.conferences?.title || "—"}
@@ -253,13 +497,13 @@ export default function OrganizerSubmissionsSummary() {
 
                     {p.author_names && (
                       <p className="text-xs text-gray-500">
-                        Authors: {p.author_names}
+                        Authors: <HighlightMatch text={p.author_names} query={searchQuery} />
                       </p>
                     )}
 
                     {p.email && (
                       <p className="text-xs text-gray-500">
-                        Contact: {p.email}
+                        Contact: <HighlightMatch text={p.email} query={searchQuery} />
                       </p>
                     )}
 
@@ -307,8 +551,9 @@ export default function OrganizerSubmissionsSummary() {
                       )}
 
                       {p.revision_number > 1 && (
-                        <Badge className="bg-gray-100 text-gray-700">
-                          Revision {p.revision_number}
+                        <Badge className="bg-purple-100 text-purple-700">
+                          <RotateCcw className="h-3 w-3 mr-0.5" />
+                          Revision v{p.revision_number}
                         </Badge>
                       )}
 
@@ -370,6 +615,8 @@ export default function OrganizerSubmissionsSummary() {
   );
 }
 
+/* ═══════════════════════════ SUB-COMPONENTS ═══════════════════════════ */
+
 /* ---------- WORKFLOW BADGE ---------- */
 
 function WorkflowBadge({ paper }: { paper: any }) {
@@ -421,5 +668,58 @@ function TabButton({
     >
       {label} ({count})
     </button>
+  );
+}
+
+/* ---------- FILTER SELECT ---------- */
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const isActive = value !== "all" && value !== "newest";
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className={`border rounded-md px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${isActive ? "border-blue-400 bg-blue-50 text-blue-700" : "border-gray-200"
+        }`}
+      title={label}
+    >
+      {options.map(o => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/* ---------- HIGHLIGHT MATCH ---------- */
+
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  if (!query.trim()) return <>{text}</>;
+
+  const q = query.toLowerCase();
+  const idx = text.toLowerCase().indexOf(q);
+  if (idx === -1) return <>{text}</>;
+
+  const before = text.slice(0, idx);
+  const match = text.slice(idx, idx + query.length);
+  const after = text.slice(idx + query.length);
+
+  return (
+    <>
+      {before}
+      <mark className="bg-yellow-200 text-yellow-900 rounded-sm px-0.5">{match}</mark>
+      {after}
+    </>
   );
 }
