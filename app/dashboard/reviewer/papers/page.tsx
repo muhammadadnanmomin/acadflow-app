@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/client";
@@ -10,7 +10,16 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { FileText, Eye, Clock, RotateCcw, AlertTriangle } from "lucide-react";
+import {
+  FileText,
+  Eye,
+  Clock,
+  RotateCcw,
+  AlertTriangle,
+  Search,
+  X,
+  SlidersHorizontal,
+} from "lucide-react";
 
 const supabase = createClient();
 
@@ -20,6 +29,13 @@ export default function ReviewerPapersPage() {
   const [loading, setLoading] = useState(true);
   const [papers, setPapers] = useState<any[]>([]);
   const [tab, setTab] = useState<"action" | "waiting" | "completed">("action");
+
+  // ── Filter States ──
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [conferenceFilter, setConferenceFilter] = useState("all");
+  const [revisionFilter, setRevisionFilter] = useState("all");
+  const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
 
   async function loadPapers() {
     if (!profile) return;
@@ -55,7 +71,7 @@ export default function ReviewerPapersPage() {
     loadPapers();
   }, [profile]);
 
-  // Multi-round filtering
+  // Multi-round tab filtering
   const actionRequired = papers.filter(p =>
     ["submitted", "under_review", "resubmitted"].includes(p.status)
   );
@@ -69,15 +85,92 @@ export default function ReviewerPapersPage() {
       tab === "waiting" ? waiting :
         completed;
 
+  // Unique conferences for filter dropdown
+  const uniqueConferences = useMemo(() => {
+    const set = new Set<string>();
+    papers.forEach(p => {
+      const t = p.conferences?.title;
+      if (t) set.add(t);
+    });
+    return Array.from(set).sort();
+  }, [papers]);
+
+  // ── Filtered + sorted results ──
+  const filteredPapers = useMemo(() => {
+    let result = [...visiblePapers];
+
+    // 1. Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(p =>
+        (p.title || "").toLowerCase().includes(q) ||
+        (p.conferences?.title || "").toLowerCase().includes(q)
+      );
+    }
+
+    // 2. Status
+    if (statusFilter !== "all") {
+      result = result.filter(p => p.status === statusFilter);
+    }
+
+    // 3. Conference
+    if (conferenceFilter !== "all") {
+      result = result.filter(p => p.conferences?.title === conferenceFilter);
+    }
+
+    // 4. Revision
+    if (revisionFilter !== "all") {
+      if (revisionFilter === "original") {
+        result = result.filter(p => !p.revision_number || p.revision_number === 1);
+      } else {
+        result = result.filter(p => p.revision_number > 1);
+      }
+    }
+
+    // 5. Sort
+    result.sort((a, b) => {
+      const da = new Date(a.created_at).getTime();
+      const db = new Date(b.created_at).getTime();
+      return dateSort === "newest" ? db - da : da - db;
+    });
+
+    return result;
+  }, [visiblePapers, searchQuery, statusFilter, conferenceFilter, revisionFilter, dateSort]);
+
+  // Active filter count
+  const activeFilterCount = [
+    searchQuery.trim() ? 1 : 0,
+    statusFilter !== "all" ? 1 : 0,
+    conferenceFilter !== "all" ? 1 : 0,
+    revisionFilter !== "all" ? 1 : 0,
+    dateSort !== "newest" ? 1 : 0,
+  ].reduce((a, b) => a + b, 0);
+
+  function clearFilters() {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setConferenceFilter("all");
+    setRevisionFilter("all");
+    setDateSort("newest");
+  }
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto px-3 sm:px-6">
 
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Assigned Papers</h1>
-        <p className="text-gray-500 mt-1">
-          Manage your review workload
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Assigned Papers</h1>
+          <p className="text-gray-500 mt-1">
+            Manage your review workload
+          </p>
+        </div>
+        {activeFilterCount > 0 && (
+          <Badge className="bg-blue-100 text-blue-700 text-xs">
+            <SlidersHorizontal className="h-3 w-3 mr-1" />
+            {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} applied
+          </Badge>
+        )}
       </div>
 
       {/* Tabs */}
@@ -102,19 +195,133 @@ export default function ReviewerPapersPage() {
         />
       </div>
 
+      {/* ── Filter Panel ── */}
+      <Card className="p-4 space-y-4">
+        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Filters</h3>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search by title or conference…"
+            className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter Dropdowns */}
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Status</label>
+            <FilterSelect
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: "all", label: "All" },
+                { value: "submitted", label: "Pending Review" },
+                { value: "under_review", label: "Under Review" },
+                { value: "resubmitted", label: "Resubmitted" },
+                { value: "revision_required", label: "Revision Requested" },
+                { value: "accepted", label: "Accepted" },
+                { value: "rejected", label: "Rejected" },
+              ]}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Conference</label>
+            <FilterSelect
+              value={conferenceFilter}
+              onChange={setConferenceFilter}
+              options={[
+                { value: "all", label: "All Conferences" },
+                ...uniqueConferences.map(c => ({ value: c, label: c })),
+              ]}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Revision</label>
+            <FilterSelect
+              value={revisionFilter}
+              onChange={setRevisionFilter}
+              options={[
+                { value: "all", label: "All" },
+                { value: "original", label: "First Submission" },
+                { value: "revised", label: "Revisions Only" },
+              ]}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Sort By</label>
+            <FilterSelect
+              value={dateSort}
+              onChange={(v) => setDateSort(v as "newest" | "oldest")}
+              options={[
+                { value: "newest", label: "Newest First" },
+                { value: "oldest", label: "Oldest First" },
+              ]}
+            />
+          </div>
+
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Clear Filters
+            </button>
+          )}
+        </div>
+
+        {/* Results count */}
+        {!loading && (
+          <p className="text-xs text-gray-400">
+            Showing {filteredPapers.length} of {visiblePapers.length} paper{visiblePapers.length !== 1 ? "s" : ""}
+            {activeFilterCount > 0 && ` (${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} active)`}
+          </p>
+        )}
+      </Card>
+
+      {/* ── Papers List ── */}
       <Card className="p-4 sm:p-6 space-y-4">
 
         {loading && (
           <p className="text-sm text-gray-500">Loading papers…</p>
         )}
 
-        {!loading && visiblePapers.length === 0 && (
-          <p className="text-sm text-gray-500">
-            No papers in this category.
-          </p>
+        {!loading && filteredPapers.length === 0 && (
+          <div className="text-center py-8">
+            <Search className="h-8 w-8 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm text-gray-500 font-medium">
+              {activeFilterCount > 0
+                ? "No papers match current filters."
+                : "No papers in this category."}
+            </p>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={clearFilters}
+                className="mt-2 text-xs text-blue-600 hover:underline"
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
         )}
 
-        {!loading && visiblePapers.map((p) => {
+        {!loading && filteredPapers.map((p) => {
           const title = p.title || `Paper #${p.id.slice(0, 6)}`;
           const isResubmitted = p.status === "resubmitted";
 
@@ -122,8 +329,8 @@ export default function ReviewerPapersPage() {
             <div
               key={p.id}
               className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border rounded-lg p-4 transition ${isResubmitted ? "bg-purple-50 border-purple-200"
-                  : tab === "action" ? "bg-yellow-50"
-                    : "hover:bg-gray-50"
+                : tab === "action" ? "bg-yellow-50"
+                  : "hover:bg-gray-50"
                 }`}
             >
               <div className="flex items-start gap-3">
@@ -131,7 +338,9 @@ export default function ReviewerPapersPage() {
 
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="font-medium">{title}</p>
+                    <p className="font-medium">
+                      <HighlightMatch text={title} query={searchQuery} />
+                    </p>
                     {p.revision_number > 1 && (
                       <Badge className="bg-purple-100 text-purple-700 text-xs">
                         <RotateCcw className="h-3 w-3 mr-0.5" />
@@ -141,7 +350,7 @@ export default function ReviewerPapersPage() {
                   </div>
 
                   <p className="text-xs text-gray-500">
-                    Conference: {p.conferences?.title || "—"}
+                    Conference: <HighlightMatch text={p.conferences?.title || "—"} query={searchQuery} />
                   </p>
 
                   <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -183,6 +392,8 @@ export default function ReviewerPapersPage() {
   );
 }
 
+/* ═══════════════════════════ SUB-COMPONENTS ═══════════════════════════ */
+
 /* ---------- TAB BUTTON ---------- */
 
 function TabButton({
@@ -200,8 +411,8 @@ function TabButton({
     <button
       onClick={onClick}
       className={`px-4 py-2 rounded-lg text-sm font-medium border transition ${active
-          ? "bg-black text-white border-black"
-          : "bg-white hover:bg-gray-50"
+        ? "bg-black text-white border-black"
+        : "bg-white hover:bg-gray-50"
         }`}
     >
       {label} ({count})
@@ -222,4 +433,54 @@ function StatusBadge({ status }: { status: string }) {
   };
   const s = map[status] || { label: status || "Pending", cls: "bg-gray-100 text-gray-700" };
   return <Badge className={s.cls}>{s.label}</Badge>;
+}
+
+/* ---------- FILTER SELECT ---------- */
+
+function FilterSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const isActive = value !== "all" && value !== "newest";
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className={`border rounded-md px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${isActive ? "border-blue-400 bg-blue-50 text-blue-700" : "border-gray-200"
+        }`}
+    >
+      {options.map(o => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/* ---------- HIGHLIGHT MATCH ---------- */
+
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  if (!query.trim()) return <>{text}</>;
+
+  const q = query.toLowerCase();
+  const idx = text.toLowerCase().indexOf(q);
+  if (idx === -1) return <>{text}</>;
+
+  const before = text.slice(0, idx);
+  const match = text.slice(idx, idx + query.length);
+  const after = text.slice(idx + query.length);
+
+  return (
+    <>
+      {before}
+      <mark className="bg-yellow-200 text-yellow-900 rounded-sm px-0.5">{match}</mark>
+      {after}
+    </>
+  );
 }
