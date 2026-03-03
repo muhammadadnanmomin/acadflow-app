@@ -34,6 +34,7 @@ export default function OrganizerSubmissionsSummary() {
   // ── Filter States ──
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [conferenceFilter, setConferenceFilter] = useState("all");
   const [plagiarismFilter, setPlagiarismFilter] = useState("all");
   const [reviewerFilter, setReviewerFilter] = useState("all");
   const [revisionFilter, setRevisionFilter] = useState("all");
@@ -214,6 +215,17 @@ export default function OrganizerSubmissionsSummary() {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [reviewersByConference]);
 
+  // Unique conferences for filter dropdown
+  const uniqueConferences = useMemo(() => {
+    const map = new Map<string, string>();
+    papers.forEach(p => {
+      if (p.conference_id && p.conferences?.title) {
+        map.set(p.conference_id, p.conferences.title);
+      }
+    });
+    return Array.from(map.entries()).map(([id, title]) => ({ id, title }));
+  }, [papers]);
+
   /* ---------- WORKFLOW FILTER + ADVANCED FILTERS ---------- */
 
   const pending = papers.filter(p => !p.decision_at);
@@ -233,7 +245,12 @@ export default function OrganizerSubmissionsSummary() {
       );
     }
 
-    // 2. Status filter
+    // 2. Conference filter
+    if (conferenceFilter !== "all") {
+      result = result.filter(p => p.conference_id === conferenceFilter);
+    }
+
+    // 3. Status filter
     if (statusFilter !== "all") {
       result = result.filter(p => p.status === statusFilter);
     }
@@ -269,12 +286,13 @@ export default function OrganizerSubmissionsSummary() {
     });
 
     return result;
-  }, [tabFiltered, searchQuery, statusFilter, plagiarismFilter, reviewerFilter, revisionFilter, dateSort]);
+  }, [tabFiltered, searchQuery, conferenceFilter, statusFilter, plagiarismFilter, reviewerFilter, revisionFilter, dateSort]);
 
   /* ---------- ACTIVE FILTER COUNT ---------- */
 
   const activeFilterCount = [
     searchQuery.trim() ? 1 : 0,
+    conferenceFilter !== "all" ? 1 : 0,
     statusFilter !== "all" ? 1 : 0,
     plagiarismFilter !== "all" ? 1 : 0,
     reviewerFilter !== "all" ? 1 : 0,
@@ -284,6 +302,7 @@ export default function OrganizerSubmissionsSummary() {
 
   function clearFilters() {
     setSearchQuery("");
+    setConferenceFilter("all");
     setStatusFilter("all");
     setPlagiarismFilter("all");
     setReviewerFilter("all");
@@ -351,6 +370,19 @@ export default function OrganizerSubmissionsSummary() {
 
         {/* Filter Dropdowns */}
         <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Conference</label>
+            <FilterSelect
+              label="Conference"
+              value={conferenceFilter}
+              onChange={setConferenceFilter}
+              options={[
+                { value: "all", label: "All Conferences" },
+                ...uniqueConferences.map(c => ({ value: c.id, label: c.title })),
+              ]}
+            />
+          </div>
+
           <div className="flex flex-col gap-1">
             <label className="text-xs text-gray-500">Status</label>
             <FilterSelect
