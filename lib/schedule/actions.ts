@@ -235,6 +235,13 @@ export async function deleteSession(sessionId: string) {
 export async function exportScheduleJSON(
     conferenceId: string
 ): Promise<ScheduleExport> {
+    // Fetch conference name
+    const { data: conference } = await supabaseServer
+        .from("conferences")
+        .select("title")
+        .eq("id", conferenceId)
+        .single();
+
     // Fetch all data
     const { data: days } = await supabaseServer
         .from("conference_days")
@@ -256,6 +263,7 @@ export async function exportScheduleJSON(
 
     const exportData: ScheduleExport = {
         conference_id: conferenceId,
+        conference_name: conference?.title || "Conference Schedule",
         exported_at: new Date().toISOString(),
         days:
             (days || []).map((day) => ({

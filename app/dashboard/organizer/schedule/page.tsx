@@ -24,6 +24,7 @@ import {
     Calendar,
     Settings2,
     Layers3,
+    Loader2,
 } from "lucide-react";
 
 import { ManageDaysModal } from "@/components/schedule/manage-days-modal";
@@ -34,7 +35,6 @@ import { TrackView } from "@/components/schedule/track-view";
 import { CalendarView } from "@/components/schedule/calendar-view";
 
 import { getConferenceDays, getTracks, getSessions } from "@/lib/schedule/queries";
-import { exportScheduleJSON } from "@/lib/schedule/actions";
 
 import type { ConferenceDay, Track, Session } from "@/lib/schedule/types";
 import { toast } from "sonner";
@@ -64,6 +64,7 @@ export default function SchedulePage() {
     const [editSession, setEditSession] = useState<Session | null>(null);
     const [defaultTrackId, setDefaultTrackId] = useState<string>("");
     const [loading, setLoading] = useState(true);
+    const [exporting, setExporting] = useState(false);
 
     // Load conferences
     useEffect(() => {
@@ -141,20 +142,30 @@ export default function SchedulePage() {
     }
 
     async function handleExport() {
+        setExporting(true);
         try {
-            const json = await exportScheduleJSON(selectedConferenceId);
-            const blob = new Blob([JSON.stringify(json, null, 2)], {
-                type: "application/json",
-            });
+            const res = await fetch(
+                `/api/export-schedule-pdf?conferenceId=${selectedConferenceId}`
+            );
+            if (!res.ok) throw new Error("Export failed");
+
+            const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `schedule-export-${new Date().toISOString().split("T")[0]}.json`;
+
+            // Extract filename from Content-Disposition header or use fallback
+            const disposition = res.headers.get("Content-Disposition");
+            const match = disposition?.match(/filename="(.+)"/);
+            a.download = match?.[1] || "Schedule.pdf";
+
             a.click();
             URL.revokeObjectURL(url);
-            toast.success("Schedule exported successfully");
+            toast.success("Schedule PDF exported successfully");
         } catch {
-            toast.error("Failed to export schedule");
+            toast.error("Failed to export schedule PDF");
+        } finally {
+            setExporting(false);
         }
     }
 
@@ -199,11 +210,15 @@ export default function SchedulePage() {
                         variant="outline"
                         size="sm"
                         onClick={handleExport}
-                        disabled={!selectedConferenceId || sessions.length === 0}
+                        disabled={!selectedConferenceId || sessions.length === 0 || exporting}
                         className="gap-1.5"
                     >
-                        <Download className="h-3.5 w-3.5" />
-                        Export Schedule
+                        {exporting ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                            <Download className="h-3.5 w-3.5" />
+                        )}
+                        {exporting ? "Exporting..." : "Export PDF"}
                     </Button>
                     <Button
                         size="sm"
@@ -268,8 +283,8 @@ export default function SchedulePage() {
                         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
                             <button
                                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition whitespace-nowrap ${!selectedDayId
-                                        ? "bg-indigo-100 text-indigo-700"
-                                        : "text-muted-foreground hover:bg-gray-100"
+                                    ? "bg-indigo-100 text-indigo-700"
+                                    : "text-muted-foreground hover:bg-gray-100"
                                     }`}
                                 onClick={() => setSelectedDayId("")}
                             >
@@ -279,8 +294,8 @@ export default function SchedulePage() {
                                 <button
                                     key={day.id}
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition whitespace-nowrap ${selectedDayId === day.id
-                                            ? "bg-indigo-100 text-indigo-700"
-                                            : "text-muted-foreground hover:bg-gray-100"
+                                        ? "bg-indigo-100 text-indigo-700"
+                                        : "text-muted-foreground hover:bg-gray-100"
                                         }`}
                                     onClick={() => setSelectedDayId(day.id)}
                                 >
@@ -363,8 +378,8 @@ export default function SchedulePage() {
                                         key={tab.key}
                                         onClick={() => setActiveView(tab.key)}
                                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition ${activeView === tab.key
-                                                ? "bg-white shadow-sm text-foreground"
-                                                : "text-muted-foreground hover:text-foreground"
+                                            ? "bg-white shadow-sm text-foreground"
+                                            : "text-muted-foreground hover:text-foreground"
                                             }`}
                                     >
                                         {tab.icon}

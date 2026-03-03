@@ -133,6 +133,7 @@ export interface ConflictResult {
 
 export interface ScheduleExport {
     conference_id: string;
+    conference_name: string;
     exported_at: string;
     days: {
         day_number: number;
