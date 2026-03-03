@@ -23,6 +23,7 @@ import {
   Wallet,
   Smartphone,
   Landmark,
+  Info,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -65,7 +66,10 @@ export default function ParticipantPaymentsPage() {
           physical_presentation_fee,
           virtual_presentation_fee,
           full_paper_publication_fee,
-          abstract_publication_fee
+          abstract_publication_fee,
+          organizations (
+            name
+          )
         )
       `)
       .eq("user_id", profile.id)
@@ -75,7 +79,11 @@ export default function ParticipantPaymentsPage() {
 
     const feeMap: Record<string, any> = {};
     data.forEach((d) => {
-      feeMap[d.conference_id] = d.conferences;
+      const conf = d.conferences as any;
+      feeMap[d.conference_id] = {
+        ...conf,
+        organizer_name: conf?.organizations?.name || "Conference Organizer",
+      };
     });
 
     setFees(feeMap);
@@ -133,12 +141,16 @@ export default function ParticipantPaymentsPage() {
     return true;
   }
 
-  function generateInvoice(title: string, amount: number) {
+  function generateInvoice(title: string, amount: number, organizerName?: string) {
     const doc = new jsPDF();
-    doc.text("AcadFlow Payment Receipt", 20, 20);
-    doc.text(`Conference: ${title}`, 20, 40);
-    doc.text(`Amount Paid: ₹${amount}`, 20, 50);
-    doc.text(`Date: ${new Date().toLocaleString()}`, 20, 60);
+    doc.setFontSize(18);
+    doc.text("Payment Receipt", 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Conference: ${title}`, 20, 38);
+    doc.text(`Organized By: ${organizerName || "Conference Organizer"}`, 20, 48);
+    doc.text(`Platform: AcadFlow`, 20, 58);
+    doc.text(`Amount Paid: ₹${amount}`, 20, 68);
+    doc.text(`Date: ${new Date().toLocaleString()}`, 20, 78);
     doc.save("AcadFlow_Receipt.pdf");
   }
 
@@ -185,7 +197,7 @@ export default function ParticipantPaymentsPage() {
       amount: order.amount,
       currency: "INR",
       name: "AcadFlow",
-      description: "Conference Fee Payment",
+      description: `Payment to ${fees[confId]?.organizer_name || "Conference Organizer"} via AcadFlow`,
       order_id: order.id,
 
       handler: async (response: any) => {
@@ -217,7 +229,7 @@ export default function ParticipantPaymentsPage() {
           )
         );
 
-        generateInvoice(fees[confId].title, amount);
+        generateInvoice(fees[confId].title, amount, fees[confId]?.organizer_name);
         setPaymentSuccess(true);
 
         await loadData();
@@ -368,14 +380,14 @@ export default function ParticipantPaymentsPage() {
                     <Button
                       variant="outline"
                       className="flex-1"
-                      onClick={() => generateInvoice(fees[confId]?.title || "Conference", totalFee || 0)}
+                      onClick={() => generateInvoice(fees[confId]?.title || "Conference", totalFee || 0, fees[confId]?.organizer_name)}
                     >
                       <Receipt className="h-4 w-4 mr-2" /> Download Receipt
                     </Button>
                     <Button
                       variant="outline"
                       className="flex-1"
-                      onClick={() => generateInvoice(fees[confId]?.title || "Conference", totalFee || 0)}
+                      onClick={() => generateInvoice(fees[confId]?.title || "Conference", totalFee || 0, fees[confId]?.organizer_name)}
                     >
                       <Download className="h-4 w-4 mr-2" /> View Invoice
                     </Button>
@@ -446,6 +458,27 @@ export default function ParticipantPaymentsPage() {
                     <span>Complete your payment to secure your presentation slot. Unpaid papers may not be included in the conference proceedings.</span>
                   </div>
 
+                  {/* Payment Transparency Block (RBI Compliance) */}
+                  <div className="border border-gray-200 rounded-xl p-4 space-y-2.5 bg-white">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-4 w-4 text-indigo-500" />
+                      <span className="text-sm font-semibold text-gray-800">Payment Transparency</span>
+                    </div>
+                    <div className="space-y-1.5 text-sm text-gray-600">
+                      <p>
+                        <span className="text-gray-400">Conference Organized By:</span>{" "}
+                        <span className="font-medium text-gray-700">{fees[confId]?.organizer_name || "Conference Organizer"}</span>
+                      </p>
+                      <p>
+                        <span className="text-gray-400">Payment Recipient:</span>{" "}
+                        <span className="font-medium text-gray-700">{fees[confId]?.organizer_name || "Conference Organizer"}</span>
+                      </p>
+                    </div>
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      AcadFlow provides the technology platform and charges a platform service fee.
+                    </p>
+                  </div>
+
                   {/* Pay Button */}
                   <Button
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-12 text-base font-semibold transition-all"
@@ -464,6 +497,11 @@ export default function ParticipantPaymentsPage() {
                       </>
                     )}
                   </Button>
+
+                  {/* Legal Confirmation */}
+                  <p className="text-xs text-center text-gray-400 leading-relaxed">
+                    By proceeding, you agree that payment will be transferred to the conference organizer.
+                  </p>
                 </div>
               )}
             </div>
