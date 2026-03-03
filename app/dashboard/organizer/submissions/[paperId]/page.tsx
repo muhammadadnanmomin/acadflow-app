@@ -31,6 +31,7 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  History,
 } from "lucide-react";
 
 const supabase = createClient();
@@ -44,6 +45,7 @@ export default function OrganizerPaperReviewPage() {
   const [loading, setLoading] = useState(true);
   const [paper, setPaper] = useState<any>(null);
   const [authors, setAuthors] = useState<any[]>([]);
+  const [reviewHistory, setReviewHistory] = useState<any[]>([]);
   const [reviewer, setReviewer] = useState<any>(null);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -96,6 +98,15 @@ export default function OrganizerPaperReviewPage() {
         .single();
       setReviewer(rev);
     }
+
+    // Load review history from reviews table
+    const { data: reviews } = await supabase
+      .from("reviews")
+      .select("id, revision_number, decision, comments, created_at, reviewer_id")
+      .eq("submission_id", paperId)
+      .order("created_at", { ascending: true });
+
+    setReviewHistory(reviews || []);
 
     setLoading(false);
   }, [paperId]);
@@ -557,8 +568,44 @@ export default function OrganizerPaperReviewPage() {
         </div>
       </CollapsibleCard>
 
-      {/* ── Reviewer Comments (read-only) ── */}
-      {paper.review_comment && !paper.decision_at && (
+      {/* ── Review History (from reviews table) ── */}
+      {reviewHistory.length > 0 && (
+        <Card className="p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <History className="h-4 w-4" /> Review History ({reviewHistory.length} round{reviewHistory.length > 1 ? "s" : ""})
+          </h2>
+          <div className="space-y-4">
+            {reviewHistory.map((review, index) => (
+              <div key={review.id} className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-blue-100 text-blue-700 text-xs">
+                      Round {index + 1}
+                    </Badge>
+                    {review.revision_number > 1 && (
+                      <Badge className="bg-purple-100 text-purple-700 text-xs">
+                        v{review.revision_number}
+                      </Badge>
+                    )}
+                    <ReviewDecisionBadge decision={review.decision} />
+                  </div>
+                  <span className="text-xs text-gray-400">
+                    {new Date(review.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                {review.comments && (
+                  <div className="bg-gray-50 rounded-md p-3">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{review.comments}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* ── Legacy Reviewer Comments (pre-migration data, read-only) ── */}
+      {paper.review_comment && reviewHistory.length === 0 && (
         <Card className="p-5 space-y-2">
           <h2 className="text-sm font-semibold text-gray-700">Reviewer Comments</h2>
           <div className="bg-gray-50 rounded-md p-3">
@@ -732,6 +779,16 @@ function PlagiarismBadge({ status }: { status?: string }) {
   if (status === "flagged") return <Badge className="bg-red-100 text-red-700">Flagged</Badge>;
   if (status === "checking") return <Badge className="bg-blue-100 text-blue-700">Checking</Badge>;
   return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
+}
+
+function ReviewDecisionBadge({ decision }: { decision: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    accepted: { label: "Accepted", cls: "bg-green-100 text-green-700" },
+    rejected: { label: "Rejected", cls: "bg-red-100 text-red-700" },
+    revision_required: { label: "Revision Required", cls: "bg-orange-100 text-orange-700" },
+  };
+  const d = map[decision] || { label: decision, cls: "bg-gray-100 text-gray-700" };
+  return <Badge className={d.cls}>{d.label}</Badge>;
 }
 
 function StepPill({ label, done, variant }: { label: string; done: boolean; variant?: "green" | "red" | "orange" }) {

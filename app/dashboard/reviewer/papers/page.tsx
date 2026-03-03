@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { FileText, Eye, Clock } from "lucide-react";
+import { FileText, Eye, Clock, RotateCcw, AlertTriangle } from "lucide-react";
 
 const supabase = createClient();
 
@@ -19,7 +19,7 @@ export default function ReviewerPapersPage() {
 
   const [loading, setLoading] = useState(true);
   const [papers, setPapers] = useState<any[]>([]);
-  const [tab, setTab] = useState<"pending" | "reviewed">("pending");
+  const [tab, setTab] = useState<"action" | "waiting" | "completed">("action");
 
   async function loadPapers() {
     if (!profile) return;
@@ -34,6 +34,7 @@ export default function ReviewerPapersPage() {
         status,
         created_at,
         reviewed_at,
+        revision_number,
         conferences ( title )
       `)
       .eq("reviewer_id", profile.id)
@@ -54,10 +55,19 @@ export default function ReviewerPapersPage() {
     loadPapers();
   }, [profile]);
 
-  const pending = papers.filter(p => !p.reviewed_at);
-  const reviewed = papers.filter(p => p.reviewed_at);
+  // Multi-round filtering
+  const actionRequired = papers.filter(p =>
+    ["submitted", "under_review", "resubmitted"].includes(p.status)
+  );
+  const waiting = papers.filter(p => p.status === "revision_required");
+  const completed = papers.filter(p =>
+    ["accepted", "rejected"].includes(p.status)
+  );
 
-  const visiblePapers = tab === "pending" ? pending : reviewed;
+  const visiblePapers =
+    tab === "action" ? actionRequired :
+      tab === "waiting" ? waiting :
+        completed;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto px-3 sm:px-6">
@@ -71,18 +81,24 @@ export default function ReviewerPapersPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap">
         <TabButton
-          active={tab === "pending"}
-          onClick={() => setTab("pending")}
-          label="Pending"
-          count={pending.length}
+          active={tab === "action"}
+          onClick={() => setTab("action")}
+          label="Action Required"
+          count={actionRequired.length}
         />
         <TabButton
-          active={tab === "reviewed"}
-          onClick={() => setTab("reviewed")}
-          label="Reviewed"
-          count={reviewed.length}
+          active={tab === "waiting"}
+          onClick={() => setTab("waiting")}
+          label="Awaiting Revision"
+          count={waiting.length}
+        />
+        <TabButton
+          active={tab === "completed"}
+          onClick={() => setTab("completed")}
+          label="Completed"
+          count={completed.length}
         />
       </div>
 
@@ -99,21 +115,30 @@ export default function ReviewerPapersPage() {
         )}
 
         {!loading && visiblePapers.map((p) => {
-          const needsReview = !p.reviewed_at;
           const title = p.title || `Paper #${p.id.slice(0, 6)}`;
+          const isResubmitted = p.status === "resubmitted";
 
           return (
             <div
               key={p.id}
-              className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border rounded-lg p-4 transition ${
-                needsReview ? "bg-yellow-50" : "hover:bg-gray-50"
-              }`}
+              className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border rounded-lg p-4 transition ${isResubmitted ? "bg-purple-50 border-purple-200"
+                  : tab === "action" ? "bg-yellow-50"
+                    : "hover:bg-gray-50"
+                }`}
             >
               <div className="flex items-start gap-3">
                 <FileText className="h-5 w-5 text-gray-400 mt-1" />
 
                 <div>
-                  <p className="font-medium">{title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{title}</p>
+                    {p.revision_number > 1 && (
+                      <Badge className="bg-purple-100 text-purple-700 text-xs">
+                        <RotateCcw className="h-3 w-3 mr-0.5" />
+                        v{p.revision_number}
+                      </Badge>
+                    )}
+                  </div>
 
                   <p className="text-xs text-gray-500">
                     Conference: {p.conferences?.title || "—"}
@@ -126,21 +151,28 @@ export default function ReviewerPapersPage() {
 
                   {p.reviewed_at && (
                     <p className="text-xs text-gray-500">
-                      Reviewed on{" "}
+                      Last reviewed{" "}
                       {new Date(p.reviewed_at).toLocaleDateString()}
                     </p>
                   )}
 
                   <div className="mt-1">
-                    <StatusBadge status={p.status} reviewed={p.reviewed_at} />
+                    <StatusBadge status={p.status} />
                   </div>
+
+                  {isResubmitted && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-purple-700">
+                      <AlertTriangle className="h-3 w-3" />
+                      Revised paper ready for re-review
+                    </div>
+                  )}
                 </div>
               </div>
 
               <Button size="sm" asChild>
                 <Link href={`/dashboard/reviewer/papers/${p.id}`}>
                   <Eye className="h-4 w-4 mr-1" />
-                  View
+                  {tab === "action" ? "Review" : "View"}
                 </Link>
               </Button>
             </div>
@@ -167,11 +199,10 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 rounded-lg text-sm font-medium border transition ${
-        active
+      className={`px-4 py-2 rounded-lg text-sm font-medium border transition ${active
           ? "bg-black text-white border-black"
           : "bg-white hover:bg-gray-50"
-      }`}
+        }`}
     >
       {label} ({count})
     </button>
@@ -180,40 +211,15 @@ function TabButton({
 
 /* ---------- STATUS BADGE ---------- */
 
-function StatusBadge({
-  status,
-  reviewed,
-}: {
-  status: string;
-  reviewed: string | null;
-}) {
-  if (status === "accepted") {
-    return (
-      <Badge className="bg-green-100 text-green-700">
-        Accepted
-      </Badge>
-    );
-  }
-
-  if (status === "rejected") {
-    return (
-      <Badge className="bg-red-100 text-red-700">
-        Rejected
-      </Badge>
-    );
-  }
-
-  if (!reviewed) {
-    return (
-      <Badge className="bg-yellow-100 text-yellow-700">
-        Pending Review
-      </Badge>
-    );
-  }
-
-  return (
-    <Badge className="bg-blue-100 text-blue-700">
-      Reviewed
-    </Badge>
-  );
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    submitted: { label: "Pending Review", cls: "bg-yellow-100 text-yellow-700" },
+    under_review: { label: "Under Review", cls: "bg-blue-100 text-blue-700" },
+    resubmitted: { label: "Resubmitted — Re-review", cls: "bg-purple-100 text-purple-700" },
+    revision_required: { label: "Revision Requested", cls: "bg-orange-100 text-orange-700" },
+    accepted: { label: "Accepted", cls: "bg-green-100 text-green-700" },
+    rejected: { label: "Rejected", cls: "bg-red-100 text-red-700" },
+  };
+  const s = map[status] || { label: status || "Pending", cls: "bg-gray-100 text-gray-700" };
+  return <Badge className={s.cls}>{s.label}</Badge>;
 }

@@ -379,6 +379,12 @@ function WorkflowBadge({ paper }: { paper: any }) {
   if (paper.status === "rejected")
     return <Badge className="bg-red-100 text-red-700">Rejected</Badge>;
 
+  if (paper.status === "resubmitted")
+    return <Badge className="bg-purple-100 text-purple-700">Resubmitted</Badge>;
+
+  if (paper.status === "revision_required")
+    return <Badge className="bg-orange-100 text-orange-700">Revision Required</Badge>;
+
   if (paper.reviewed_at)
     return (
       <Badge className="bg-yellow-100 text-yellow-700">

@@ -26,6 +26,8 @@ import {
   ChevronUp,
   Loader2,
   RotateCcw,
+  History,
+  MessageSquare,
 } from "lucide-react";
 
 export default function ReviewerReviewPage() {
@@ -36,11 +38,13 @@ export default function ReviewerReviewPage() {
   const [loading, setLoading] = useState(true);
   const [paper, setPaper] = useState<any>(null);
   const [authors, setAuthors] = useState<any[]>([]);
+  const [reviewHistory, setReviewHistory] = useState<any[]>([]);
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     authors: true,
     declarations: false,
+    history: true,
   });
   const [confirmAction, setConfirmAction] = useState<"accepted" | "rejected" | "revision_required" | null>(null);
 
@@ -57,7 +61,7 @@ export default function ReviewerReviewPage() {
     }
   }, [paperId]);
 
-  /* Load paper */
+  /* Load paper + review history */
   useEffect(() => {
     async function loadPaper() {
       if (!profile || !paperId) return;
@@ -94,11 +98,20 @@ export default function ReviewerReviewPage() {
 
       setPaper(data);
 
-      if (data.review_comment) {
-        setComments(data.review_comment);
-      }
+      // Load review history from reviews table
+      const { data: reviews } = await supabase
+        .from("reviews")
+        .select("id, revision_number, decision, comments, created_at")
+        .eq("submission_id", paperId)
+        .eq("reviewer_id", profile.id)
+        .order("created_at", { ascending: true });
 
-      // load authors (optional for blind review — remove if double blind)
+      setReviewHistory(reviews || []);
+
+      // Only pre-fill comments from draft, not from old review_comment
+      // (draft is loaded via localStorage above)
+
+      // load authors
       const { data: authorRows } = await supabase
         .from("paper_authors")
         .select("name, affiliation, author_order, is_primary")
@@ -137,7 +150,8 @@ export default function ReviewerReviewPage() {
     }
   }
 
-  async function submitReview(decision: "accepted" | "rejected") {
+  /* ─── Submit Review (multi-round) ─── */
+  async function submitReview(decision: "accepted" | "rejected" | "revision_required") {
     if (!comments.trim()) {
       alert("Please write review comments.");
       return;
@@ -145,52 +159,52 @@ export default function ReviewerReviewPage() {
 
     setSubmitting(true);
 
-    await supabase
-      .from("paper_submissions")
-      .update({
-        status: decision,
-        review_comment: comments,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", paper.id)
-      .eq("reviewer_id", profile!.id);
+    try {
+      // 1. Insert review record into reviews table
+      const { error: insertError } = await supabase
+        .from("reviews")
+        .insert({
+          submission_id: paper.id,
+          reviewer_id: profile!.id,
+          revision_number: paper.revision_number || 1,
+          decision,
+          comments: comments.trim(),
+        });
 
-    notifyOrganizer(decision);
+      if (insertError) {
+        console.error("Failed to insert review:", insertError);
+        alert("Failed to submit review. Please try again.");
+        setSubmitting(false);
+        return;
+      }
 
-    localStorage.removeItem(`review-draft-${paperId}`);
-    router.push("/dashboard/reviewer/papers");
-  }
+      // 2. Update paper_submissions status + reviewed_at
+      await supabase
+        .from("paper_submissions")
+        .update({
+          status: decision,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", paper.id)
+        .eq("reviewer_id", profile!.id);
 
-  /* ─── Request Revision ─── */
-  async function requestRevision() {
-    if (!comments.trim()) {
-      alert("Please write review comments.");
-      return;
+      // 3. Notify organizer
+      notifyOrganizer(decision);
+
+      // 4. Clear draft
+      localStorage.removeItem(`review-draft-${paperId}`);
+      router.push("/dashboard/reviewer/papers");
+    } catch (err) {
+      console.error("Review submission error:", err);
+      alert("An error occurred. Please try again.");
+      setSubmitting(false);
     }
-
-    setSubmitting(true);
-
-    await supabase
-      .from("paper_submissions")
-      .update({
-        status: "revision_required",
-        review_comment: comments,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", paper.id)
-      .eq("reviewer_id", profile!.id);
-
-    notifyOrganizer("revision_required");
-
-    localStorage.removeItem(`review-draft-${paperId}`);
-    router.push("/dashboard/reviewer/papers");
   }
 
   /* ─── Confirm & Execute ─── */
   function executeConfirm() {
     if (!confirmAction) return;
-    if (confirmAction === "revision_required") requestRevision();
-    else submitReview(confirmAction);
+    submitReview(confirmAction);
     setConfirmAction(null);
   }
 
@@ -214,8 +228,11 @@ export default function ReviewerReviewPage() {
     );
   }
 
-  const reviewed = !!paper.reviewed_at;
+  // Multi-round locking logic
+  const isFinalDecision = paper.status === "accepted" || paper.status === "rejected";
+  const canReview = !isFinalDecision; // Can review when not final
   const title = paper.title || `Paper #${paper.id.slice(0, 6)}`;
+  const currentRound = reviewHistory.length + 1;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6 pb-28">
@@ -225,7 +242,15 @@ export default function ReviewerReviewPage() {
         <Button variant="ghost" size="sm" className="mb-2 text-gray-500" onClick={() => router.push("/dashboard/reviewer/papers")}>
           ← Back to Papers
         </Button>
-        <h1 className="text-2xl font-bold">{title}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">{title}</h1>
+          {paper.revision_number > 1 && (
+            <Badge className="bg-purple-100 text-purple-700 text-xs">
+              <RotateCcw className="h-3 w-3 mr-1" />
+              Revision v{paper.revision_number}
+            </Badge>
+          )}
+        </div>
         {paper.conferences?.title && (
           <p className="text-gray-500 text-sm mt-1">
             Conference: {paper.conferences.title}
@@ -234,10 +259,36 @@ export default function ReviewerReviewPage() {
       </div>
 
       {/* ── Action Required Banner ── */}
-      {!reviewed && (
+      {canReview && (paper.status === "submitted" || paper.status === "under_review" || paper.status === "resubmitted") && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-          <span className="text-sm text-amber-800 font-medium">Action required — this paper is awaiting your review.</span>
+          <span className="text-sm text-amber-800 font-medium">
+            {paper.status === "resubmitted"
+              ? `Action required — revised paper (v${paper.revision_number}) is awaiting your review (Round ${currentRound}).`
+              : "Action required — this paper is awaiting your review."}
+          </span>
+        </div>
+      )}
+
+      {/* ── Revision Required Banner ── */}
+      {paper.status === "revision_required" && (
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-2">
+          <RotateCcw className="h-4 w-4 text-orange-600 flex-shrink-0" />
+          <span className="text-sm text-orange-800 font-medium">
+            Revision requested — waiting for the author to submit a revised version.
+          </span>
+        </div>
+      )}
+
+      {/* ── Final Decision Banner ── */}
+      {isFinalDecision && (
+        <div className={`${paper.status === "accepted" ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"} border rounded-lg p-3 flex items-center gap-2`}>
+          {paper.status === "accepted"
+            ? <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+            : <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />}
+          <span className={`text-sm font-medium ${paper.status === "accepted" ? "text-green-800" : "text-red-800"}`}>
+            Final decision: {paper.status === "accepted" ? "Accepted" : "Rejected"} — this paper is locked for further review.
+          </span>
         </div>
       )}
 
@@ -271,10 +322,13 @@ export default function ReviewerReviewPage() {
           <div className="flex flex-wrap gap-2">
             <StepPill label="Submitted" done={!!paper.created_at} />
             <StepPill label="Assigned" done={!!paper.reviewer_id} />
-            <StepPill label="Reviewed" done={reviewed} />
+            <StepPill label={`Reviewed${reviewHistory.length > 0 ? ` (${reviewHistory.length}×)` : ""}`} done={reviewHistory.length > 0} />
+            {paper.revision_number > 1 && (
+              <StepPill label={`Revision v${paper.revision_number}`} done={true} variant="orange" />
+            )}
             <StepPill
               label={paper.status === "rejected" ? "Rejected" : paper.status === "accepted" ? "Accepted" : "Decision"}
-              done={!!paper.decision_at || paper.status === "accepted" || paper.status === "rejected"}
+              done={isFinalDecision}
               variant={paper.status === "rejected" ? "red" : paper.status === "accepted" ? "green" : undefined}
             />
           </div>
@@ -282,8 +336,9 @@ export default function ReviewerReviewPage() {
 
         {/* Date row */}
         <div className="flex gap-4 flex-wrap text-xs text-gray-400 mt-3">
-          {paper.reviewed_at && <span>Reviewed: {new Date(paper.reviewed_at).toLocaleDateString()}</span>}
-          {paper.revision_number > 1 && <span>Revision v{paper.revision_number}</span>}
+          {paper.reviewed_at && <span>Last reviewed: {new Date(paper.reviewed_at).toLocaleDateString()}</span>}
+          {reviewHistory.length > 0 && <span>Total reviews: {reviewHistory.length}</span>}
+          {paper.revision_number > 1 && <span>Current revision: v{paper.revision_number}</span>}
         </div>
       </Card>
 
@@ -322,6 +377,62 @@ export default function ReviewerReviewPage() {
         )}
       </Card>
 
+      {/* ── Review History ── */}
+      {reviewHistory.length > 0 && (
+        <CollapsibleCard title={`Review History (${reviewHistory.length} round${reviewHistory.length > 1 ? "s" : ""})`} icon={<History className="h-4 w-4" />} id="history" expanded={expanded} toggle={toggle}>
+          <div className="space-y-4">
+            {reviewHistory.map((review, index) => (
+              <div key={review.id} className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-blue-100 text-blue-700 text-xs">
+                      Round {index + 1}
+                    </Badge>
+                    {review.revision_number > 1 && (
+                      <Badge className="bg-purple-100 text-purple-700 text-xs">
+                        v{review.revision_number}
+                      </Badge>
+                    )}
+                    <DecisionBadge decision={review.decision} />
+                  </div>
+                  <span className="text-xs text-gray-400">
+                    {new Date(review.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                {review.comments && (
+                  <div className="bg-gray-50 rounded-md p-3">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{review.comments}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </CollapsibleCard>
+      )}
+
+      {/* ── Legacy Review Comment (pre-migration data) ── */}
+      {paper.review_comment && reviewHistory.length === 0 && isFinalDecision && (
+        <Card className="p-5 space-y-2">
+          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" /> Previous Review
+          </h2>
+          <div className="bg-gray-50 rounded-md p-4">
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{paper.review_comment}</p>
+          </div>
+          <div className="flex items-center justify-between">
+            <Badge className="bg-gray-100 text-gray-700">
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Review submitted — editing locked
+            </Badge>
+            {paper.reviewed_at && (
+              <span className="text-xs text-gray-400">
+                Reviewed on {new Date(paper.reviewed_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+        </Card>
+      )}
+
       {/* ── Authors ── */}
       <CollapsibleCard title="Authors" icon={<Users className="h-4 w-4" />} id="authors" expanded={expanded} toggle={toggle}>
         {authors.length === 0 ? (
@@ -359,24 +470,13 @@ export default function ReviewerReviewPage() {
 
       {/* ── Review Comments ── */}
       <Card className="p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-700">Reviewer Comments</h2>
+        <h2 className="text-sm font-semibold text-gray-700">
+          {canReview && (paper.status === "submitted" || paper.status === "under_review" || paper.status === "resubmitted")
+            ? `Reviewer Comments — Round ${currentRound}`
+            : "Reviewer Comments"}
+        </h2>
 
-        {reviewed ? (
-          <>
-            <div className="bg-gray-50 rounded-md p-4">
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{paper.review_comment}</p>
-            </div>
-            <div className="flex items-center justify-between">
-              <Badge className="bg-gray-100 text-gray-700">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Review submitted — editing locked
-              </Badge>
-              <span className="text-xs text-gray-400">
-                Reviewed on {new Date(paper.reviewed_at).toLocaleDateString()}
-              </span>
-            </div>
-          </>
-        ) : (
+        {canReview && (paper.status === "submitted" || paper.status === "under_review" || paper.status === "resubmitted") ? (
           <>
             <Textarea
               placeholder="Write strengths, weaknesses, and suggestions..."
@@ -392,6 +492,16 @@ export default function ReviewerReviewPage() {
               </span>
             </div>
           </>
+        ) : (
+          <div className="bg-gray-50 rounded-md p-4">
+            <p className="text-sm text-gray-500 italic">
+              {paper.status === "revision_required"
+                ? "Waiting for the author to submit a revised version before you can review again."
+                : isFinalDecision
+                  ? "This paper has received a final decision. No further reviews can be submitted."
+                  : "No review action available at this time."}
+            </p>
+          </div>
         )}
       </Card>
 
@@ -405,6 +515,7 @@ export default function ReviewerReviewPage() {
 
             <div className="text-sm space-y-2">
               <p><strong>Paper:</strong> {title}</p>
+              <p><strong>Round:</strong> {currentRound}</p>
               <p><strong>Action:</strong>{" "}
                 <StatusBadge status={confirmAction} />
               </p>
@@ -417,12 +528,10 @@ export default function ReviewerReviewPage() {
               </div>
             )}
 
-            {!reviewed && (
-              <div className="bg-amber-50 border border-amber-200 rounded p-2 text-sm text-amber-700 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                This decision will be sent to the conference organizer.
-              </div>
-            )}
+            <div className="bg-amber-50 border border-amber-200 rounded p-2 text-sm text-amber-700 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              This decision will be sent to the conference organizer.
+            </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setConfirmAction(null)}>Cancel</Button>
@@ -446,10 +555,16 @@ export default function ReviewerReviewPage() {
             <span className="font-medium text-gray-700">{title}</span>
             <span className="mx-2">·</span>
             <StatusBadge status={paper.status} />
+            {paper.revision_number > 1 && (
+              <>
+                <span className="mx-2">·</span>
+                <Badge className="bg-purple-100 text-purple-700 text-xs">v{paper.revision_number}</Badge>
+              </>
+            )}
           </div>
 
           <div className="flex gap-2 ml-auto">
-            {!reviewed ? (
+            {canReview && (paper.status === "submitted" || paper.status === "under_review" || paper.status === "resubmitted") ? (
               <>
                 <Button
                   variant="destructive"
@@ -478,10 +593,20 @@ export default function ReviewerReviewPage() {
                   <CheckCircle className="h-4 w-4 mr-1" /> Accept
                 </Button>
               </>
-            ) : (
-              <Badge className="bg-green-100 text-green-700">
+            ) : isFinalDecision ? (
+              <Badge className={paper.status === "accepted" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                Review Submitted
+                {paper.status === "accepted" ? "Accepted" : "Rejected"} — Locked
+              </Badge>
+            ) : paper.status === "revision_required" ? (
+              <Badge className="bg-orange-100 text-orange-700">
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Awaiting Author Revision
+              </Badge>
+            ) : (
+              <Badge className="bg-gray-100 text-gray-700">
+                <Clock className="h-3 w-3 mr-1" />
+                Pending
               </Badge>
             )}
           </div>
@@ -507,6 +632,16 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={s.cls}>{s.label}</Badge>;
 }
 
+function DecisionBadge({ decision }: { decision: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    accepted: { label: "Accepted", cls: "bg-green-100 text-green-700" },
+    rejected: { label: "Rejected", cls: "bg-red-100 text-red-700" },
+    revision_required: { label: "Revision Required", cls: "bg-orange-100 text-orange-700" },
+  };
+  const d = map[decision] || { label: decision, cls: "bg-gray-100 text-gray-700" };
+  return <Badge className={d.cls}>{d.label}</Badge>;
+}
+
 function PlagiarismBadge({ status }: { status?: string }) {
   if (status === "passed") return <Badge className="bg-green-100 text-green-700">Passed</Badge>;
   if (status === "flagged") return <Badge className="bg-red-100 text-red-700">Flagged</Badge>;
@@ -514,11 +649,12 @@ function PlagiarismBadge({ status }: { status?: string }) {
   return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
 }
 
-function StepPill({ label, done, variant }: { label: string; done: boolean; variant?: "green" | "red" }) {
+function StepPill({ label, done, variant }: { label: string; done: boolean; variant?: "green" | "red" | "orange" }) {
   const base = done
     ? variant === "red" ? "bg-red-100 text-red-700 border-red-200"
       : variant === "green" ? "bg-green-100 text-green-700 border-green-200"
-        : "bg-blue-100 text-blue-700 border-blue-200"
+        : variant === "orange" ? "bg-orange-100 text-orange-700 border-orange-200"
+          : "bg-blue-100 text-blue-700 border-blue-200"
     : "bg-gray-100 text-gray-400 border-gray-200";
 
   return (
