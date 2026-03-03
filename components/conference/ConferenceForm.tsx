@@ -837,7 +837,7 @@ export default function ConferenceForm({
                         )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        JPG, PNG or WebP · Max 2 MB
+                        Recommended: 1200×400 px · JPG, PNG or WebP · Max 2 MB
                     </p>
                 </div>
             </div>

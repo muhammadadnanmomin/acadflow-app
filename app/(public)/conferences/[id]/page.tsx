@@ -185,48 +185,110 @@ export default async function ConferenceDetail({ params }: Props) {
       {/* ============================================================ */}
       <div className="rounded-xl border bg-white overflow-hidden">
 
-        {/* Banner */}
+        {/* ---- Desktop Banner (hidden on mobile) ---- */}
         {conf.conference_banner_url && (
-          <div className="relative h-48 sm:h-56 md:h-64 w-full">
+          <div className="relative hidden md:block h-64 md:h-80 lg:h-96 w-full overflow-hidden">
+            {/* Banner image */}
             <img
               src={conf.conference_banner_url}
               alt=""
               className="h-full w-full object-cover"
             />
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+            {/* Dark gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
+
+            {/* Content positioned at bottom — desktop only */}
+            <div className="absolute bottom-6 left-6 right-6 z-10">
+              <div className="flex items-end gap-4">
+                {/* Logo — desktop only */}
+                {conf.conference_logo_url && (
+                  <img
+                    src={conf.conference_logo_url}
+                    alt=""
+                    className="h-20 w-20 rounded-xl border-2 border-white shadow-lg object-cover shrink-0"
+                  />
+                )}
+
+                <div className="min-w-0 flex-1">
+                  {/* Title + Short name */}
+                  <h1 className="text-3xl lg:text-4xl font-bold text-white drop-shadow-lg tracking-tight">
+                    {conf.title}
+                    {conf.short_name && (
+                      <Badge className="ml-3 align-middle text-xs bg-black/50 text-white border-white/20 backdrop-blur hover:bg-black/60">
+                        {conf.short_name}
+                      </Badge>
+                    )}
+                  </h1>
+
+                  {/* Meta row */}
+                  <div className="mt-2 flex flex-wrap gap-3 text-sm text-white/90 drop-shadow">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      {formatDate(conf.start_date)} →{" "}
+                      {formatDate(conf.end_date)}
+                    </span>
+
+                    {conf.venue && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        {conf.venue}
+                      </span>
+                    )}
+
+                    {conf.mode && (
+                      <Badge
+                        variant="outline"
+                        className="capitalize border-white/40 text-white"
+                      >
+                        <Monitor className="h-3 w-3" />
+                        {conf.mode}
+                      </Badge>
+                    )}
+
+                    {/* Submission Status */}
+                    {conf.submission_deadline &&
+                      (submissionsOpen ? (
+                        <Badge className="bg-green-500/80 text-white border-green-400/40 backdrop-blur hover:bg-green-500/90">
+                          <CheckCircle className="h-3 w-3" />
+                          Submissions Open
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-red-500/70 text-white border-red-400/40 backdrop-blur hover:bg-red-500/80">
+                          <XCircle className="h-3 w-3" />
+                          Submissions Closed
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Hero Content */}
+        {/* ---- Mobile / No-banner hero content ---- */}
         <div
-          className={`p-6 ${conf.conference_banner_url ? "-mt-20 relative z-10" : ""
+          className={`px-4 md:px-8 py-6 md:py-10 ${conf.conference_banner_url ? "md:hidden" : ""
             }`}
         >
           <div className="flex items-start gap-4">
-            {/* Logo */}
-            {conf.conference_logo_url && (
+            {/* Logo — only show on no-banner (desktop shows it on the banner) */}
+            {conf.conference_logo_url && !conf.conference_banner_url && (
               <img
                 src={conf.conference_logo_url}
                 alt=""
-                className={`h-20 w-20 rounded-xl border-2 object-cover shrink-0 ${conf.conference_banner_url
-                    ? "border-white shadow-lg"
-                    : "border-gray-200"
-                  }`}
+                className="h-16 w-16 md:h-20 md:w-20 rounded-xl border-2 border-gray-200 object-cover shrink-0"
               />
             )}
 
             <div className="min-w-0 flex-1">
               {/* Title + Short name */}
-              <h1
-                className={`text-2xl sm:text-3xl font-bold ${conf.conference_banner_url ? "text-white" : "text-gray-900"
-                  }`}
-              >
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">
                 {conf.title}
                 {conf.short_name && (
                   <Badge
                     variant="secondary"
-                    className="ml-3 align-middle text-xs"
+                    className="ml-2 align-middle text-xs"
                   >
                     {conf.short_name}
                   </Badge>
@@ -234,15 +296,11 @@ export default async function ConferenceDetail({ params }: Props) {
               </h1>
 
               {/* Meta row */}
-              <div
-                className={`mt-2 flex flex-wrap gap-3 text-sm ${conf.conference_banner_url
-                    ? "text-white/90"
-                    : "text-gray-500"
-                  }`}
-              >
+              <div className="mt-2 flex flex-wrap gap-2 md:gap-3 text-sm text-gray-500">
                 <span className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  {formatDate(conf.start_date)} → {formatDate(conf.end_date)}
+                  {formatDate(conf.start_date)} →{" "}
+                  {formatDate(conf.end_date)}
                 </span>
 
                 {conf.venue && (
@@ -253,46 +311,41 @@ export default async function ConferenceDetail({ params }: Props) {
                 )}
 
                 {conf.mode && (
-                  <Badge
-                    variant="outline"
-                    className={`capitalize ${conf.conference_banner_url
-                        ? "border-white/40 text-white"
-                        : ""
-                      }`}
-                  >
+                  <Badge variant="outline" className="capitalize">
                     <Monitor className="h-3 w-3" />
                     {conf.mode}
                   </Badge>
                 )}
 
                 {/* Submission Status */}
-                {conf.submission_deadline && (
-                  submissionsOpen ? (
+                {conf.submission_deadline &&
+                  (submissionsOpen ? (
                     <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100">
                       <CheckCircle className="h-3 w-3" />
                       Submissions Open
                     </Badge>
                   ) : (
-                    <Badge variant="secondary" className="text-red-600 bg-red-50 border-red-200 hover:bg-red-50">
+                    <Badge
+                      variant="secondary"
+                      className="text-red-600 bg-red-50 border-red-200 hover:bg-red-50"
+                    >
                       <XCircle className="h-3 w-3" />
                       Submissions Closed
                     </Badge>
-                  )
-                )}
+                  ))}
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Description */}
-          {conf.description && (
-            <p
-              className={`mt-4 text-sm leading-relaxed ${conf.conference_banner_url ? "text-white/80" : "text-gray-600"
-                }`}
-            >
+        {/* Description */}
+        {conf.description && (
+          <div className="px-4 md:px-8 pb-6 mt-6">
+            <p className="text-sm md:text-base leading-relaxed text-gray-600">
               {conf.description}
             </p>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* ============================================================ */}
@@ -317,8 +370,8 @@ export default async function ConferenceDetail({ params }: Props) {
                     <div
                       key={d.label}
                       className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${isPast
-                          ? "bg-gray-50 border-gray-200"
-                          : "bg-indigo-50/50 border-indigo-100"
+                        ? "bg-gray-50 border-gray-200"
+                        : "bg-indigo-50/50 border-indigo-100"
                         }`}
                     >
                       <Calendar
