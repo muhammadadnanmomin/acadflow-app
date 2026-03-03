@@ -321,3 +321,98 @@ export const reviewerDecisionNotification = (
   </div>
 `;
 };
+
+
+export const sessionScheduleNotification = (
+  name: string,
+  conference: string,
+  sessionTitle: string,
+  datetime: string,
+  mode: "offline" | "online" | "hybrid",
+  venue?: string,
+  meetingLink?: string
+) => `
+  <div style="font-family: Arial, Helvetica, sans-serif; background:#f6f8fb; padding:30px 15px; color:#222;">
+    <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; padding:30px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+
+      <h2 style="margin-top:0; color:#111;">📅 Session Scheduled</h2>
+
+      <p>Dear ${name || "Presenter"},</p>
+
+      <p>
+        Your presentation has been scheduled for the conference
+        <strong>${conference}</strong>.
+      </p>
+
+      <div style="background:#f3f6fb; border-left:4px solid #6366f1; padding:12px 15px; margin:15px 0; border-radius:4px;">
+        <p style="margin:0 0 6px;"><strong>Session:</strong> ${sessionTitle}</p>
+        <p style="margin:0 0 6px;"><strong>Date & Time:</strong> ${datetime}</p>
+        <p style="margin:0 0 6px;"><strong>Mode:</strong> ${mode.charAt(0).toUpperCase() + mode.slice(1)}</p>
+        ${venue ? `<p style="margin:0 0 6px;"><strong>Venue:</strong> ${venue}</p>` : ""}
+        ${meetingLink ? `<p style="margin:0;"><strong>Meeting Link:</strong> <a href="${meetingLink}">${meetingLink}</a></p>` : ""}
+      </div>
+
+      <p>
+        Please ensure you are prepared and available at the scheduled time.
+        If you have any questions, contact the conference organizing committee.
+      </p>
+
+      <hr style="border:none; border-top:1px solid #eee; margin:30px 0;" />
+
+      <p style="margin:0;">
+        Regards,<br/>
+        <strong>Conference Organizing Committee</strong><br/>
+        ${conference}
+      </p>
+
+      <p style="font-size:12px; color:#777; margin-top:20px;">
+        This email was sent automatically by <strong>AcadFlow</strong>.
+      </p>
+    </div>
+  </div>
+`;
+
+
+export const chairpersonAssignmentNotification = (
+  name: string,
+  conference: string,
+  sessionTitle: string,
+  datetime: string
+) => `
+  <div style="font-family: Arial, Helvetica, sans-serif; background:#f6f8fb; padding:30px 15px; color:#222;">
+    <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; padding:30px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+
+      <h2 style="margin-top:0; color:#111;">🎓 Chairperson Assignment</h2>
+
+      <p>Dear ${name || "Chairperson"},</p>
+
+      <p>
+        You have been assigned as the <strong>Session Chairperson</strong> for
+        the conference <strong>${conference}</strong>.
+      </p>
+
+      <div style="background:#fef9e7; border-left:4px solid #f59e0b; padding:12px 15px; margin:15px 0; border-radius:4px;">
+        <p style="margin:0 0 6px;"><strong>Session:</strong> ${sessionTitle}</p>
+        <p style="margin:0;"><strong>Date & Time:</strong> ${datetime}</p>
+      </div>
+
+      <p>
+        As the session chairperson, you will be responsible for moderating the session,
+        introducing speakers, and managing Q&A. Please log in to your dashboard for
+        full session details.
+      </p>
+
+      <hr style="border:none; border-top:1px solid #eee; margin:30px 0;" />
+
+      <p style="margin:0;">
+        Regards,<br/>
+        <strong>Conference Organizing Committee</strong><br/>
+        ${conference}
+      </p>
+
+      <p style="font-size:12px; color:#777; margin-top:20px;">
+        This email was sent automatically by <strong>AcadFlow</strong>.
+      </p>
+    </div>
+  </div>
+`;
