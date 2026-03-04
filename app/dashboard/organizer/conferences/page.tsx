@@ -1,17 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
 import { useProfile } from "@/lib/auth/useProfile";
+import { useOrganization } from "@/lib/organizations/useOrganization";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-
-import { useOrganization } from "@/lib/organizations/useOrganization";
+import { Badge } from "@/components/ui/badge";
 
 import { toast } from "@/components/ui/use-toast";
 import Link from "next/link";
@@ -21,147 +20,80 @@ import {
   Eye,
   EyeOff,
   Trash2,
+  Plus,
+  Search,
+  Monitor,
+  Users,
+  CreditCard,
+  CheckCircle,
+  XCircle,
+  Tag,
+  Pencil,
 } from "lucide-react";
 
 const supabase = createClient();
 
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function formatDate(date: string | null) {
+  if (!date) return "—";
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getCurrencySymbol(currency: string | null) {
+  switch (currency) {
+    case "USD":
+      return "$";
+    case "EUR":
+      return "€";
+    case "INR":
+    default:
+      return "₹";
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Page                                                               */
+/* ------------------------------------------------------------------ */
 
 export default function OrganizerConferences() {
   const { profile } = useProfile();
   const organization = useOrganization();
 
-  function usePersistedState(key: string, defaultValue: any) {
-    const [state, setState] = useState(() => {
-      if (typeof window === "undefined") return defaultValue;
-
-      const saved = localStorage.getItem(key);
-      return saved ? JSON.parse(saved) : defaultValue;
-    });
-
-    useEffect(() => {
-      localStorage.setItem(key, JSON.stringify(state));
-    }, [key, state]);
-
-    return [state, setState] as const;
-  }
-
-  const [loading, setLoading] = useState(false);
-
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [venue, setVenue] = useState("");
-  const [mode, setMode] = useState("offline");
-
-  const [participantFee, setParticipantFee] = useState("");
-  const [paperFee, setPaperFee] = useState("");
-  const [publicationFee, setPublicationFee] = useState("");
-  const [abstractFee, setAbstractFee] = useState("");
-
-  const [deadline, setDeadline] = useState("");
-  const [maxParticipants, setMaxParticipants] = useState("");
-
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [website, setWebsite] = useState("");
-
   const [conferences, setConferences] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   /* Load conferences */
-async function loadConferences() {
-  if (!profile || !organization) return;
-
-  const { data, error } = await supabase
-    .from("conferences")
-    .select("*")
-    .or(
-      `organizer_id.eq.${profile.id},organization_id.eq.${organization.id}`
-    )
-    .order("created_at", { ascending: false });
-
-  if (!error) {
-    setConferences(data || []);
-  }
-}
-
- useEffect(() => {
-  loadConferences();
-}, [profile, organization]);
-
-  /* Create conference */
-  async function createConference() {
-    if (!profile) return;
-
-    if (!title || !start || !end) {
-      toast({
-        variant: "destructive",
-        title: "Missing fields",
-        description: "Please fill all required fields.",
-      });
-      return;
-    }
+  async function loadConferences() {
+    if (!profile || !organization) return;
 
     setLoading(true);
 
-    const { error } = await supabase.from("conferences").insert({
-      title,
-      description,
-      start_date: start,
-      end_date: end,
+    const { data, error } = await supabase
+      .from("conferences")
+      .select("*")
+      .or(
+        `organizer_id.eq.${profile.id},organization_id.eq.${organization.id}`
+      )
+      .order("created_at", { ascending: false });
 
-      venue,
-      mode,
-
-      participant_fee: participantFee || null,
-      paper_fee: paperFee || null,
-      publication_fee: publicationFee || null,
-      abstract_fee: abstractFee || null,
-
-      submission_deadline: deadline || null,
-      max_participants: maxParticipants || null,
-
-      contact_email: contactEmail,
-      contact_phone: contactPhone,
-      website_link: website,
-
-      organizer_id: profile.id,
-      is_published: false,
-    });
-
-    setLoading(false);
-
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Failed to create",
-        description: error.message,
-      });
-      return;
+    if (!error) {
+      setConferences(data || []);
     }
 
-    toast({
-      title: "Conference created",
-      description: "Your conference has been created successfully.",
-    });
-
-    setVenue("");
-    setMode("offline");
-
-    setParticipantFee("");
-    setPaperFee("");
-    setPublicationFee("");
-    setAbstractFee("");
-
-    setDeadline("");
-    setMaxParticipants("");
-
-    setContactEmail("");
-    setContactPhone("");
-    setWebsite("");
-
-    loadConferences();
+    setLoading(false);
   }
+
+  useEffect(() => {
+    loadConferences();
+  }, [profile, organization]);
 
   /* Publish / Unpublish */
   async function togglePublish(id: string, value: boolean) {
@@ -213,125 +145,295 @@ async function loadConferences() {
     loadConferences();
   }
 
+  /* Client-side search filter */
+  const today = new Date().toISOString().split("T")[0];
+
+  const filtered = useMemo(() => {
+    if (!searchQuery.trim()) return conferences;
+    const q = searchQuery.toLowerCase();
+    return conferences.filter(
+      (c) =>
+        c.title?.toLowerCase().includes(q) ||
+        c.short_name?.toLowerCase().includes(q) ||
+        c.venue?.toLowerCase().includes(q)
+    );
+  }, [conferences, searchQuery]);
+
+  /* ---------------------------------------------------------------- */
+  /*  Render                                                           */
+  /* ---------------------------------------------------------------- */
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 max-w-5xl">
 
-      <div className="flex items-center justify-between">
-
+      {/* ============================================================ */}
+      {/*  Page Header                                                  */}
+      {/* ============================================================ */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">
-            Conferences
-          </h1>
-
+          <h1 className="text-3xl font-bold tracking-tight">Conferences</h1>
           <p className="text-gray-500 mt-1">
             Manage your academic events
           </p>
         </div>
 
         <Link href="/dashboard/organizer/conferences/new">
-          <Button>
-            + New Conference
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            New Conference
           </Button>
         </Link>
-
       </div>
 
+      {/* ============================================================ */}
+      {/*  Search Bar                                                   */}
+      {/* ============================================================ */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          placeholder="Search by title, short name, or venue…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
 
-      {/* List */}
-      <Card className="p-6 space-y-4">
+      {/* ============================================================ */}
+      {/*  Loading State                                                */}
+      {/* ============================================================ */}
+      {loading && (
+        <p className="text-sm text-gray-500 py-8 text-center">
+          Loading conferences…
+        </p>
+      )}
 
-        <h2 className="text-xl font-semibold">
-          Your Conferences
-        </h2>
-
-        {conferences.length === 0 && (
-          <p className="text-sm text-gray-500">
-            No conferences yet.
+      {/* ============================================================ */}
+      {/*  Empty State                                                  */}
+      {/* ============================================================ */}
+      {!loading && conferences.length === 0 && (
+        <Card className="p-12 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50">
+            <Calendar className="h-8 w-8 text-indigo-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            No conferences yet
+          </h2>
+          <p className="text-gray-500 mt-2 max-w-sm mx-auto">
+            You haven&apos;t created any conferences yet. Get started by
+            creating your first academic event.
           </p>
-        )}
+          <Link href="/dashboard/organizer/conferences/new" className="mt-6 inline-block">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create Your First Conference
+            </Button>
+          </Link>
+        </Card>
+      )}
 
-        <div className="space-y-3">
+      {/* ============================================================ */}
+      {/*  No search results                                            */}
+      {/* ============================================================ */}
+      {!loading && conferences.length > 0 && filtered.length === 0 && (
+        <p className="text-sm text-gray-500 py-8 text-center">
+          No conferences match &ldquo;{searchQuery}&rdquo;
+        </p>
+      )}
 
-          {conferences.map((c) => (
+      {/* ============================================================ */}
+      {/*  Conference Cards                                             */}
+      {/* ============================================================ */}
+      <div className="space-y-4">
+        {filtered.map((c) => {
+          const tracks: string[] = c.tracks ?? [];
+          const submissionsOpen =
+            c.submission_deadline && c.submission_deadline >= today;
+          const submissionsClosed =
+            c.submission_deadline && c.submission_deadline < today;
 
-            <div
+          return (
+            <Card
               key={c.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border rounded-lg p-4 hover:bg-gray-50"
+              className="rounded-xl shadow-sm hover:shadow-md transition-shadow p-0 overflow-hidden"
             >
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 p-5">
 
-              <div className="space-y-1">
+                {/* ---- Left: Logo + Info ---- */}
+                <div className="flex items-start gap-4 min-w-0 flex-1">
 
-                <Link
-                  href={`/dashboard/organizer/conferences/${c.id}`}
-                  className="font-semibold text-indigo-600 hover:underline"
-                >
-                  {c.title}
-                </Link>
+                  {/* Logo */}
+                  {c.conference_logo_url ? (
+                    <img
+                      src={c.conference_logo_url}
+                      alt=""
+                      className="h-12 w-12 rounded-lg border border-gray-200 object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="h-12 w-12 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                      <Calendar className="h-5 w-5 text-indigo-400" />
+                    </div>
+                  )}
 
+                  <div className="min-w-0 flex-1 space-y-2">
 
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Calendar className="h-4 w-4" />
-                  {c.start_date} → {c.end_date}
+                    {/* Title Row */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/dashboard/organizer/conferences/${c.id}`}
+                        className="font-semibold text-gray-900 hover:text-indigo-600 transition-colors truncate"
+                      >
+                        {c.title}
+                      </Link>
+
+                      {c.short_name && (
+                        <Badge variant="secondary" className="text-xs shrink-0">
+                          {c.short_name}
+                        </Badge>
+                      )}
+
+                      {/* Published / Draft */}
+                      <Badge
+                        className={`text-xs shrink-0 ${c.is_published
+                            ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100"
+                            : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-100"
+                          }`}
+                      >
+                        {c.is_published ? "Published" : "Draft"}
+                      </Badge>
+                    </div>
+
+                    {/* Date + Meta Row */}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
+
+                      {/* Date */}
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {formatDate(c.start_date)} → {formatDate(c.end_date)}
+                      </span>
+
+                      {/* Mode */}
+                      {c.mode && (
+                        <Badge variant="outline" className="text-xs capitalize">
+                          <Monitor className="h-3 w-3" />
+                          {c.mode}
+                        </Badge>
+                      )}
+
+                      {/* Currency */}
+                      {c.currency && (
+                        <Badge variant="outline" className="text-xs">
+                          <CreditCard className="h-3 w-3" />
+                          {c.currency}
+                        </Badge>
+                      )}
+
+                      {/* Submission status */}
+                      {submissionsOpen && (
+                        <Badge className="text-xs bg-green-100 text-green-700 border-green-200 hover:bg-green-100">
+                          <CheckCircle className="h-3 w-3" />
+                          Submissions Open
+                        </Badge>
+                      )}
+                      {submissionsClosed && (
+                        <Badge variant="secondary" className="text-xs text-red-600 bg-red-50 border-red-200 hover:bg-red-50">
+                          <XCircle className="h-3 w-3" />
+                          Closed
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Quick Stats Row */}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+                      {c.max_participants && (
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          Max {c.max_participants}
+                        </span>
+                      )}
+
+                      {c.payment_required === false ? (
+                        <span className="flex items-center gap-1 text-green-600">
+                          <CheckCircle className="h-3 w-3" />
+                          Free
+                        </span>
+                      ) : c.currency ? (
+                        <span className="flex items-center gap-1">
+                          <CreditCard className="h-3 w-3" />
+                          Paid ({getCurrencySymbol(c.currency)})
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {/* Tracks */}
+                    {tracks.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <Tag className="h-3 w-3 text-gray-400 shrink-0" />
+                        {tracks.slice(0, 3).map((t) => (
+                          <Badge
+                            key={t}
+                            variant="secondary"
+                            className="text-[11px] px-2 py-0"
+                          >
+                            {t}
+                          </Badge>
+                        ))}
+                        {tracks.length > 3 && (
+                          <span className="text-xs text-gray-400">
+                            +{tracks.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <span
-                  className={`inline-block rounded-full px-2 py-0.5 text-xs ${c.is_published
-                    ? "bg-green-100 text-green-700"
-                    : "bg-gray-100 text-gray-600"
-                    }`}
-                >
-                  {c.is_published ? "Published" : "Draft"}
-                </span>
-
-              </div>
-
-              <div className="flex gap-2">
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    togglePublish(c.id, !c.is_published)
-                  }
-                >
-                  {c.is_published ? (
-                    <>
-                      <EyeOff className="h-4 w-4 mr-1" />
-                      Unpublish
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-4 w-4 mr-1" />
-                      Publish
-                    </>
-                  )}
-                </Button>
-
-                {/* Edit */}
-                <Link
-                  href={`/dashboard/organizer/conferences/${c.id}/edit`}
-                >
-                  <Button size="sm" variant="secondary">
-                    Edit
+                {/* ---- Right: Action Buttons ---- */}
+                <div className="flex flex-wrap gap-2 shrink-0 sm:pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      togglePublish(c.id, !c.is_published)
+                    }
+                    className="gap-1.5"
+                  >
+                    {c.is_published ? (
+                      <>
+                        <EyeOff className="h-3.5 w-3.5" />
+                        Unpublish
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-3.5 w-3.5" />
+                        Publish
+                      </>
+                    )}
                   </Button>
-                </Link>
 
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => deleteConference(c.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  <Link
+                    href={`/dashboard/organizer/conferences/${c.id}/edit`}
+                  >
+                    <Button size="sm" variant="secondary" className="gap-1.5">
+                      <Pencil className="h-3.5 w-3.5" />
+                      Edit
+                    </Button>
+                  </Link>
+
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => deleteConference(c.id)}
+                    className="gap-1.5"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
 
               </div>
-
-            </div>
-          ))}
-
-        </div>
-
-      </Card>
+            </Card>
+          );
+        })}
+      </div>
 
     </div>
   );
