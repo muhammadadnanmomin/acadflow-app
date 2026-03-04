@@ -296,7 +296,7 @@ export default function OrganizerDashboard() {
           iconColor="text-green-600"
         />
         <StatCard
-          title="Revenue"
+          title="Total Collections"
           value={`₹${stats.revenue.toLocaleString()}`}
           icon={IndianRupee}
           iconBg="bg-emerald-50"
