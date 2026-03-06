@@ -5,62 +5,78 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { toast } from "@/components/ui/use-toast";
 
 import {
-  User,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+import {
+  Mail,
   Bell,
   Shield,
   CreditCard,
   LogOut,
+  KeyRound,
+  Moon,
+  LayoutDashboard,
+  CalendarClock,
+  Settings,
 } from "lucide-react";
 
 export default function SettingsPage() {
   const { profile } = useProfile();
-  const [loading, setLoading] = useState(false);
-
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-
-  const [emailNotif, setEmailNotif] = useState(true);
-
   const supabase = createClient();
 
+  /* ── Account email (from auth, read-only) ── */
+  const [email, setEmail] = useState("");
+
   useEffect(() => {
-    if (!profile) return;
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user?.email) setEmail(data.user.email);
+    });
+  }, []);
 
-    setName(profile.name || "");
-    setEmail(profile.email || "");
-  }, [profile]);
+  /* ── Notifications state ── */
+  const [emailNotif, setEmailNotif] = useState(true);
 
-  async function saveProfile() {
-    if (!profile) return;
+  /* ── Preferences state (local) ── */
+  const [darkMode, setDarkMode] = useState(false);
+  const [compactLayout, setCompactLayout] = useState(false);
+  const [reminderEmails, setReminderEmails] = useState(true);
 
-    setLoading(true);
+  /* ── Actions ── */
+  async function handleChangePassword() {
+    if (!email) return;
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({ name })
-      .eq("id", profile.id);
-
-    setLoading(false);
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
 
     if (error) {
-      alert(error.message);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
-      alert("Account updated");
+      toast({
+        title: "Password reset email sent",
+        description: "Check your inbox for a link to reset your password.",
+      });
     }
   }
 
-  async function logout() {
+  async function handleLogout() {
     await supabase.auth.signOut();
     window.location.href = "/login";
   }
@@ -74,64 +90,36 @@ export default function SettingsPage() {
           Account Settings
         </h1>
         <p className="text-gray-500 mt-1">
-          Manage your account details and preferences.
+          Manage your account preferences and security.
         </p>
       </div>
 
-      {/* ACCOUNT INFO */}
+      {/* ── ACCOUNT ── */}
       <Card className="p-6 space-y-6">
 
         <SectionHeader
-          icon={<User className="h-5 w-5" />}
-          title="Account Information"
-          description="Update your personal account details."
+          icon={<Mail className="h-5 w-5" />}
+          title="Account"
+          description="Your account email address."
         />
 
         <Separator />
 
-        <div className="flex items-center gap-6">
-
-          <Avatar className="h-20 w-20">
-            <AvatarImage src="/placeholder.svg" />
-            <AvatarFallback>
-              {name?.[0]}
-            </AvatarFallback>
-          </Avatar>
-
-          <div className="flex-1 space-y-4">
-
-            <div>
-              <label className="text-sm font-medium">
-                Full Name
-              </label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">
-                Email Address
-              </label>
-              <Input value={email} disabled />
-              <p className="text-xs text-gray-400 mt-1">
-                Email cannot be changed.
-              </p>
-            </div>
-
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <Button onClick={saveProfile} disabled={loading}>
-            {loading ? "Saving..." : "Save Changes"}
-          </Button>
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-gray-500">
+            Account Email
+          </p>
+          <p className="text-base font-medium">
+            {email || "—"}
+          </p>
+          <p className="text-xs text-gray-400">
+            Email is managed through authentication and cannot be changed.
+          </p>
         </div>
 
       </Card>
 
-      {/* NOTIFICATIONS */}
+      {/* ── NOTIFICATIONS ── */}
       <Card className="p-6 space-y-6">
 
         <SectionHeader
@@ -160,14 +148,53 @@ export default function SettingsPage() {
 
       </Card>
 
-      {/* BILLING (Organizer only) */}
+      {/* ── PREFERENCES ── */}
+      <Card className="p-6 space-y-6">
+
+        <SectionHeader
+          icon={<Settings className="h-5 w-5" />}
+          title="Preferences"
+          description="Customize your dashboard experience."
+        />
+
+        <Separator />
+
+        <div className="space-y-5">
+          {/* <PreferenceRow
+            icon={<Moon className="h-4 w-4" />}
+            label="Dark Mode"
+            description="Switch the interface to a dark color scheme."
+            checked={darkMode}
+            onChange={setDarkMode}
+          /> */}
+
+          {/* <PreferenceRow
+            icon={<LayoutDashboard className="h-4 w-4" />}
+            label="Compact Dashboard Layout"
+            description="Use a denser layout with smaller cards."
+            checked={compactLayout}
+            onChange={setCompactLayout}
+          /> */}
+
+          <PreferenceRow
+            icon={<CalendarClock className="h-4 w-4" />}
+            label="Conference Reminder Emails"
+            description="Get email reminders before upcoming conferences."
+            checked={reminderEmails}
+            onChange={setReminderEmails}
+          />
+        </div>
+
+      </Card>
+
+      {/* ── BILLING (Organizer only) ── */}
       {profile?.role === "organizer" && (
         <Card className="p-6 space-y-6">
 
           <SectionHeader
             icon={<CreditCard className="h-5 w-5" />}
-            title="Billing & Payouts"
-            description="Manage payments and organizer payouts."
+            title="Billing & Organizer Payments"
+            description="Connect your payout account to receive revenue from conference registrations."
           />
 
           <Separator />
@@ -190,7 +217,7 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {/* SECURITY */}
+      {/* ── SECURITY ── */}
       <Card className="p-6 space-y-6">
 
         <SectionHeader
@@ -201,20 +228,63 @@ export default function SettingsPage() {
 
         <Separator />
 
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium">
-              Sign out of this device
-            </p>
-            <p className="text-sm text-gray-500">
-              You will need to login again.
-            </p>
+        <div className="space-y-5">
+
+          {/* Change Password */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">
+                Change Password
+              </p>
+              <p className="text-sm text-gray-500">
+                Send a password reset link to your email.
+              </p>
+            </div>
+
+            <Button variant="outline" onClick={handleChangePassword}>
+              <KeyRound className="h-4 w-4 mr-1" />
+              Reset Password
+            </Button>
           </div>
 
-          <Button variant="outline" onClick={logout}>
-            <LogOut className="h-4 w-4 mr-1" />
-            Logout
-          </Button>
+          {/* Logout */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">
+                Sign out of this device
+              </p>
+              <p className="text-sm text-gray-500">
+                You will need to login again.
+              </p>
+            </div>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline">
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Logout
+                </Button>
+              </AlertDialogTrigger>
+
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Are you sure you want to logout?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You will be signed out of your account and redirected to the login page.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction variant="destructive" onClick={handleLogout}>
+                    Logout
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+
         </div>
 
       </Card>
@@ -223,7 +293,7 @@ export default function SettingsPage() {
   );
 }
 
-/* SECTION HEADER */
+/* ── SECTION HEADER ── */
 function SectionHeader({
   icon,
   title,
@@ -249,6 +319,35 @@ function SectionHeader({
           {description}
         </p>
       )}
+    </div>
+  );
+}
+
+/* ── PREFERENCE ROW ── */
+function PreferenceRow({
+  icon,
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-start gap-3">
+        <div className="text-gray-400 mt-0.5">{icon}</div>
+        <div>
+          <p className="font-medium">{label}</p>
+          <p className="text-sm text-gray-500">{description}</p>
+        </div>
+      </div>
+
+      <Switch checked={checked} onCheckedChange={onChange} />
     </div>
   );
 }
