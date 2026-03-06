@@ -58,6 +58,10 @@ const ALLOWED_DOC_TYPES = [
     "application/pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
+const ALLOWED_PPT_TYPES = [
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 
 function validateFile(
@@ -161,6 +165,8 @@ export default function ConferenceForm({
     const [existingSamplePaperUrl, setExistingSamplePaperUrl] = useState<
         string | null
     >(null);
+    const [pptTemplateFile, setPptTemplateFile] = useState<File | null>(null);
+    const [existingPptTemplateUrl, setExistingPptTemplateUrl] = useState<string | null>(null);
 
     /* ---- Dates ---- */
     const [start, setStart] = useState("");
@@ -239,6 +245,7 @@ export default function ConferenceForm({
         setExistingLogoUrl(data.conference_logo_url || null);
         setExistingBannerUrl(data.conference_banner_url || null);
         setExistingSamplePaperUrl(data.sample_paper_format_url || null);
+        setExistingPptTemplateUrl(data.presentation_ppt_template_url || null);
 
         setStart(data.start_date || "");
         setEnd(data.end_date || "");
@@ -394,6 +401,7 @@ export default function ConferenceForm({
         setAllowedFileTypes(["pdf"]);
         setMaxFileSizeMb("");
         setSamplePaperFile(null);
+        setPptTemplateFile(null);
 
         setPaymentRequired(true);
         setCurrency("INR");
@@ -429,7 +437,8 @@ export default function ConferenceForm({
         orgId: string | null,
         conferenceLogoUrl: string | null,
         conferenceBannerUrl: string | null,
-        samplePaperFormatUrl: string | null
+        samplePaperFormatUrl: string | null,
+        presentationPptTemplateUrl: string | null
     ) {
         const base: Record<string, unknown> = {
             // Basic Info
@@ -463,6 +472,7 @@ export default function ConferenceForm({
                 allowedFileTypes.length > 0 ? allowedFileTypes : null,
             max_file_size_mb: maxFileSizeMb ? parseInt(maxFileSizeMb, 10) : null,
             sample_paper_format_url: samplePaperFormatUrl,
+            presentation_ppt_template_url: presentationPptTemplateUrl,
 
             // Payment
             payment_required: paymentRequired,
@@ -619,6 +629,41 @@ export default function ConferenceForm({
                 }
             }
 
+            let pptTemplateUrl: string | null =
+                mode === "edit" ? existingPptTemplateUrl : null;
+
+            if (pptTemplateFile) {
+                const err = validateFile(
+                    pptTemplateFile,
+                    ALLOWED_PPT_TYPES,
+                    "PPT Presentation Template"
+                );
+                if (err) {
+                    toast({
+                        variant: "destructive",
+                        title: "Invalid file",
+                        description: err,
+                    });
+                    setLoading(false);
+                    return;
+                }
+
+                pptTemplateUrl = await uploadToStorage(
+                    pptTemplateFile,
+                    "ppt-templates"
+                );
+
+                if (!pptTemplateUrl) {
+                    toast({
+                        variant: "destructive",
+                        title: "Upload failed",
+                        description: "Could not upload PPT template.",
+                    });
+                    setLoading(false);
+                    return;
+                }
+            }
+
             /* --- org --- */
             const orgId = await getOrCreateOrganization(
                 profile.id,
@@ -631,7 +676,8 @@ export default function ConferenceForm({
                 orgId,
                 conferenceLogoUrl,
                 conferenceBannerUrl,
-                samplePaperFormatUrl
+                samplePaperFormatUrl,
+                pptTemplateUrl
             );
 
             if (mode === "create") {
@@ -1086,6 +1132,46 @@ export default function ConferenceForm({
                     </div>
                     <p className="text-xs text-muted-foreground">
                         PDF or DOCX · Max 2 MB
+                    </p>
+                </div>
+
+                {/* Presentation PPT Template */}
+                <div className="space-y-1">
+                    <label className="text-sm font-medium">
+                        Presentation PPT Template
+                    </label>
+                    {mode === "edit" && existingPptTemplateUrl && !pptTemplateFile && (
+                        <p className="text-xs text-green-600 mb-1">
+                            ✓ PPT template already uploaded
+                        </p>
+                    )}
+                    <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-2 cursor-pointer border rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors">
+                            <Upload className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">
+                                {pptTemplateFile ? pptTemplateFile.name : "Choose file..."}
+                            </span>
+                            <input
+                                type="file"
+                                accept=".ppt,.pptx"
+                                className="hidden"
+                                onChange={(e) =>
+                                    setPptTemplateFile(e.target.files?.[0] || null)
+                                }
+                            />
+                        </label>
+                        {pptTemplateFile && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setPptTemplateFile(null)}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        PPT or PPTX · Max 2 MB
                     </p>
                 </div>
             </div>

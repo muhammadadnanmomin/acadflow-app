@@ -69,7 +69,10 @@ export default function ParticipantSubmissionsPage() {
       .select(`
         id,
         conference_id,
-        conferences ( title )
+        conferences (
+          title,
+          presentation_ppt_template_url
+        )
       `)
       .eq("user_id", profile.id)
       .eq("role", "author");
@@ -454,6 +457,8 @@ export default function ParticipantSubmissionsPage() {
         const submission = submissions[reg.conference_id];
         const confId = reg.conference_id;
         const confTitle = reg.conferences?.title || "Conference";
+        const pptTemplateUrl =
+          reg.conferences?.presentation_ppt_template_url || null;
 
         return (
           <Card key={reg.id} className="overflow-hidden">
@@ -673,7 +678,23 @@ export default function ParticipantSubmissionsPage() {
                         <ArrowRight className="h-3.5 w-3.5 mr-1" /> View Payment Details
                       </Button>
                     )}
+                    {submission.status === "accepted" && submission.payment_status === "paid" && pptTemplateUrl && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.open(pptTemplateUrl)}
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1" /> Presentation Template
+                      </Button>
+                    )}
                   </div>
+
+                  {/* ── PPT Template Payment Hint ── */}
+                  {submission.status === "accepted" && submission.payment_status !== "paid" && pptTemplateUrl && (
+                    <p className="text-xs text-muted-foreground">
+                      Complete payment to access the official presentation template.
+                    </p>
+                  )}
 
                   {/* ── Plagiarism Status ── */}
                   <div className="flex items-center gap-2 text-sm">
