@@ -10,39 +10,39 @@ import {
 const features = [
   {
     icon: FileText,
-    title: "Paper Submission & Peer Review",
+    title: "Submissions & Peer Review",
     description:
-      "Collect research papers, assign reviewers, and manage evaluations through a structured and transparent workflow.",
+      "Authors submit papers online. You assign reviewers, collect evaluations, and communicate decisions — all from one dashboard.",
   },
   {
     icon: Users,
-    title: "Participant & Registration Management",
+    title: "Registration & Payments",
     description:
-      "Track registrations, payments, and participant records with automated organization and real-time updates.",
+      "Track registrations, collect payments, and manage participant records automatically — no manual spreadsheets.",
   },
   {
     icon: Calendar,
-    title: "Conference Scheduling & Deadlines",
+    title: "Schedules & Deadlines",
     description:
-      "Manage timelines, submission deadlines, and event schedules from a centralized academic dashboard.",
+      "Set submission windows, review periods, and event dates. AcadFlow keeps everyone on track with automated reminders.",
   },
   {
     icon: BarChart3,
-    title: "Real-Time Organizer Dashboard",
+    title: "Organizer Dashboard",
     description:
-      "Monitor submissions, review progress, and participant activity with live status insights.",
+      "See submissions, review progress, and payment status at a glance. Know exactly where your conference stands.",
   },
   {
     icon: Shield,
-    title: "Secure Role-Based Access",
+    title: "Role-Based Access Control",
     description:
-      "Protect workflows with secure authentication and role-based permissions for organizers, reviewers, and participants.",
+      "Organizers, reviewers, and participants each see only what they need. Secure logins and permissions built in.",
   },
   {
     icon: Award,
-    title: "Verified Digital Certificates",
+    title: "Automatic Certificates",
     description:
-      "Automatically generate and distribute professional participation and presentation certificates.",
+      "Generate professional participation and presentation certificates the moment decisions are published. No manual work.",
   },
 ];
 
@@ -58,16 +58,16 @@ export function FeaturesSection() {
         <div className="mx-auto max-w-2xl text-center">
 
           <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">
-            Platform Features
+            What You Can Do
           </p>
 
           <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Everything You Need to Run Academic Conferences
+            One Platform for the Entire Conference Lifecycle
           </h2>
 
           <p className="mt-4 text-lg text-gray-600">
-            AcadFlow replaces scattered tools and manual workflows with one
-            streamlined platform designed for academic institutions and research communities.
+            Stop juggling spreadsheets, email threads, and shared drives.
+            AcadFlow brings submissions, reviews, scheduling, and certificates into one place.
           </p>
 
         </div>

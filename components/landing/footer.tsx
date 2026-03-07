@@ -54,9 +54,9 @@ export function Footer() {
             </Link>
 
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-gray-600">
-              AcadFlow is a modern platform for managing academic conferences,
-              submissions, peer reviews, and certifications — built for Indian
-              colleges, universities, and independent organizers.
+              AcadFlow is a conference management platform for universities
+              and research communities. Automate submissions, reviews,
+              scheduling, and certificates from one dashboard.
             </p>
 
             {/* Contact */}
@@ -76,7 +76,7 @@ export function Footer() {
 
             {/* Trust Note */}
             <p className="mt-4 text-xs text-gray-500">
-              Secure • Role-based access • Built for academic workflows
+              Secure platform • Role-based access • Built for academia
             </p>
 
           </div>

@@ -1,27 +1,27 @@
 const steps = [
   {
     step: "01",
-    title: "Set Up Your Conference",
+    title: "Create Your Conference",
     description:
-      "Create your conference, define submission deadlines, and configure registration and participation settings.",
+      "Define your conference details, set submission deadlines, and open registrations — all in one setup flow.",
   },
   {
     step: "02",
-    title: "Receive Paper Submissions",
+    title: "Collect Submissions",
     description:
-      "Researchers and participants register and submit their papers securely through the platform.",
+      "Authors register and submit research papers through a clean, guided interface. You see every submission in real time.",
   },
   {
     step: "03",
-    title: "Peer Review & Evaluation",
+    title: "Run the Review Process",
     description:
-      "Assign reviewers, evaluate submissions, and provide structured feedback and decisions.",
+      "Assign reviewers, collect structured evaluations, and make accept/reject decisions with full visibility.",
   },
   {
     step: "04",
     title: "Publish Results & Issue Certificates",
     description:
-      "Announce acceptance results and automatically generate verified digital certificates.",
+      "Notify authors of decisions and generate verified digital certificates automatically. No manual formatting.",
   },
 ];
 
@@ -41,12 +41,12 @@ export function HowItWorksSection() {
           </p>
 
           <h2 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            A Simple Workflow for Academic Conferences
+            From Setup to Certificates in Four Steps
           </h2>
 
           <p className="mt-4 text-lg text-gray-600">
-            AcadFlow streamlines the entire conference lifecycle —
-            from setup and submissions to review, results, and certification.
+            Every conference follows the same lifecycle. AcadFlow automates each stage
+            so you can focus on academic quality, not logistics.
           </p>
 
         </div>
@@ -67,17 +67,15 @@ export function HowItWorksSection() {
 
                 {/* Content */}
                 <div
-                  className={`lg:py-6 ${
-                    index % 2 === 0
+                  className={`lg:py-6 ${index % 2 === 0
                       ? "lg:pr-12 lg:text-right"
                       : "lg:order-2 lg:pl-12"
-                  }`}
+                    }`}
                 >
 
                   <div
-                    className={`flex items-start gap-6 ${
-                      index % 2 === 0 ? "lg:flex-row-reverse" : ""
-                    }`}
+                    className={`flex items-start gap-6 ${index % 2 === 0 ? "lg:flex-row-reverse" : ""
+                      }`}
                   >
 
                     {/* Step Number */}
@@ -110,9 +108,8 @@ export function HowItWorksSection() {
 
                 {/* Timeline Dot */}
                 <div
-                  className={`hidden lg:block ${
-                    index % 2 === 0 ? "lg:order-2" : ""
-                  }`}
+                  className={`hidden lg:block ${index % 2 === 0 ? "lg:order-2" : ""
+                    }`}
                 >
                   <div className="absolute left-1/2 top-6 h-4 w-4 -translate-x-1/2 rounded-full border-4 border-indigo-600 bg-white" />
                 </div>

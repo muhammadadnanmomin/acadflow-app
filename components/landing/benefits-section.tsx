@@ -4,28 +4,28 @@ const benefits = [
   {
     title: "For Organizers",
     items: [
-      "Manage multiple conferences from one centralized workspace",
-      "Publish events and manage timelines with ease",
-      "Track participants, submissions, and payments in real time",
-      "Secure role-based permissions for team collaboration",
+      "Create and manage multiple conferences from one workspace",
+      "Set deadlines, open registrations, and track progress in real time",
+      "Monitor submissions, reviews, and payments from a single dashboard",
+      "Control access with role-based permissions for your team",
     ],
   },
   {
     title: "For Professors & Reviewers",
     items: [
-      "Streamlined peer review workflow",
-      "Structured evaluation and feedback tools",
-      "Organized reviewer assignments and workload management",
-      "Transparent and fair decision-making process",
+      "Receive review assignments with clear deadlines and instructions",
+      "Evaluate papers using structured forms — no email back-and-forth",
+      "See your workload at a glance and track completion",
+      "Provide fair, consistent feedback through a guided workflow",
     ],
   },
   {
     title: "For Students & Authors",
     items: [
-      "Simple registration and paper submission process",
-      "Real-time updates on submission status",
-      "Instant access to verified digital certificates",
-      "Secure storage for research documents",
+      "Register and submit papers in minutes — no confusing forms",
+      "Get real-time updates on your submission status",
+      "Download verified certificates the moment results are published",
+      "Access your submissions and documents from a personal dashboard",
     ],
   },
 ];
@@ -42,16 +42,16 @@ export function BenefitsSection() {
         <div className="mx-auto max-w-2xl text-center">
 
           <p className="text-sm font-semibold uppercase tracking-wider text-indigo-200">
-            Benefits
+            Who It Helps
           </p>
 
           <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-            Built for Every Role in Academic Conferences
+            Built for Organizers, Reviewers, and Researchers
           </h2>
 
           <p className="mt-4 text-lg text-indigo-100">
-            AcadFlow empowers organizers, reviewers, and participants
-            with tools designed to simplify academic workflows.
+            Every role in a conference has different needs.
+            AcadFlow gives each one a clear, focused experience.
           </p>
 
         </div>
@@ -101,8 +101,7 @@ export function BenefitsSection() {
         <div className="mt-16 text-center">
 
           <p className="text-sm text-indigo-200">
-            Trusted by academic institutions and independent organizers
-            to deliver reliable, professional conference experiences.
+            Designed for universities, research labs, and independent conference organizers.
           </p>
 
         </div>
