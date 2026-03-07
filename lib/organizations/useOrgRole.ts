@@ -9,7 +9,7 @@ const supabase = createClient();
 
 export function useOrgRole() {
   const { profile } = useProfile();
-  const organization = useOrganization();
+  const { organization } = useOrganization();
   const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {

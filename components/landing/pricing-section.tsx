@@ -1,58 +1,81 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { PRO_CONFERENCE_PRICE } from "@/lib/config/pricing";
+
+/* ------------------------------------------------------------------ */
+/*  Plan data                                                          */
+/* ------------------------------------------------------------------ */
 
 const plans = [
   {
-    name: "Starter",
-    description: "Perfect for exploring AcadFlow features",
+    name: "Free",
+    description:
+      "Everything you need to run your first academic conference on AcadFlow.",
     price: "₹0",
     period: "forever",
+    badge: "Great for small conferences",
+    valueHighlight: null,
     features: [
-      "Create 1 conference",
-      "Paper submission & review workflow",
-      "Basic participant management",
-      "No payment collection",
-      "Email support",
+      "1 conference",
+      "Up to 150 paper submissions",
+      "Paper submission portal",
+      "Peer review workflow",
+      "Reviewer assignment",
+      "Participant management",
+      "Email notifications",
+      "Certificate generation",
+      "Conference schedule management",
     ],
     cta: "Start Free",
-    link: "/signup?role=organizer",
+    link: "/dashboard/onboarding/organization",
     popular: false,
   },
   {
-    name: "Conference Plan",
-    description: "Best for academic conferences collecting fees",
-    price: "7%",
-    period: "per registration payment",
+    name: "Early Adopter",
+    description:
+      "The complete conference management workflow for growing academic events.",
+    price: `₹${PRO_CONFERENCE_PRICE.toLocaleString("en-IN")}`,
+    period: "per conference",
+    badge: null,
+    valueHighlight: "Perfect for conferences with 150+ submissions.",
     features: [
-      "Unlimited participants",
-      "Integrated Razorpay payments",
-      "Automatic organizer payouts",
-      "Digital certificate generation",
-      "Transparent fee breakdown",
+      "Unlimited submissions",
+      "Full conference management workflow",
+      "Advanced reviewer management",
+      "Bulk email communication",
+      "Submission reports and analytics",
       "Priority support",
     ],
-    cta: "Host a Conference",
-    link: "/signup?role=organizer",
+    cta: "Start Conference",
+    link: "/dashboard/billing/upgrade",
     popular: true,
   },
   {
-    name: "Institution Plan",
-    description: "For universities & recurring conferences",
-    price: "Custom %",
-    period: "based on volume",
+    name: "Enterprise",
+    description:
+      "For universities and institutions managing multiple conferences.",
+    price: "Custom",
+    period: "pricing",
+    badge: null,
+    valueHighlight: null,
     features: [
-      "Multiple conferences",
-      "Reduced platform fee",
-      "Institution branding",
-      "Advanced analytics & reports",
-      "Dedicated onboarding",
+      "Unlimited conferences",
+      "Unlimited submissions",
+      "Institutional branding",
+      "Advanced analytics dashboard",
+      "Dedicated onboarding support",
+      "Priority support",
     ],
-    cta: "Contact Us",
-    link: "/#footer",
+    cta: "Contact Sales",
+    link: "/contact",
     popular: false,
   },
 ];
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
 
 export function PricingSection() {
   return (
@@ -60,9 +83,9 @@ export function PricingSection() {
       id="pricing"
       className="bg-slate-50 px-4 py-20 sm:px-6 sm:py-28 lg:px-8"
     >
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-6xl">
 
-        {/* ── Hero Pricing Header ── */}
+        {/* Header */}
         <div className="mx-auto max-w-3xl text-center">
 
           <p className="text-xs font-semibold uppercase tracking-widest text-indigo-600">
@@ -70,80 +93,35 @@ export function PricingSection() {
           </p>
 
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-            Collect Conference Fees With Ease
+            Pricing Built for
             <span className="block text-indigo-600 mt-1">
-              — Just 7% Platform Fee
+              Academic Conferences
             </span>
           </h2>
 
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
-            Smooth, secure conference payments. Collect, transfer and manage
-            registration fees effortlessly. Zero setup cost.
+            Manage submissions, peer reviews, schedules, and certificates in one
+            modern platform designed for academic conferences.
           </p>
 
         </div>
 
-        {/* ── Big Pricing Highlight Block ── */}
-        <div className="mx-auto mt-14 max-w-xl">
-          <div className="relative rounded-2xl border border-indigo-100 bg-white p-8 sm:p-10 text-center shadow-lg">
-
-            {/* Subtle glow */}
-            <div className="absolute inset-0 -z-10 rounded-2xl bg-[radial-gradient(ellipse_at_center,rgba(79,70,229,0.06),transparent_70%)]" />
-
-            <p className="text-sm font-medium text-gray-500">
-              Start collecting fees at just
-            </p>
-
-            <p className="mt-4 text-7xl font-extrabold tracking-tight text-indigo-600 sm:text-8xl">
-              7%
-            </p>
-
-            <p className="mt-2 text-base font-medium text-gray-700">
-              Platform fee per registration payment<span className="text-gray-400">*</span>
-            </p>
-
-            <p className="mt-3 text-xs text-gray-400">
-              *Payment gateway charges &amp; 18% GST applicable
-            </p>
-
-            <p className="mt-6 text-sm leading-relaxed text-gray-500 max-w-sm mx-auto">
-              Access seamless checkout, automated payouts &amp; transparent reporting.
-            </p>
-
-            {/* CTAs */}
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/signup?role=organizer">
-                <Button className="px-8 h-11 text-sm font-semibold">
-                  Start Hosting for Free
-                </Button>
-              </Link>
-              <Link
-                href="/#footer"
-                className="text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors"
-              >
-                Contact Sales →
-              </Link>
-            </div>
-
-          </div>
-        </div>
-
-        {/* ── Plan Cards (commented out) ── */}
-        {/*
-        <div className="mt-20 grid gap-8 lg:grid-cols-3">
+        {/* Pricing Cards */}
+        <div className="mt-20 grid gap-8 md:grid-cols-3">
 
           {plans.map((plan) => (
             <div
               key={plan.name}
               className={`relative rounded-xl border bg-white p-8 shadow-sm transition hover:shadow-lg ${plan.popular
-                  ? "border-indigo-600 shadow-md scale-[1.02]"
-                  : "border-gray-200"
+                ? "border-indigo-600 shadow-md scale-[1.04]"
+                : "border-gray-200"
                 }`}
             >
 
+              {/* MOST POPULAR badge */}
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-4 py-1 text-xs font-semibold text-white shadow">
-                  MOST USED
+                  MOST POPULAR
                 </div>
               )}
 
@@ -157,6 +135,13 @@ export function PricingSection() {
                   {plan.description}
                 </p>
 
+                {/* In-card badge (Free plan) */}
+                {plan.badge && (
+                  <div className="mt-3 inline-block rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-xs font-medium text-emerald-700">
+                    {plan.badge}
+                  </div>
+                )}
+
                 <div className="mt-6">
                   <span className="text-4xl font-bold text-gray-900">
                     {plan.price}
@@ -166,14 +151,18 @@ export function PricingSection() {
                   </span>
                 </div>
 
+                {/* Value highlight (Early Adopter) */}
+                {plan.valueHighlight && (
+                  <p className="mt-2 text-xs font-medium text-indigo-600">
+                    {plan.valueHighlight}
+                  </p>
+                )}
+
               </div>
 
               <ul className="mt-8 space-y-4">
                 {plan.features.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-3"
-                  >
+                  <li key={feature} className="flex items-start gap-3">
                     <Check className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
                     <span className="text-gray-600 leading-relaxed">
                       {feature}
@@ -193,16 +182,20 @@ export function PricingSection() {
 
             </div>
           ))}
-        </div>
-        */}
 
-        {/* Trust Note */}
-        <div className="mt-12 text-center text-sm text-gray-500">
-          No hidden charges. Transparent 7% platform fee. Payment gateway charges may apply.
-          Institutions &amp; universities can request custom plans at{" "}
-          <span className="font-medium text-indigo-600">
-            acadflow.platform@gmail.com
-          </span>
+        </div>
+
+        {/* Bottom notes */}
+        <div className="mt-12 space-y-2 text-center text-sm text-gray-500">
+          <p>
+            ⏳ Early adopter pricing may increase as the platform grows.
+          </p>
+          <p>
+            🎓 Universities and institutions can request custom plans at{" "}
+            <span className="font-medium text-indigo-600">
+              acadflow.platform@gmail.com
+            </span>
+          </p>
         </div>
 
       </div>

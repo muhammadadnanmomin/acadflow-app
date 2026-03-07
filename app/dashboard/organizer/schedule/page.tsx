@@ -43,7 +43,7 @@ type ViewTab = "list" | "track" | "calendar";
 
 export default function SchedulePage() {
     const { profile } = useProfile();
-    const organization = useOrganization();
+    const { organization } = useOrganization();
     const supabase = createClient();
 
     // Data

@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
+import { usePlan } from "@/lib/plans/usePlan";
+import UpgradeModal from "@/components/upgrade/UpgradeModal";
+import { useOrganization } from "@/lib/organizations/useOrganization";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,9 +147,12 @@ export default function ConferenceForm({
 }: ConferenceFormProps) {
     const router = useRouter();
     const { profile, loading: profileLoading } = useProfile();
+    const { organization } = useOrganization();
+    const plan = usePlan();
 
     const [loading, setLoading] = useState(false);
     const [pageLoading, setPageLoading] = useState(mode === "edit");
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
     /* ---- Basic Info ---- */
     const [title, setTitle] = useState("");
@@ -515,6 +521,12 @@ export default function ConferenceForm({
     /* ================================================================ */
     async function handleSubmit() {
         if (!profile) return;
+
+        /* --- plan limit check (create mode only) --- */
+        if (mode === "create" && !plan.canCreateConference) {
+            setShowUpgradeModal(true);
+            return;
+        }
 
         /* --- basic validation --- */
         if (!title || !shortName || !start || !end) {
@@ -1409,6 +1421,18 @@ export default function ConferenceForm({
                     )}
                 </Button>
             </div>
+
+            {/* Upgrade Modal */}
+            {mode === "create" && organization && profile && (
+                <UpgradeModal
+                    open={showUpgradeModal}
+                    onClose={() => setShowUpgradeModal(false)}
+                    title="Conference Limit Reached"
+                    description="Your conference is growing! Upgrade to Pro to create unlimited conferences and unlock advanced features."
+                    organizationId={organization.id}
+                    userId={profile.id}
+                />
+            )}
         </Card>
     );
 }

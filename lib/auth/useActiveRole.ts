@@ -6,7 +6,7 @@ import { useOrganization } from "@/lib/organizations/useOrganization";
 
 export function useActiveRole() {
   const { profile, loading } = useProfile();
-  const organization = useOrganization();
+  const { organization } = useOrganization();
 
   const [activeRole, setActiveRole] = useState<string | null>(null);
 

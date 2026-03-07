@@ -26,11 +26,17 @@ import {
   X,
   PlusCircle,
   Building2,
+  Receipt,
 } from "lucide-react";
 
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
@@ -64,6 +70,7 @@ const organizerNav = [
   { name: "Schedule", href: "/dashboard/organizer/schedule", icon: CalendarClock },
   { name: "Reviewers", href: "/dashboard/organizer/reviewers", icon: Users },
   { name: "Payments", href: "/dashboard/organizer/payments", icon: CreditCard },
+  { name: "Billing", href: "/dashboard/billing/upgrade", icon: Receipt },
   { name: "Certificates", href: "/dashboard/organizer/certificates", icon: Award },
   { name: "Notifications", href: "/dashboard/organizer/notifications", icon: Bell },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -99,7 +106,7 @@ export function DashboardSidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const organization = useOrganization();
+  const { organization } = useOrganization();
 
   const [activeRole, setActiveRole] = useState(role);
 
@@ -237,42 +244,76 @@ export function DashboardSidebar({
                 <span className="font-medium truncate">
                   {organization.name}
                 </span>
+                <span className="mt-1 inline-flex w-fit items-center rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                  {organization.plan_type === "pro"
+                    ? "Pro"
+                    : organization.plan_type === "enterprise"
+                      ? "Enterprise"
+                      : "Free"}
+                </span>
               </div>
             )}
           </Link>
+
+          {/* Upgrade button for free plan */}
+          {!collapsed && (!organization.plan_type || organization.plan_type === "free") && (
+            <Link
+              href="/dashboard/billing/upgrade"
+              className="mx-3 mt-1 inline-flex items-center justify-center rounded-md border border-indigo-300 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-50"
+            >
+              Upgrade
+            </Link>
+          )}
 
           <div className="mx-3 my-3 border-t border-gray-200" />
         </div>
       )}
 
-      {/* Navigation */}
-      <ScrollArea className="flex-1 py-4">
+      {/* Navigation (scrollable) */}
+      <div className="flex-1 overflow-y-auto py-4">
         <nav className="flex flex-col gap-1 px-2">
           {navItems.map((item) => {
             const active = pathname === item.href;
 
-            return (
+            const linkContent = (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={onMobileClose}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition",
+                  "flex items-center rounded-lg py-2.5 text-sm font-medium transition",
                   active
                     ? "bg-indigo-50 text-indigo-600"
                     : item.name === "Create Organization"
                       ? "text-indigo-600 bg-indigo-50 font-semibold"
                       : "text-gray-600 hover:bg-gray-100",
-                  collapsed && "justify-center"
+                  collapsed ? "justify-center px-0" : "gap-3 px-3"
                 )}
               >
-                <item.icon className="h-5 w-5" />
+                <div className="flex items-center justify-center w-6 h-6 flex-shrink-0">
+                  <item.icon className="h-5 w-5" />
+                </div>
                 {!collapsed && item.name}
               </Link>
             );
+
+            if (collapsed) {
+              return (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>
+                    {linkContent}
+                  </TooltipTrigger>
+                  <TooltipContent side="right" sideOffset={8}>
+                    {item.name}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+
+            return linkContent;
           })}
         </nav>
-      </ScrollArea>
+      </div>
 
       {/* Bottom */}
       <div className="border-t p-2 space-y-2">

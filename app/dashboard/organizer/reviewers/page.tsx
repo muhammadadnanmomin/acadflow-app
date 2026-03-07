@@ -72,7 +72,7 @@ interface PendingInvite {
 export default function OrganizerReviewers() {
   const supabase = createClient();
   const { profile } = useProfile();
-  const organization = useOrganization();
+  const { organization } = useOrganization();
   const role = useOrgRole();
 
   const [loading, setLoading] = useState(true);

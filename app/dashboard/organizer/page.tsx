@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 import { useOrganization } from "@/lib/organizations/useOrganization";
+import { usePlan } from "@/lib/plans/usePlan";
+import { formatLimit, PLAN_LABELS } from "@/lib/config/pricing";
+import UpgradeModal from "@/components/upgrade/UpgradeModal";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +30,8 @@ import {
   BarChart3,
   CalendarClock,
   Layers,
+  Sparkles,
+  Crown,
 } from "lucide-react";
 
 import Link from "next/link";
@@ -52,7 +57,9 @@ function formatDate(date: string | null) {
 
 export default function OrganizerDashboard() {
   const { profile } = useProfile();
-  const organization = useOrganization();
+  const { organization } = useOrganization();
+  const plan = usePlan();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const [stats, setStats] = useState({
     conferences: 0,
@@ -262,6 +269,93 @@ export default function OrganizerDashboard() {
           </Button>
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/*  Plan & Usage Card                                            */}
+      {/* ============================================================ */}
+      {!plan.loading && (
+        <Card className="p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${plan.planType === "free"
+                ? "bg-gray-100"
+                : plan.planType === "pro"
+                  ? "bg-indigo-100"
+                  : "bg-purple-100"
+                }`}>
+                <Crown className={`h-5 w-5 ${plan.planType === "free"
+                  ? "text-gray-500"
+                  : plan.planType === "pro"
+                    ? "text-indigo-600"
+                    : "text-purple-600"
+                  }`} />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-500">Current Plan</p>
+                  <Badge className={`text-[11px] ${plan.planType === "free"
+                    ? "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-100"
+                    : plan.planType === "pro"
+                      ? "bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+                      : "bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100"
+                    }`}>
+                    {PLAN_LABELS[plan.planType]}
+                  </Badge>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-1 mt-1">
+                  {/* Conference usage */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Conferences: {plan.conferencesUsed} / {formatLimit(plan.conferenceLimit)}
+                    </span>
+                    {plan.conferenceLimit !== null && (
+                      <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${plan.conferencesUsed >= plan.conferenceLimit
+                            ? "bg-red-500"
+                            : "bg-indigo-500"
+                            }`}
+                          style={{ width: `${Math.min(100, (plan.conferencesUsed / plan.conferenceLimit) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Submission usage */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Submissions: {plan.submissionsUsed} / {formatLimit(plan.submissionLimit)}
+                    </span>
+                    {plan.submissionLimit !== null && (
+                      <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${plan.submissionsUsed >= plan.submissionLimit
+                            ? "bg-red-500"
+                            : "bg-blue-500"
+                            }`}
+                          style={{ width: `${Math.min(100, (plan.submissionsUsed / plan.submissionLimit) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {plan.planType === "free" && (
+              <Button
+                onClick={() => setShowUpgradeModal(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 gap-2 shrink-0"
+              >
+                <Sparkles className="h-4 w-4" />
+                Upgrade to Pro
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* ============================================================ */}
       {/*  Stats Grid                                                   */}
@@ -591,6 +685,18 @@ export default function OrganizerDashboard() {
           </div>
         )}
       </Card>
+
+      {/* ============================================================ */}
+      {/*  Upgrade Modal                                                */}
+      {/* ============================================================ */}
+      {organization && profile && (
+        <UpgradeModal
+          open={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          organizationId={organization.id}
+          userId={profile.id}
+        />
+      )}
 
     </div>
   );

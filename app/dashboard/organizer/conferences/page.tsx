@@ -64,7 +64,7 @@ function getCurrencySymbol(currency: string | null) {
 
 export default function OrganizerConferences() {
   const { profile } = useProfile();
-  const organization = useOrganization();
+  const { organization } = useOrganization();
 
   const [conferences, setConferences] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -294,8 +294,8 @@ export default function OrganizerConferences() {
                       {/* Published / Draft */}
                       <Badge
                         className={`text-xs shrink-0 ${c.is_published
-                            ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100"
-                            : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-100"
+                          ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100"
+                          : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-100"
                           }`}
                       >
                         {c.is_published ? "Published" : "Draft"}

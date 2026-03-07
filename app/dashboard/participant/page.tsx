@@ -29,7 +29,7 @@ import {
 export default function ParticipantDashboard() {
   const { profile } = useProfile();
   const supabase = createClient();
-  const organization = useOrganization();
+  const { organization } = useOrganization();
 
   const [loading, setLoading] = useState(true);
 

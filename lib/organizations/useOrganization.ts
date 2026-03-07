@@ -7,16 +7,24 @@ import { useProfile } from "@/lib/auth/useProfile";
 const supabase = createClient();
 
 export function useOrganization() {
-  const { profile } = useProfile();
+  const { profile, loading: profileLoading } = useProfile();
   const [organization, setOrganization] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!profile) return;
+    if (profileLoading) return;
+
+    if (!profile) {
+      setLoading(false);
+      return;
+    }
 
     async function loadOrganization() {
       // 🔹 try membership first
       if (!profile) return;
-      
+
+      setLoading(true);
+
       const { data, error } = await supabase
         .from("organization_members")
         .select(`organization:organizations(*)`)
@@ -26,6 +34,7 @@ export function useOrganization() {
 
       if (data?.organization) {
         setOrganization(data.organization);
+        setLoading(false);
         return;
       }
 
@@ -39,15 +48,17 @@ export function useOrganization() {
           .maybeSingle();
 
         setOrganization(org || null);
+        setLoading(false);
         return;
       }
 
       // 🔹 no organization
       setOrganization(null);
+      setLoading(false);
     }
 
     loadOrganization();
-  }, [profile]);
+  }, [profile, profileLoading]);
 
-  return organization;
+  return { organization, loading };
 }

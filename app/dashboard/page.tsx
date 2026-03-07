@@ -9,7 +9,7 @@ import { useOrganization } from "@/lib/organizations/useOrganization";
 
 export default function DashboardRedirect() {
   const { profile, loading } = useProfile();
-  const organization = useOrganization();
+  const { organization } = useOrganization();
   const router = useRouter();
   const supabase = createClient();
 
