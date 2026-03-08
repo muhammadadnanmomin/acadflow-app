@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { addLedgerCredit, addLedgerDebit } from "@/lib/payment/balance";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -104,6 +105,7 @@ async function markWebhookProcessed(
  * Updates:
  *   • paper_submissions → payment_status = "paid", payment_method, paid_at
  *   • conference_registrations → paid = true
+ *   • organizer_ledger → credit entry for conference fee
  */
 async function handlePaymentCaptured(
   payment: Record<string, any>
@@ -147,6 +149,34 @@ async function handlePaymentCaptured(
         .update({ paid: true })
         .eq("conference_id", parts[1])
         .eq("user_id", parts[2]);
+    }
+  }
+
+  // ── Ledger: Credit the conference organizer ──
+  // Determine the conference fee (organizer's share)
+  const conferenceFee = Number(notes.conferenceFee) || (payment.amount / 100);
+  const resolvedConferenceId = conferenceId || (payment.receipt?.split("_")?.[1]);
+
+  if (resolvedConferenceId) {
+    // Look up the organizer for this conference
+    const { data: conference } = await supabaseAdmin
+      .from("conferences")
+      .select("organizer_id, title")
+      .eq("id", resolvedConferenceId)
+      .maybeSingle();
+
+    if (conference?.organizer_id) {
+      try {
+        await addLedgerCredit(supabaseAdmin, {
+          organizerId: conference.organizer_id,
+          amount: conferenceFee,
+          entryType: "payment_credit",
+          paymentId: paymentId,
+          description: `Payment received for ${conference.title || "conference"}`,
+        });
+      } catch (err) {
+        console.error("⚠️ Ledger credit failed (non-blocking):", err);
+      }
     }
   }
 }
@@ -197,18 +227,51 @@ async function handleOrderPaid(
 /**
  * refund.created — A refund was initiated.
  *
- * Updates paper_submissions → refund_status = "refund_initiated"
+ * Updates:
+ *   • paper_submissions → refund_status = "refund_initiated"
+ *   • organizer_ledger → debit entry for refund amount
  */
 async function handleRefundCreated(
   refund: Record<string, any>
 ): Promise<void> {
   const paymentId = refund.payment_id;
+  const refundAmount = Number(refund.amount) / 100; // Razorpay sends in paise
 
   if (paymentId) {
     await supabaseAdmin
       .from("paper_submissions")
       .update({ refund_status: "refund_initiated" })
       .eq("presentation_payment_id", paymentId);
+
+    // ── Ledger: Debit the organizer for the refund ──
+    // Find the paper submission → conference → organizer
+    const { data: submission } = await supabaseAdmin
+      .from("paper_submissions")
+      .select("conference_id")
+      .eq("presentation_payment_id", paymentId)
+      .maybeSingle();
+
+    if (submission?.conference_id) {
+      const { data: conference } = await supabaseAdmin
+        .from("conferences")
+        .select("organizer_id, title")
+        .eq("id", submission.conference_id)
+        .maybeSingle();
+
+      if (conference?.organizer_id && refundAmount > 0) {
+        try {
+          await addLedgerDebit(supabaseAdmin, {
+            organizerId: conference.organizer_id,
+            amount: refundAmount,
+            entryType: "refund",
+            paymentId: paymentId,
+            description: `Refund processed for ${conference.title || "conference"}`,
+          });
+        } catch (err) {
+          console.error("⚠️ Ledger refund debit failed (non-blocking):", err);
+        }
+      }
+    }
   }
 }
 

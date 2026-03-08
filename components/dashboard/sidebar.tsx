@@ -70,6 +70,7 @@ const organizerNav = [
   { name: "Schedule", href: "/dashboard/organizer/schedule", icon: CalendarClock },
   { name: "Reviewers", href: "/dashboard/organizer/reviewers", icon: Users },
   { name: "Payments", href: "/dashboard/organizer/payments", icon: CreditCard },
+  { name: "Bank Details", href: "/dashboard/organizer/bank-details", icon: Building2 },
   { name: "Billing", href: "/dashboard/billing/upgrade", icon: Receipt },
   { name: "Certificates", href: "/dashboard/organizer/certificates", icon: Award },
   { name: "Notifications", href: "/dashboard/organizer/notifications", icon: Bell },
