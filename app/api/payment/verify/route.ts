@@ -4,10 +4,17 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(req: Request) {
     try {
-        console.log("✅ VERIFY API HIT");
-
         const body = await req.json();
-        const { orderId, paymentId, signature, submissionId } = body;
+        const {
+            orderId,
+            paymentId,
+            signature,
+            submissionId,
+            conferenceFee,
+            gatewayFee,
+            gstOnGateway,
+            totalPayable,
+        } = body;
 
         if (!orderId || !paymentId || !signature || !submissionId) {
             return NextResponse.json(
@@ -16,6 +23,7 @@ export async function POST(req: Request) {
             );
         }
 
+        // ── Razorpay signature verification ──
         const generated = crypto
             .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
             .update(orderId + "|" + paymentId)
@@ -23,27 +31,43 @@ export async function POST(req: Request) {
 
         if (generated !== signature) {
             console.error("❌ Signature mismatch");
-            return NextResponse.json({ error: "Invalid payment" }, { status: 400 });
+            return NextResponse.json(
+                { error: "Invalid payment" },
+                { status: 400 }
+            );
         }
 
+        // ── Update paper_submissions with payment details + fee breakdown ──
         const { error } = await supabaseAdmin
             .from("paper_submissions")
             .update({
                 payment_status: "paid",
                 presentation_payment_id: paymentId,
+                payment_order_id: orderId,
+                payment_amount: totalPayable ?? null,
+                payment_conference_fee: conferenceFee ?? null,
+                payment_gateway_fee: gatewayFee ?? null,
+                payment_gst: gstOnGateway ?? null,
+                paid_at: new Date().toISOString(),
             })
             .eq("id", submissionId);
 
         if (error) {
             console.error("DB ERROR:", error);
-            return NextResponse.json({ error: "DB update failed" }, { status: 500 });
+            return NextResponse.json(
+                { error: "DB update failed" },
+                { status: 500 }
+            );
         }
 
-        console.log("✅ Payment verified & DB updated");
+        console.log("✅ Payment verified & DB updated with fee breakdown");
 
         return NextResponse.json({ success: true });
     } catch (err) {
         console.error("VERIFY ERROR:", err);
-        return NextResponse.json({ error: "Server error" }, { status: 500 });
+        return NextResponse.json(
+            { error: "Server error" },
+            { status: 500 }
+        );
     }
 }

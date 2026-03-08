@@ -29,6 +29,14 @@ import { useToast } from "@/components/ui/use-toast";
 
 import jsPDF from "jspdf";
 
+import {
+  calculateFeeBreakdown,
+  formatINR,
+  RAZORPAY_FEE_PERCENT,
+  GST_ON_GATEWAY_PERCENT,
+  type FeeBreakdown,
+} from "@/lib/payment/fees";
+
 export default function ParticipantPaymentsPage() {
   const { profile } = useProfile();
   const supabase = createClient();
@@ -49,8 +57,6 @@ export default function ParticipantPaymentsPage() {
     if (!profile) return;
 
     setLoading(true);
-
-    if (!profile) return;
 
     const { data } = await supabase
       .from("paper_submissions")
@@ -95,7 +101,10 @@ export default function ParticipantPaymentsPage() {
     loadData();
   }, [profile]);
 
-  function calculateFee(confId: string) {
+  // ── Fee calculation helpers ──────────────────────────────────────
+
+  /** Conference fee = sum of selected presentation + publication options */
+  function getConferenceFee(confId: string): number {
     const confFees = fees[confId];
     if (!confFees) return 0;
 
@@ -115,6 +124,35 @@ export default function ParticipantPaymentsPage() {
 
     return total;
   }
+
+  /** Full fee breakdown including gateway + GST */
+  function getBreakdown(confId: string): FeeBreakdown {
+    return calculateFeeBreakdown(getConferenceFee(confId));
+  }
+
+  /** Get the fee label for the selected presentation type */
+  function getPresentationFee(confId: string): number {
+    const confFees = fees[confId];
+    if (!confFees) return 0;
+    if (presentationType[confId] === "Physical Presentation")
+      return Number(confFees.physical_presentation_fee || 0);
+    if (presentationType[confId] === "Virtual Presentation")
+      return Number(confFees.virtual_presentation_fee || 0);
+    return 0;
+  }
+
+  /** Get the fee label for the selected publication type */
+  function getPublicationFee(confId: string): number {
+    const confFees = fees[confId];
+    if (!confFees) return 0;
+    if (publicationType[confId] === "Full Paper Publication")
+      return Number(confFees.full_paper_publication_fee || 0);
+    if (publicationType[confId] === "Abstract Only Publication")
+      return Number(confFees.abstract_publication_fee || 0);
+    return 0;
+  }
+
+  // ── Save options ─────────────────────────────────────────────────
 
   async function saveOptions(row: any) {
     const confId = row.conference_id;
@@ -141,10 +179,12 @@ export default function ParticipantPaymentsPage() {
     return true;
   }
 
+  // ── Invoice / Receipt PDF ────────────────────────────────────────
+
   function generateInvoice(
     title: string,
     organizer: string,
-    amount: number,
+    breakdown: FeeBreakdown,
     paymentId: string,
     orderId: string
   ) {
@@ -196,24 +236,55 @@ export default function ParticipantPaymentsPage() {
     y += 6;
     doc.text(`Razorpay Order ID: ${orderId}`, 20, y);
     y += 6;
-    y += 4;
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Amount Paid", 20, y);
-
-    y += 8;
-    doc.setFontSize(18);
-    doc.setTextColor(40, 40, 40);
-    doc.text(`Rs. ${amount.toLocaleString("en-IN")}`, 20, y);
-
-    doc.setFontSize(10);
-    doc.setTextColor(0);
-    y += 8;
-    y += 6;
     doc.text(`Date & Time: ${new Date().toLocaleString("en-IN")}`, 20, y);
     y += 12;
 
     // divider
+    doc.line(20, y, pageWidth - 20, y);
+    y += 12;
+
+    // ── Fee Breakdown ──
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Fee Breakdown", 20, y);
+    y += 10;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+
+    // Line items
+    const rightX = pageWidth - 20;
+
+    const addRow = (label: string, amount: string, bold = false) => {
+      if (bold) doc.setFont("helvetica", "bold");
+      else doc.setFont("helvetica", "normal");
+      doc.text(label, 20, y);
+      doc.text(amount, rightX, y, { align: "right" });
+      y += 7;
+    };
+
+    addRow("Conference Fee", `Rs. ${formatINR(breakdown.conferenceFee)}`);
+    addRow(
+      `Payment Gateway Fee (Razorpay ${RAZORPAY_FEE_PERCENT}%)`,
+      `Rs. ${formatINR(breakdown.gatewayFee)}`
+    );
+    addRow(
+      `GST on Gateway Fee (${GST_ON_GATEWAY_PERCENT}%)`,
+      `Rs. ${formatINR(breakdown.gstOnGateway)}`
+    );
+
+    y += 2;
+    doc.setDrawColor(180);
+    doc.line(20, y, rightX, y);
+    y += 8;
+
+    doc.setFontSize(13);
+    addRow("Total Paid", `Rs. ${formatINR(breakdown.totalPayable)}`, true);
+
+    y += 8;
+
+    // divider
+    doc.setDrawColor(200);
     doc.line(20, y, pageWidth - 20, y);
     y += 12;
 
@@ -225,13 +296,29 @@ export default function ParticipantPaymentsPage() {
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(80);
-    doc.text(`Payment has been transferred to ${organizer}.`, 20, y);
+    doc.text(
+      `Conference fee of Rs. ${formatINR(breakdown.conferenceFee)} has been transferred to ${organizer}.`,
+      20,
+      y
+    );
     y += 5;
-    doc.text("AcadFlow provides the technology platform for conference management.", 20, y);
+    doc.text(
+      `Payment gateway charges (Rs. ${formatINR(breakdown.gatewayFee)} + Rs. ${formatINR(breakdown.gstOnGateway)} GST) are retained by Razorpay.`,
+      20,
+      y
+    );
+    y += 5;
+    doc.text(
+      "AcadFlow provides the technology platform for conference management.",
+      20,
+      y
+    );
     doc.setTextColor(0);
 
     doc.save("AcadFlow_Receipt.pdf");
   }
+
+  // ── Open Razorpay Checkout ───────────────────────────────────────
 
   async function openPayment(row: any) {
     const confId = row.conference_id;
@@ -242,8 +329,8 @@ export default function ParticipantPaymentsPage() {
       return;
     }
 
-    const amount = calculateFee(confId);
-    if (!amount || amount <= 0) return;
+    const conferenceFee = getConferenceFee(confId);
+    if (!conferenceFee || conferenceFee <= 0) return;
 
     const saved = await saveOptions(row);
     if (!saved) return;
@@ -257,78 +344,105 @@ export default function ParticipantPaymentsPage() {
         title: "Error",
         description: "User not loaded",
       });
+      setPayLoading(null);
       return;
     }
-    const res = await fetch("/api/payment/create-order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        amount,
-        conferenceId: confId,
-        userId: profile.id,
-      }),
-    });
 
-    const order = await res.json();
+    try {
+      const res = await fetch("/api/payment/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conferenceFee,
+          conferenceId: confId,
+          userId: profile.id,
+          submissionId: row.id,
+        }),
+      });
 
-    const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      amount: order.amount,
-      currency: "INR",
-      name: "AcadFlow",
-      description: `Payment to ${fees[confId]?.organizer_name || "Conference Organizer"} via AcadFlow`,
-      order_id: order.id,
-
-      handler: async (response: any) => {
-
-        // ✅ WAIT for verification
-        const verifyRes = await fetch("/api/payment/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            orderId: order.id,
-            paymentId: response.razorpay_payment_id,
-            signature: response.razorpay_signature,
-            submissionId: row.id,
-          }),
-        });
-
-        if (!verifyRes.ok) {
-          toast({
-            variant: "destructive",
-            title: "Payment verification failed",
-          });
-          return;
-        }
-
-        // instant UI update
-        setAcceptedPapers(prev =>
-          prev.map(p =>
-            p.id === row.id ? { ...p, payment_status: "paid" } : p
-          )
-        );
-
-        generateInvoice(
-          fees[confId].title,
-          fees[confId]?.organizer_name || "Conference Organizer",
-          amount,
-          response.razorpay_payment_id,
-          order.id
-        );
-        setPaymentSuccess(true);
-
-        await loadData();
-
+      if (!res.ok) {
+        const errorData = await res.json();
         toast({
-          title: "Payment Successful 🎉",
+          variant: "destructive",
+          title: "Order creation failed",
+          description: errorData.error || "Please try again",
         });
-      },
+        setPayLoading(null);
+        return;
+      }
 
-      theme: { color: "#4f46e5" },
-    };
+      const order = await res.json();
+      const serverBreakdown: FeeBreakdown = order.breakdown;
 
-    const razor = new (window as any).Razorpay(options);
-    razor.open();
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: "INR",
+        name: "AcadFlow",
+        description: `Payment to ${fees[confId]?.organizer_name || "Conference Organizer"} via AcadFlow`,
+        order_id: order.id,
+
+        handler: async (response: any) => {
+          // ✅ Verify payment with fee breakdown
+          const verifyRes = await fetch("/api/payment/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              orderId: order.id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature,
+              submissionId: row.id,
+              conferenceFee: serverBreakdown.conferenceFee,
+              gatewayFee: serverBreakdown.gatewayFee,
+              gstOnGateway: serverBreakdown.gstOnGateway,
+              totalPayable: serverBreakdown.totalPayable,
+            }),
+          });
+
+          if (!verifyRes.ok) {
+            toast({
+              variant: "destructive",
+              title: "Payment verification failed",
+            });
+            return;
+          }
+
+          // instant UI update
+          setAcceptedPapers((prev) =>
+            prev.map((p) =>
+              p.id === row.id ? { ...p, payment_status: "paid" } : p
+            )
+          );
+
+          generateInvoice(
+            fees[confId].title,
+            fees[confId]?.organizer_name || "Conference Organizer",
+            serverBreakdown,
+            response.razorpay_payment_id,
+            order.id
+          );
+          setPaymentSuccess(true);
+
+          await loadData();
+
+          toast({
+            title: "Payment Successful 🎉",
+          });
+        },
+
+        theme: { color: "#4f46e5" },
+      };
+
+      const razor = new (window as any).Razorpay(options);
+      razor.open();
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Something went wrong",
+        description: "Please try again later",
+      });
+    }
+
     setPayLoading(null);
   }
 
@@ -395,9 +509,11 @@ export default function ParticipantPaymentsPage() {
       {/* ── Payment Cards ── */}
       {!loading && acceptedPapers.map((row) => {
         const confId = row.conference_id;
-        const totalFee = calculateFee(confId);
+        const breakdown = getBreakdown(confId);
         const alreadyPaid = row.payment_status === "paid";
         const isProcessing = payLoading === confId;
+        const presFee = getPresentationFee(confId);
+        const pubFee = getPublicationFee(confId);
 
         return (
           <Card key={row.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
@@ -468,20 +584,13 @@ export default function ParticipantPaymentsPage() {
                       onClick={() => generateInvoice(
                         fees[confId]?.title || "Conference",
                         fees[confId]?.organizer_name || "Conference Organizer",
-                        totalFee || 0,
+                        breakdown,
                         "N/A",
                         "N/A"
                       )}
                     >
                       <Receipt className="h-4 w-4 mr-2" /> Download Receipt
                     </Button>
-                    {/* <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => generateInvoice(fees[confId]?.title || "Conference", totalFee || 0, fees[confId]?.organizer_name)}
-                    >
-                      <Download className="h-4 w-4 mr-2" /> View Invoice
-                    </Button> */}
                   </div>
                 </div>
               )}
@@ -528,17 +637,82 @@ export default function ParticipantPaymentsPage() {
                     </div>
                   </div>
 
-                  {/* Fee Breakdown */}
-                  {totalFee > 0 && (
-                    <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="h-5 w-5 text-indigo-600" />
-                          <span className="text-sm font-medium text-gray-600">Total Payable</span>
+                  {/* ── Fee Breakdown Card ── */}
+                  {breakdown.conferenceFee > 0 && (
+                    <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-sky-50 border border-indigo-200 rounded-xl overflow-hidden">
+                      {/* Header */}
+                      <div className="flex items-center gap-2 px-4 py-3 border-b border-indigo-100">
+                        <CreditCard className="h-4 w-4 text-indigo-600" />
+                        <span className="text-sm font-semibold text-gray-800">Fee Breakdown</span>
+                      </div>
+
+                      {/* Line items */}
+                      <div className="px-4 py-3 space-y-2">
+                        {/* Presentation fee */}
+                        {presFee > 0 && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">
+                              {presentationType[confId]} Fee
+                            </span>
+                            <span className="text-gray-700 font-medium tabular-nums">
+                              ₹{formatINR(presFee)}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Publication fee */}
+                        {pubFee > 0 && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">
+                              {publicationType[confId]} Fee
+                            </span>
+                            <span className="text-gray-700 font-medium tabular-nums">
+                              ₹{formatINR(pubFee)}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Subtotal divider */}
+                        <div className="border-t border-dashed border-indigo-200 pt-2 mt-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600 font-medium">Conference Fee</span>
+                            <span className="text-gray-800 font-semibold tabular-nums">
+                              ₹{formatINR(breakdown.conferenceFee)}
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-2xl font-bold text-indigo-700">
-                          ₹{totalFee.toLocaleString("en-IN")}
-                        </span>
+
+                        {/* Gateway fee */}
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">
+                            Payment Gateway Fee (Razorpay {RAZORPAY_FEE_PERCENT}%)
+                          </span>
+                          <span className="text-gray-600 tabular-nums">
+                            ₹{formatINR(breakdown.gatewayFee)}
+                          </span>
+                        </div>
+
+                        {/* GST on gateway */}
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">
+                            GST on Gateway Fee ({GST_ON_GATEWAY_PERCENT}%)
+                          </span>
+                          <span className="text-gray-600 tabular-nums">
+                            ₹{formatINR(breakdown.gstOnGateway)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Total */}
+                      <div className="bg-indigo-100/60 border-t border-indigo-200 px-4 py-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-gray-800">
+                            Total Payable
+                          </span>
+                          <span className="text-xl font-bold text-indigo-700 tabular-nums">
+                            ₹{formatINR(breakdown.totalPayable)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -549,7 +723,7 @@ export default function ParticipantPaymentsPage() {
                     <span>Complete your payment to secure your presentation slot. Unpaid papers may not be included in the conference proceedings.</span>
                   </div>
 
-                  {/* Payment Transparency Block (RBI Compliance) */}
+                  {/* Payment Transparency Block */}
                   <div className="border border-gray-200 rounded-xl p-4 space-y-2.5 bg-white">
                     <div className="flex items-center gap-2">
                       <Info className="h-4 w-4 text-indigo-500" />
@@ -564,16 +738,24 @@ export default function ParticipantPaymentsPage() {
                         <span className="text-gray-400">Payment Recipient:</span>{" "}
                         <span className="font-medium text-gray-700">{fees[confId]?.organizer_name || "Conference Organizer"}</span>
                       </p>
+                      {breakdown.conferenceFee > 0 && (
+                        <p>
+                          <span className="text-gray-400">Gateway charges:</span>{" "}
+                          <span className="font-medium text-gray-700">
+                            ₹{formatINR(breakdown.gatewayFee)} + ₹{formatINR(breakdown.gstOnGateway)} GST — retained by Razorpay
+                          </span>
+                        </p>
+                      )}
                     </div>
                     <p className="text-xs text-gray-400 leading-relaxed">
-                      AcadFlow provides the technology platform and charges a platform service fee.
+                      AcadFlow provides the technology platform. The conference fee (₹{formatINR(breakdown.conferenceFee)}) goes directly to the organizer.
                     </p>
                   </div>
 
                   {/* Pay Button */}
                   <Button
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-12 text-base font-semibold transition-all"
-                    disabled={isProcessing}
+                    disabled={isProcessing || breakdown.conferenceFee <= 0}
                     onClick={() => openPayment(row)}
                   >
                     {isProcessing ? (
@@ -584,14 +766,17 @@ export default function ParticipantPaymentsPage() {
                     ) : (
                       <>
                         <CreditCard className="h-5 w-5 mr-2" />
-                        Complete Payment
+                        {breakdown.totalPayable > 0
+                          ? `Pay ₹${formatINR(breakdown.totalPayable)}`
+                          : "Complete Payment"}
                       </>
                     )}
                   </Button>
 
                   {/* Legal Confirmation */}
                   <p className="text-xs text-center text-gray-400 leading-relaxed">
-                    By proceeding, you agree that payment will be transferred to the conference organizer.
+                    By proceeding, you agree that the conference fee will be transferred to the organizer.
+                    Payment gateway charges are retained by Razorpay.
                   </p>
                 </div>
               )}
