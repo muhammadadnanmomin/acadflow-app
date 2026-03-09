@@ -16,49 +16,76 @@ export default function AboutPage() {
         </h1>
 
         <p className="mt-6 text-lg text-gray-600">
-          AcadFlow is a modern academic conference management platform
-          designed to help colleges, universities, and independent
-          organizers manage conferences efficiently and professionally.
+          AcadFlow is a modern platform designed to simplify how academic
+          conferences are organized, reviewed, and managed.
         </p>
 
         {/* Content */}
         <div className="mt-10 space-y-6 text-gray-700 leading-relaxed">
 
           <p>
-            Our mission is to simplify the entire conference lifecycle —
-            from paper submissions and peer review to registrations,
-            payments, and certificate generation.
+            Organizing an academic conference often involves multiple
+            disconnected tools — emails for communication, spreadsheets for
+            tracking submissions, manual reviewer assignments, and separate
+            systems for certificates and participant records. These fragmented
+            workflows create unnecessary administrative burden for organizers
+            and slow down the entire process.
           </p>
 
           <p>
-            Many institutions still rely on manual processes, spreadsheets,
-            and scattered tools. AcadFlow brings everything into one secure,
-            easy-to-use platform designed specifically for academic workflows.
+            AcadFlow was created to solve this challenge by bringing the
+            entire conference lifecycle into a single, streamlined platform.
+            From paper submissions and peer review to registrations,
+            scheduling, and certificate generation, AcadFlow helps academic
+            communities manage conferences with clarity and efficiency.
           </p>
 
           <p>
-            The platform is built with a strong focus on reliability,
-            security, and academic integrity — ensuring that organizers,
-            reviewers, and participants can collaborate seamlessly.
+            The platform is designed specifically for academic environments,
+            supporting organizers, reviewers, professors, and researchers
+            through structured workflows, role-based dashboards, and secure
+            collaboration tools.
           </p>
 
           <p>
-            AcadFlow continues to evolve based on real feedback from
-            educators, researchers, and conference organizers across India.
+            By automating repetitive administrative tasks and providing
+            real-time visibility into conference activities, AcadFlow allows
+            organizers to focus more on research collaboration and less on
+            manual coordination.
+          </p>
+
+          <p>
+            AcadFlow continues to evolve through feedback from educators,
+            researchers, and conference organizers, ensuring that the
+            platform remains aligned with real academic needs.
           </p>
 
         </div>
 
-        {/* Vision Section */}
+        {/* Mission Section */}
         <div className="mt-12 rounded-xl border bg-slate-50 p-6">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Our Mission
+          </h2>
+
+          <p className="mt-3 text-gray-700 leading-relaxed">
+            To simplify academic conference management by providing a reliable,
+            secure, and easy-to-use platform that supports the entire research
+            event lifecycle.
+          </p>
+        </div>
+
+        {/* Vision Section */}
+        <div className="mt-8 rounded-xl border bg-slate-50 p-6">
           <h2 className="text-xl font-semibold text-gray-900">
             Our Vision
           </h2>
 
           <p className="mt-3 text-gray-700 leading-relaxed">
-            To become the most trusted digital infrastructure for academic
-            conferences — empowering institutions with tools that improve
-            research collaboration, transparency, and academic excellence.
+            To become a trusted digital infrastructure for academic conferences
+            worldwide, helping institutions run professional, transparent,
+            and well-organized research events that strengthen collaboration
+            across the global academic community.
           </p>
         </div>
 
