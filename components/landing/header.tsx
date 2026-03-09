@@ -110,6 +110,7 @@ export function Header() {
                 variant="outline"
                 size="sm"
                 onClick={logout}
+                className="hover:bg-red-500 hover:text-white hover:border-red-500 transition"
               >
                 Logout
               </Button>
