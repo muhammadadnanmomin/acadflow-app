@@ -9,6 +9,13 @@ import { useProfile } from "@/lib/auth/useProfile";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+import ShareConference from "@/components/shared/ShareConference";
 
 import {
   ArrowLeft,
@@ -29,6 +36,7 @@ import {
   Mail,
   Phone,
   Pencil,
+  Share2,
 } from "lucide-react";
 
 const supabase = createClient();
@@ -215,6 +223,24 @@ export default function ConferenceDetails() {
           <Pencil className="h-4 w-4" />
           Edit Conference
         </Button>
+
+        {conf.is_published && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Share2 className="h-4 w-4" />
+                Share
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-auto p-4">
+              <p className="text-sm font-medium text-gray-800 mb-2">Share Conference</p>
+              <ShareConference
+                url={`${process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "")}/conferences/${id}`}
+                title={conf.title}
+              />
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
 
       {/* ============================================================ */}

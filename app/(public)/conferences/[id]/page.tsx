@@ -1,5 +1,6 @@
 import { supabaseServerClient } from "@/lib/supabase/server-client";
 import RegisterButtons from "@/components/conferences/RegisterButtons";
+import ShareConference from "@/components/shared/ShareConference";
 import { Badge } from "@/components/ui/badge";
 
 import {
@@ -673,6 +674,15 @@ export default async function ConferenceDetail({ params }: Props) {
             </p>
 
             <RegisterButtons conferenceId={id} />
+
+            {/* Share */}
+            <div className="border-t pt-3 space-y-2">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Share Conference</p>
+              <ShareConference
+                url={`${process.env.NEXT_PUBLIC_SITE_URL || ""}/conferences/${id}`}
+                title={conf.title}
+              />
+            </div>
 
             <div className="flex items-center gap-2 text-xs text-gray-400 pt-2">
               <CreditCard className="h-4 w-4" />

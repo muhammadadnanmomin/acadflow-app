@@ -11,9 +11,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 import { toast } from "@/components/ui/use-toast";
 import Link from "next/link";
+
+import ShareConference from "@/components/shared/ShareConference";
 
 import {
   Calendar,
@@ -29,6 +39,8 @@ import {
   XCircle,
   Tag,
   Pencil,
+  Share2,
+  ExternalLink,
 } from "lucide-react";
 
 const supabase = createClient();
@@ -69,6 +81,7 @@ export default function OrganizerConferences() {
   const [conferences, setConferences] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [shareDialogConf, setShareDialogConf] = useState<{ id: string; title: string } | null>(null);
 
   /* Load conferences */
   async function loadConferences() {
@@ -111,10 +124,16 @@ export default function OrganizerConferences() {
       return;
     }
 
-    toast({
-      title: value ? "Published" : "Unpublished",
-      description: "Conference status updated.",
-    });
+    // On publish → show share popup instead of plain toast
+    if (value) {
+      const conf = conferences.find((c) => c.id === id);
+      setShareDialogConf({ id, title: conf?.title || "Conference" });
+    } else {
+      toast({
+        title: "Unpublished",
+        description: "Conference is now in draft mode.",
+      });
+    }
 
     loadConferences();
   }
@@ -434,6 +453,58 @@ export default function OrganizerConferences() {
           );
         })}
       </div>
+
+      {/* ============================================================ */}
+      {/*  Share Dialog — shown after publishing                        */}
+      {/* ============================================================ */}
+      <Dialog
+        open={!!shareDialogConf}
+        onOpenChange={(open) => { if (!open) setShareDialogConf(null); }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Conference Published Successfully 🎉</DialogTitle>
+            <DialogDescription>
+              Your conference is now live. Share it with researchers to attract submissions.
+            </DialogDescription>
+          </DialogHeader>
+
+          {shareDialogConf && (
+            <div className="space-y-4">
+              {/* Public URL */}
+              <div className="rounded-lg border bg-gray-50 px-4 py-3">
+                <p className="text-xs text-gray-500 mb-1">Public Conference URL</p>
+                <p className="text-sm font-medium text-indigo-600 break-all">
+                  {`${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/conferences/${shareDialogConf.id}`}
+                </p>
+              </div>
+
+              {/* Share buttons */}
+              <ShareConference
+                url={`${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/conferences/${shareDialogConf.id}`}
+                title={shareDialogConf.title}
+              />
+            </div>
+          )}
+
+          <DialogFooter className="sm:justify-between gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShareDialogConf(null)}
+            >
+              Close
+            </Button>
+            {shareDialogConf && (
+              <Link href={`/conferences/${shareDialogConf.id}`} target="_blank">
+                <Button className="gap-1.5">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  View Public Page
+                </Button>
+              </Link>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
