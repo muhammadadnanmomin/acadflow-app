@@ -12,26 +12,36 @@ export default function ContactPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
 
-    // 🔹 Replace with email service later (Resend, Formspree, Supabase, etc.)
-    setTimeout(() => {
-      setLoading(false);
+    const form = e.currentTarget;
+    const data = new FormData(form);
+
+    const response = await fetch("https://formspree.io/f/xojkjwbp", {
+      method: "POST",
+      body: data,
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (response.ok) {
       setSent(true);
-    }, 1200);
+      form.reset();
+    }
+
+    setLoading(false);
   }
 
   return (
     <main className="min-h-screen bg-white text-gray-900">
 
-      {/* Header */}
       <Header />
 
       <section className="mx-auto max-w-6xl px-4 py-16">
 
-        {/* Title */}
         <div className="max-w-2xl">
           <h1 className="text-3xl font-bold">
             Contact Us
@@ -109,14 +119,23 @@ export default function ContactPage() {
                   <label className="text-sm font-medium">
                     Name
                   </label>
-                  <Input required placeholder="Your name" />
+                  <Input
+                    name="name"
+                    required
+                    placeholder="Your name"
+                  />
                 </div>
 
                 <div>
                   <label className="text-sm font-medium">
                     Email
                   </label>
-                  <Input required type="email" placeholder="you@email.com" />
+                  <Input
+                    name="email"
+                    required
+                    type="email"
+                    placeholder="you@email.com"
+                  />
                 </div>
 
                 <div>
@@ -124,6 +143,7 @@ export default function ContactPage() {
                     Message
                   </label>
                   <Textarea
+                    name="message"
                     required
                     rows={5}
                     placeholder="How can we help you?"
@@ -147,7 +167,6 @@ export default function ContactPage() {
 
       </section>
 
-      {/* Footer */}
       <Footer />
 
     </main>
