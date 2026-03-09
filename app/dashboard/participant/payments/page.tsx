@@ -46,6 +46,10 @@ export default function ParticipantPaymentsPage() {
   const [acceptedPapers, setAcceptedPapers] = useState<any[]>([]);
   const [fees, setFees] = useState<Record<string, any>>({});
 
+  /* Category-based fees */
+  const [categoryFees, setCategoryFees] = useState<Record<string, any[]>>({});
+  const [selectedCategory, setSelectedCategory] = useState<Record<string, string>>({});
+
   const [presentationType, setPresentationType] = useState<Record<string, string>>({});
   const [publicationType, setPublicationType] = useState<Record<string, string>>({});
 
@@ -58,43 +62,97 @@ export default function ParticipantPaymentsPage() {
 
     setLoading(true);
 
-    const { data } = await supabase
-      .from("paper_submissions")
-      .select(`
-        id,
-        conference_id,
-        status,
-        presentation_type,
-        publication_type,
-        payment_status,
-        conferences (
-          title,
-          physical_presentation_fee,
-          virtual_presentation_fee,
-          full_paper_publication_fee,
-          abstract_publication_fee,
-          organizations (
-            name
+    try {
+      const { data, error } = await supabase
+        .from("paper_submissions")
+        .select(`
+          id,
+          conference_id,
+          status,
+          presentation_type,
+          publication_type,
+          payment_status,
+          participant_category,
+          conferences (
+            title,
+            mode,
+            organizations (
+              name
+            )
           )
-        )
-      `)
-      .eq("user_id", profile.id)
-      .eq("status", "accepted");
+        `)
+        .eq("user_id", profile.id)
+        .eq("status", "accepted");
 
-    if (!data) return;
+      if (error) {
+        console.error("Load payments error:", error);
+        toast({
+          variant: "destructive",
+          title: "Failed to load payments",
+          description: error.message,
+        });
+        setLoading(false);
+        return;
+      }
 
-    const feeMap: Record<string, any> = {};
-    data.forEach((d) => {
-      const conf = d.conferences as any;
-      feeMap[d.conference_id] = {
-        ...conf,
-        organizer_name: conf?.organizations?.name || "Conference Organizer",
-      };
-    });
+      if (!data) {
+        setAcceptedPapers([]);
+        setLoading(false);
+        return;
+      }
 
-    setFees(feeMap);
-    setAcceptedPapers(data);
-    setLoading(false);
+      const feeMap: Record<string, any> = {};
+      const confIds = new Set<string>();
+      data.forEach((d) => {
+        const conf = d.conferences as any;
+        feeMap[d.conference_id] = {
+          ...conf,
+          organizer_name: conf?.organizations?.name || "Conference Organizer",
+        };
+        confIds.add(d.conference_id);
+      });
+
+      /* Load category fees for all relevant conferences */
+      const catFeeMap: Record<string, any[]> = {};
+      if (confIds.size > 0) {
+        const { data: catRows } = await supabase
+          .from("conference_fee_categories")
+          .select("*")
+          .in("conference_id", Array.from(confIds));
+
+        if (catRows) {
+          catRows.forEach((row) => {
+            if (!catFeeMap[row.conference_id]) catFeeMap[row.conference_id] = [];
+            catFeeMap[row.conference_id].push(row);
+          });
+        }
+      }
+
+      // Auto-select presentation type when conference mode allows only one option
+      const autoPresType: Record<string, string> = {};
+      data.forEach((d) => {
+        const conf = d.conferences as any;
+        const m = conf?.mode;
+        if (m === "online") autoPresType[d.conference_id] = "Virtual Presentation";
+        else if (m === "offline") autoPresType[d.conference_id] = "Physical Presentation";
+      });
+
+      // Restore saved category from paper_submissions
+      const autoCat: Record<string, string> = {};
+      data.forEach((d) => {
+        if (d.participant_category) autoCat[d.conference_id] = d.participant_category;
+      });
+
+      setCategoryFees(catFeeMap);
+      setSelectedCategory((prev) => ({ ...autoCat, ...prev }));
+      setFees(feeMap);
+      setPresentationType((prev) => ({ ...autoPresType, ...prev }));
+      setAcceptedPapers(data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Unexpected error loading payments:", err);
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -103,24 +161,40 @@ export default function ParticipantPaymentsPage() {
 
   // ── Fee calculation helpers ──────────────────────────────────────
 
+  /** Get the fee category row for the selected category */
+  function getCategoryRow(confId: string) {
+    const cat = selectedCategory[confId];
+    if (!cat) return null;
+    const rows = categoryFees[confId];
+    if (!rows) return null;
+    return rows.find((r) => r.category_name === cat) || null;
+  }
+
   /** Conference fee = sum of selected presentation + publication options */
   function getConferenceFee(confId: string): number {
-    const confFees = fees[confId];
-    if (!confFees) return 0;
+    const row = getCategoryRow(confId);
+    if (!row) return 0;
+
+    const cat = selectedCategory[confId];
+
+    // Listener: only listener_fee
+    if (cat === "Listener") {
+      return Number(row.listener_fee || 0);
+    }
 
     let total = 0;
 
     if (presentationType[confId] === "Physical Presentation")
-      total += Number(confFees.physical_presentation_fee || 0);
+      total += Number(row.physical_presentation_fee || 0);
 
     if (presentationType[confId] === "Virtual Presentation")
-      total += Number(confFees.virtual_presentation_fee || 0);
+      total += Number(row.virtual_presentation_fee || 0);
 
     if (publicationType[confId] === "Full Paper Publication")
-      total += Number(confFees.full_paper_publication_fee || 0);
+      total += Number(row.full_paper_publication_fee || 0);
 
     if (publicationType[confId] === "Abstract Only Publication")
-      total += Number(confFees.abstract_publication_fee || 0);
+      total += Number(row.abstract_publication_fee || 0);
 
     return total;
   }
@@ -130,25 +204,27 @@ export default function ParticipantPaymentsPage() {
     return calculateFeeBreakdown(getConferenceFee(confId));
   }
 
-  /** Get the fee label for the selected presentation type */
+  /** Get the fee for the selected presentation type */
   function getPresentationFee(confId: string): number {
-    const confFees = fees[confId];
-    if (!confFees) return 0;
+    const row = getCategoryRow(confId);
+    if (!row) return 0;
+    if (selectedCategory[confId] === "Listener") return 0;
     if (presentationType[confId] === "Physical Presentation")
-      return Number(confFees.physical_presentation_fee || 0);
+      return Number(row.physical_presentation_fee || 0);
     if (presentationType[confId] === "Virtual Presentation")
-      return Number(confFees.virtual_presentation_fee || 0);
+      return Number(row.virtual_presentation_fee || 0);
     return 0;
   }
 
-  /** Get the fee label for the selected publication type */
+  /** Get the fee for the selected publication type */
   function getPublicationFee(confId: string): number {
-    const confFees = fees[confId];
-    if (!confFees) return 0;
+    const row = getCategoryRow(confId);
+    if (!row) return 0;
+    if (selectedCategory[confId] === "Listener") return 0;
     if (publicationType[confId] === "Full Paper Publication")
-      return Number(confFees.full_paper_publication_fee || 0);
+      return Number(row.full_paper_publication_fee || 0);
     if (publicationType[confId] === "Abstract Only Publication")
-      return Number(confFees.abstract_publication_fee || 0);
+      return Number(row.abstract_publication_fee || 0);
     return 0;
   }
 
@@ -156,8 +232,18 @@ export default function ParticipantPaymentsPage() {
 
   async function saveOptions(row: any) {
     const confId = row.conference_id;
+    const cat = selectedCategory[confId];
+    const isListener = cat === "Listener";
 
-    if (!presentationType[confId] || !publicationType[confId]) {
+    if (!cat) {
+      toast({
+        variant: "destructive",
+        title: "Select a category first",
+      });
+      return false;
+    }
+
+    if (!isListener && (!presentationType[confId] || !publicationType[confId])) {
       toast({
         variant: "destructive",
         title: "Select options first",
@@ -167,12 +253,20 @@ export default function ParticipantPaymentsPage() {
 
     setProcessing(confId);
 
+    const updatePayload: Record<string, any> = {
+      participant_category: cat,
+    };
+    if (!isListener) {
+      updatePayload.presentation_type = presentationType[confId];
+      updatePayload.publication_type = publicationType[confId];
+    } else {
+      updatePayload.presentation_type = null;
+      updatePayload.publication_type = null;
+    }
+
     await supabase
       .from("paper_submissions")
-      .update({
-        presentation_type: presentationType[confId],
-        publication_type: publicationType[confId],
-      })
+      .update(updatePayload)
       .eq("id", row.id);
 
     setProcessing(null);
@@ -600,41 +694,82 @@ export default function ParticipantPaymentsPage() {
                 <div className="space-y-4">
                   {/* Dropdowns */}
                   <div className="space-y-3">
+                    {/* Category dropdown */}
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1.5">Presentation Type</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1.5">Participant Category</label>
                       <select
                         className="border border-gray-200 rounded-lg px-3 py-2.5 w-full text-sm bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none transition-all"
-                        value={presentationType[confId] || ""}
+                        value={selectedCategory[confId] || ""}
                         onChange={(e) =>
-                          setPresentationType({
-                            ...presentationType,
+                          setSelectedCategory({
+                            ...selectedCategory,
                             [confId]: e.target.value,
                           })
                         }
                       >
-                        <option value="">Select presentation type</option>
-                        <option>Physical Presentation</option>
-                        <option>Virtual Presentation</option>
+                        <option value="">Select your category</option>
+                        {(categoryFees[confId] || []).map((cat: any) => (
+                          <option key={cat.category_name} value={cat.category_name}>
+                            {cat.category_name}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1.5">Publication Option</label>
-                      <select
-                        className="border border-gray-200 rounded-lg px-3 py-2.5 w-full text-sm bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none transition-all"
-                        value={publicationType[confId] || ""}
-                        onChange={(e) =>
-                          setPublicationType({
-                            ...publicationType,
-                            [confId]: e.target.value,
-                          })
-                        }
-                      >
-                        <option value="">Select publication option</option>
-                        <option>Full Paper Publication</option>
-                        <option>Abstract Only Publication</option>
-                      </select>
-                    </div>
+                    {/* Listener: no further options */}
+                    {selectedCategory[confId] === "Listener" && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-700">
+                        <p className="font-medium">Listener Category</p>
+                        <p className="text-xs mt-1 text-blue-600">
+                          As a listener, you do not present or publish. Only the listener fee applies.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Non-listener: show presentation & publication options */}
+                    {selectedCategory[confId] && selectedCategory[confId] !== "Listener" && (
+                      <>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1.5">Presentation Type</label>
+                          <select
+                            className="border border-gray-200 rounded-lg px-3 py-2.5 w-full text-sm bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none transition-all"
+                            value={presentationType[confId] || ""}
+                            onChange={(e) =>
+                              setPresentationType({
+                                ...presentationType,
+                                [confId]: e.target.value,
+                              })
+                            }
+                          >
+                            <option value="">Select presentation type</option>
+                            {fees[confId]?.mode !== "online" && (
+                              <option>Physical Presentation</option>
+                            )}
+                            {fees[confId]?.mode !== "offline" && (
+                              <option>Virtual Presentation</option>
+                            )}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-1.5">Publication Option</label>
+                          <select
+                            className="border border-gray-200 rounded-lg px-3 py-2.5 w-full text-sm bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none transition-all"
+                            value={publicationType[confId] || ""}
+                            onChange={(e) =>
+                              setPublicationType({
+                                ...publicationType,
+                                [confId]: e.target.value,
+                              })
+                            }
+                          >
+                            <option value="">Select publication option</option>
+                            <option>Full Paper Publication</option>
+                            <option>Abstract Only Publication</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* ── Fee Breakdown Card ── */}
@@ -644,12 +779,27 @@ export default function ParticipantPaymentsPage() {
                       <div className="flex items-center gap-2 px-4 py-3 border-b border-indigo-100">
                         <CreditCard className="h-4 w-4 text-indigo-600" />
                         <span className="text-sm font-semibold text-gray-800">Fee Breakdown</span>
+                        {selectedCategory[confId] && (
+                          <Badge className="ml-auto bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs">
+                            {selectedCategory[confId]}
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Line items */}
                       <div className="px-4 py-3 space-y-2">
+                        {/* Listener fee */}
+                        {selectedCategory[confId] === "Listener" && breakdown.conferenceFee > 0 && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Listener Fee</span>
+                            <span className="text-gray-700 font-medium tabular-nums">
+                              ₹{formatINR(breakdown.conferenceFee)}
+                            </span>
+                          </div>
+                        )}
+
                         {/* Presentation fee */}
-                        {presFee > 0 && (
+                        {selectedCategory[confId] !== "Listener" && presFee > 0 && (
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-600">
                               {presentationType[confId]} Fee
@@ -661,7 +811,7 @@ export default function ParticipantPaymentsPage() {
                         )}
 
                         {/* Publication fee */}
-                        {pubFee > 0 && (
+                        {selectedCategory[confId] !== "Listener" && pubFee > 0 && (
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-600">
                               {publicationType[confId]} Fee

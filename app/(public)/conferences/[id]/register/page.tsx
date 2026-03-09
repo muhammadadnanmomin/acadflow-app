@@ -16,7 +16,7 @@ type User = {
 };
 
 type Registration = {
-  role: "author" | "attendee";
+  role: "author" | "listener";
   paid: boolean;
 };
 
@@ -31,7 +31,7 @@ export default function ConferenceRegisterPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState<"author" | "attendee">("attendee");
+  const [role, setRole] = useState<"author" | "listener">("listener");
   const [submitting, setSubmitting] = useState(false);
 
   const roleParam = searchParams.get("role");
@@ -39,7 +39,7 @@ export default function ConferenceRegisterPage() {
   /* ---------- Redirect URL ---------- */
   const redirectTo = useMemo(() => {
     const base = `/conferences/${conferenceId}/register`;
-    if (roleParam === "author" || roleParam === "attendee") {
+    if (roleParam === "author" || roleParam === "listener") {
       return `${base}?role=${roleParam}`;
     }
     return base;
@@ -47,7 +47,7 @@ export default function ConferenceRegisterPage() {
 
   /* ---------- Sync role from URL ---------- */
   useEffect(() => {
-    if (roleParam === "author" || roleParam === "attendee") {
+    if (roleParam === "author" || roleParam === "listener") {
       setRole(roleParam);
     }
   }, [roleParam]);
@@ -87,7 +87,7 @@ export default function ConferenceRegisterPage() {
   }
 
   /* ---------- Redirect by role ---------- */
-  function redirectByRole(r: "author" | "attendee") {
+  function redirectByRole(r: "author" | "listener") {
     if (r === "author") {
       router.push("/dashboard/participant/submissions");
     } else {
@@ -182,20 +182,20 @@ export default function ConferenceRegisterPage() {
 
         <RadioGroup
           value={role}
-          onValueChange={(value: "author" | "attendee") => setRole(value)}
+          onValueChange={(value: "author" | "listener") => setRole(value)}
           className="space-y-4"
         >
-          <div className="flex items-center space-x-3">
-            <RadioGroupItem value="attendee" id="attendee" />
-            <Label htmlFor="attendee">
-              Attendee (Attend Only – Paid)
-            </Label>
-          </div>
-
           <div className="flex items-center space-x-3">
             <RadioGroupItem value="author" id="author" />
             <Label htmlFor="author">
               Author (Submit Paper – Free)
+            </Label>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <RadioGroupItem value="listener" id="listener" />
+            <Label htmlFor="listener">
+              Listener (Attend Only – Paid)
             </Label>
           </div>
         </RadioGroup>

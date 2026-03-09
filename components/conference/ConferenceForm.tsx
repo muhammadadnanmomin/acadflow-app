@@ -37,6 +37,9 @@ import {
     ImageIcon,
     FileText,
     Loader2,
+    Users,
+    ChevronDown,
+    ChevronUp,
 } from "lucide-react";
 
 const supabase = createClient();
@@ -199,11 +202,55 @@ export default function ConferenceForm({
     /* ---- Payment ---- */
     const [paymentRequired, setPaymentRequired] = useState(true);
     const [currency, setCurrency] = useState("INR");
-    const [registrationFee, setRegistrationFee] = useState("");
-    const [physicalFee, setPhysicalFee] = useState("");
-    const [virtualFee, setVirtualFee] = useState("");
-    const [fullPublicationFee, setFullPublicationFee] = useState("");
-    const [abstractPublicationFee, setAbstractPublicationFee] = useState("");
+
+    /* ---- Category-based fees ---- */
+    const FEE_CATEGORIES = ["Student", "Academic", "Industry", "Listener"] as const;
+
+    type CategoryFeeRow = {
+        physical_presentation_fee: string;
+        virtual_presentation_fee: string;
+        full_paper_publication_fee: string;
+        abstract_publication_fee: string;
+        listener_fee: string;
+    };
+
+    const emptyCategoryFees = (): Record<string, CategoryFeeRow> =>
+        Object.fromEntries(
+            FEE_CATEGORIES.map((c) => [
+                c,
+                {
+                    physical_presentation_fee: "",
+                    virtual_presentation_fee: "",
+                    full_paper_publication_fee: "",
+                    abstract_publication_fee: "",
+                    listener_fee: "",
+                },
+            ])
+        );
+
+    const [categoryFees, setCategoryFees] =
+        useState<Record<string, CategoryFeeRow>>(emptyCategoryFees);
+    const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>(
+        Object.fromEntries(FEE_CATEGORIES.map((c) => [c, true]))
+    );
+
+    function updateCategoryFee(
+        category: string,
+        field: keyof CategoryFeeRow,
+        value: string
+    ) {
+        setCategoryFees((prev) => ({
+            ...prev,
+            [category]: { ...prev[category], [field]: value },
+        }));
+    }
+
+    function toggleCategoryExpand(category: string) {
+        setExpandedCategories((prev) => ({
+            ...prev,
+            [category]: !prev[category],
+        }));
+    }
 
     /* ---- Proceedings ---- */
     const [publishProceedings, setPublishProceedings] = useState(false);
@@ -275,29 +322,43 @@ export default function ConferenceForm({
 
         setPaymentRequired(data.payment_required ?? true);
         setCurrency(data.currency || "INR");
-        setRegistrationFee(
-            data.registration_fee != null ? String(data.registration_fee) : ""
-        );
-        setPhysicalFee(
-            data.physical_presentation_fee != null
-                ? String(data.physical_presentation_fee)
-                : ""
-        );
-        setVirtualFee(
-            data.virtual_presentation_fee != null
-                ? String(data.virtual_presentation_fee)
-                : ""
-        );
-        setFullPublicationFee(
-            data.full_paper_publication_fee != null
-                ? String(data.full_paper_publication_fee)
-                : ""
-        );
-        setAbstractPublicationFee(
-            data.abstract_publication_fee != null
-                ? String(data.abstract_publication_fee)
-                : ""
-        );
+
+        /* Load category-based fees */
+        const { data: catRows } = await supabase
+            .from("conference_fee_categories")
+            .select("*")
+            .eq("conference_id", conferenceId);
+
+        if (catRows && catRows.length > 0) {
+            const loaded = emptyCategoryFees();
+            catRows.forEach((row: any) => {
+                if (loaded[row.category_name]) {
+                    loaded[row.category_name] = {
+                        physical_presentation_fee:
+                            row.physical_presentation_fee != null
+                                ? String(row.physical_presentation_fee)
+                                : "",
+                        virtual_presentation_fee:
+                            row.virtual_presentation_fee != null
+                                ? String(row.virtual_presentation_fee)
+                                : "",
+                        full_paper_publication_fee:
+                            row.full_paper_publication_fee != null
+                                ? String(row.full_paper_publication_fee)
+                                : "",
+                        abstract_publication_fee:
+                            row.abstract_publication_fee != null
+                                ? String(row.abstract_publication_fee)
+                                : "",
+                        listener_fee:
+                            row.listener_fee != null
+                                ? String(row.listener_fee)
+                                : "",
+                    };
+                }
+            });
+            setCategoryFees(loaded);
+        }
 
         setPublishProceedings(data.publish_proceedings ?? false);
         setProceedingsIsbn(data.proceedings_isbn || "");
@@ -411,11 +472,7 @@ export default function ConferenceForm({
 
         setPaymentRequired(true);
         setCurrency("INR");
-        setRegistrationFee("");
-        setPhysicalFee("");
-        setVirtualFee("");
-        setFullPublicationFee("");
-        setAbstractPublicationFee("");
+        setCategoryFees(emptyCategoryFees());
 
         setPublishProceedings(false);
         setProceedingsIsbn("");
@@ -483,15 +540,6 @@ export default function ConferenceForm({
             // Payment
             payment_required: paymentRequired,
             currency: currency || "INR",
-            registration_fee: paymentRequired ? registrationFee || null : null,
-            physical_presentation_fee: paymentRequired ? physicalFee || null : null,
-            virtual_presentation_fee: paymentRequired ? virtualFee || null : null,
-            full_paper_publication_fee: paymentRequired
-                ? fullPublicationFee || null
-                : null,
-            abstract_publication_fee: paymentRequired
-                ? abstractPublicationFee || null
-                : null,
 
             // Proceedings
             publish_proceedings: publishProceedings,
@@ -694,15 +742,66 @@ export default function ConferenceForm({
 
             if (mode === "create") {
                 /* --- INSERT --- */
-                const { error } = await supabase.from("conferences").insert(payload);
+                const { data: inserted, error } = await supabase
+                    .from("conferences")
+                    .insert(payload)
+                    .select("id")
+                    .single();
 
-                if (error) {
+                if (error || !inserted) {
                     toast({
                         variant: "destructive",
                         title: "Failed to create",
-                        description: error.message,
+                        description: error?.message || "Unknown error",
                     });
                     return;
+                }
+
+                /* --- Upsert category fees --- */
+                if (paymentRequired) {
+                    const feeRows = FEE_CATEGORIES.map((cat) => {
+                        const f = categoryFees[cat];
+                        const isListener = cat === "Listener";
+                        return {
+                            conference_id: inserted.id,
+                            category_name: cat,
+                            physical_presentation_fee: isListener
+                                ? null
+                                : f.physical_presentation_fee
+                                    ? Number(f.physical_presentation_fee)
+                                    : null,
+                            virtual_presentation_fee: isListener
+                                ? null
+                                : f.virtual_presentation_fee
+                                    ? Number(f.virtual_presentation_fee)
+                                    : null,
+                            full_paper_publication_fee: isListener
+                                ? null
+                                : f.full_paper_publication_fee
+                                    ? Number(f.full_paper_publication_fee)
+                                    : null,
+                            abstract_publication_fee: isListener
+                                ? null
+                                : f.abstract_publication_fee
+                                    ? Number(f.abstract_publication_fee)
+                                    : null,
+                            listener_fee: isListener
+                                ? f.listener_fee
+                                    ? Number(f.listener_fee)
+                                    : null
+                                : null,
+                        };
+                    });
+
+                    const { error: feeError } = await supabase
+                        .from("conference_fee_categories")
+                        .upsert(feeRows, {
+                            onConflict: "conference_id,category_name",
+                        });
+
+                    if (feeError) {
+                        console.error("Fee category upsert error:", feeError);
+                    }
                 }
 
                 toast({
@@ -727,6 +826,53 @@ export default function ConferenceForm({
                         description: error.message,
                     });
                     return;
+                }
+
+                /* --- Upsert category fees --- */
+                if (paymentRequired) {
+                    const feeRows = FEE_CATEGORIES.map((cat) => {
+                        const f = categoryFees[cat];
+                        const isListener = cat === "Listener";
+                        return {
+                            conference_id: conferenceId!,
+                            category_name: cat,
+                            physical_presentation_fee: isListener
+                                ? null
+                                : f.physical_presentation_fee
+                                    ? Number(f.physical_presentation_fee)
+                                    : null,
+                            virtual_presentation_fee: isListener
+                                ? null
+                                : f.virtual_presentation_fee
+                                    ? Number(f.virtual_presentation_fee)
+                                    : null,
+                            full_paper_publication_fee: isListener
+                                ? null
+                                : f.full_paper_publication_fee
+                                    ? Number(f.full_paper_publication_fee)
+                                    : null,
+                            abstract_publication_fee: isListener
+                                ? null
+                                : f.abstract_publication_fee
+                                    ? Number(f.abstract_publication_fee)
+                                    : null,
+                            listener_fee: isListener
+                                ? f.listener_fee
+                                    ? Number(f.listener_fee)
+                                    : null
+                                : null,
+                        };
+                    });
+
+                    const { error: feeError } = await supabase
+                        .from("conference_fee_categories")
+                        .upsert(feeRows, {
+                            onConflict: "conference_id,category_name",
+                        });
+
+                    if (feeError) {
+                        console.error("Fee category upsert error:", feeError);
+                    }
                 }
 
                 toast({
@@ -1193,9 +1339,9 @@ export default function ConferenceForm({
             {/* ---------------------------------------------------------- */}
             <SectionHeading icon={Calendar} title="Payment Settings" />
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-4">
                 {/* Payment Required toggle */}
-                <div className="flex items-center justify-between md:col-span-2 p-3 border rounded-md">
+                <div className="flex items-center justify-between p-3 border rounded-md">
                     <div>
                         <p className="text-sm font-medium">Payment Required</p>
                         <p className="text-xs text-muted-foreground">
@@ -1211,7 +1357,7 @@ export default function ConferenceForm({
                 {paymentRequired && (
                     <>
                         {/* Currency */}
-                        <div className="space-y-1">
+                        <div className="space-y-1 max-w-xs">
                             <label className="text-sm font-medium">Currency</label>
                             <Select value={currency} onValueChange={setCurrency}>
                                 <SelectTrigger className="w-full">
@@ -1225,65 +1371,147 @@ export default function ConferenceForm({
                             </Select>
                         </div>
 
-                        <div /> {/* spacer for grid alignment */}
+                        {/* Category fee sections */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 pt-2">
+                                <Users className="h-4 w-4 text-primary" />
+                                <span className="text-sm font-semibold">Category-wise Fee Configuration</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Set fees for each participant category. Listener category only requires a single fee.
+                            </p>
 
-                        {/* Fee fields */}
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">Registration Fee</label>
-                            <Input
-                                type="number"
-                                value={registrationFee}
-                                onChange={(e) => setRegistrationFee(e.target.value)}
-                                placeholder="e.g. 2000"
-                            />
-                        </div>
+                            {FEE_CATEGORIES.map((cat) => {
+                                const isListener = cat === "Listener";
+                                const isExpanded = expandedCategories[cat];
+                                const fees = categoryFees[cat];
 
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">
-                                Physical Presentation Fee
-                            </label>
-                            <Input
-                                type="number"
-                                value={physicalFee}
-                                onChange={(e) => setPhysicalFee(e.target.value)}
-                                placeholder="e.g. 3000"
-                            />
-                        </div>
+                                return (
+                                    <div
+                                        key={cat}
+                                        className="border rounded-lg overflow-hidden"
+                                    >
+                                        {/* Category header */}
+                                        <button
+                                            type="button"
+                                            className="w-full flex items-center justify-between px-4 py-3 bg-muted/40 hover:bg-muted/60 transition-colors"
+                                            onClick={() => toggleCategoryExpand(cat)}
+                                        >
+                                            <span className="text-sm font-semibold">{cat} Fees</span>
+                                            {isExpanded ? (
+                                                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                            ) : (
+                                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                            )}
+                                        </button>
 
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">
-                                Virtual Presentation Fee
-                            </label>
-                            <Input
-                                type="number"
-                                value={virtualFee}
-                                onChange={(e) => setVirtualFee(e.target.value)}
-                                placeholder="e.g. 1500"
-                            />
-                        </div>
+                                        {isExpanded && (
+                                            <div className="p-4">
+                                                {isListener ? (
+                                                    /* Listener: single fee */
+                                                    <div className="space-y-1 max-w-xs">
+                                                        <label className="text-sm font-medium">
+                                                            Listener Fee
+                                                        </label>
+                                                        <Input
+                                                            type="number"
+                                                            value={fees.listener_fee}
+                                                            onChange={(e) =>
+                                                                updateCategoryFee(cat, "listener_fee", e.target.value)
+                                                            }
+                                                            placeholder="e.g. 1000"
+                                                        />
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Listeners do not present or publish — only this fee applies.
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    /* Other categories: presentation + publication fees */
+                                                    <div className="grid gap-4 md:grid-cols-2">
+                                                        {(conferenceMode === "offline" ||
+                                                            conferenceMode === "hybrid") && (
+                                                                <div className="space-y-1">
+                                                                    <label className="text-sm font-medium">
+                                                                        Physical Presentation Fee
+                                                                    </label>
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={fees.physical_presentation_fee}
+                                                                        onChange={(e) =>
+                                                                            updateCategoryFee(
+                                                                                cat,
+                                                                                "physical_presentation_fee",
+                                                                                e.target.value
+                                                                            )
+                                                                        }
+                                                                        placeholder="e.g. 3000"
+                                                                    />
+                                                                </div>
+                                                            )}
 
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">
-                                Full Paper Publication Fee
-                            </label>
-                            <Input
-                                type="number"
-                                value={fullPublicationFee}
-                                onChange={(e) => setFullPublicationFee(e.target.value)}
-                                placeholder="e.g. 5000"
-                            />
-                        </div>
+                                                        {(conferenceMode === "online" ||
+                                                            conferenceMode === "hybrid") && (
+                                                                <div className="space-y-1">
+                                                                    <label className="text-sm font-medium">
+                                                                        Virtual Presentation Fee
+                                                                    </label>
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={fees.virtual_presentation_fee}
+                                                                        onChange={(e) =>
+                                                                            updateCategoryFee(
+                                                                                cat,
+                                                                                "virtual_presentation_fee",
+                                                                                e.target.value
+                                                                            )
+                                                                        }
+                                                                        placeholder="e.g. 1500"
+                                                                    />
+                                                                </div>
+                                                            )}
 
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">
-                                Abstract Publication Fee
-                            </label>
-                            <Input
-                                type="number"
-                                value={abstractPublicationFee}
-                                onChange={(e) => setAbstractPublicationFee(e.target.value)}
-                                placeholder="e.g. 2500"
-                            />
+                                                        <div className="space-y-1">
+                                                            <label className="text-sm font-medium">
+                                                                Full Paper Publication Fee
+                                                            </label>
+                                                            <Input
+                                                                type="number"
+                                                                value={fees.full_paper_publication_fee}
+                                                                onChange={(e) =>
+                                                                    updateCategoryFee(
+                                                                        cat,
+                                                                        "full_paper_publication_fee",
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                                placeholder="e.g. 5000"
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-1">
+                                                            <label className="text-sm font-medium">
+                                                                Abstract Publication Fee
+                                                            </label>
+                                                            <Input
+                                                                type="number"
+                                                                value={fees.abstract_publication_fee}
+                                                                onChange={(e) =>
+                                                                    updateCategoryFee(
+                                                                        cat,
+                                                                        "abstract_publication_fee",
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                                placeholder="e.g. 2500"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </>
                 )}

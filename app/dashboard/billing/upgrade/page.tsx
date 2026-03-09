@@ -29,8 +29,6 @@ declare global {
     }
 }
 
-console.log("Razorpay key:", process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
-
 export default function BillingUpgradePage() {
     const router = useRouter();
     const { profile, loading: profileLoading } = useProfile();

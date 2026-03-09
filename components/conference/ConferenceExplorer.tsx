@@ -52,13 +52,16 @@ export interface ConferenceItem {
     conference_logo_url: string | null;
     payment_required: boolean | null;
     currency: string | null;
-    registration_fee: number | null;
-    physical_presentation_fee: number | null;
-    virtual_presentation_fee: number | null;
-    full_paper_publication_fee: number | null;
-    abstract_publication_fee: number | null;
     created_at: string;
     organizations: ConferenceOrg | null;
+    conference_fee_categories?: {
+        category_name: string;
+        physical_presentation_fee: number | null;
+        virtual_presentation_fee: number | null;
+        full_paper_publication_fee: number | null;
+        abstract_publication_fee: number | null;
+        listener_fee: number | null;
+    }[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -86,13 +89,22 @@ function getCurrencySymbol(currency: string | null) {
 }
 
 function getLowestFee(conf: ConferenceItem): number | null {
-    const fees = [
-        conf.registration_fee,
-        conf.physical_presentation_fee,
-        conf.virtual_presentation_fee,
-        conf.full_paper_publication_fee,
-        conf.abstract_publication_fee,
-    ].filter((f): f is number => f != null && f > 0);
+    if (!conf.conference_fee_categories || conf.conference_fee_categories.length === 0)
+        return null;
+
+    const fees: number[] = [];
+
+    conf.conference_fee_categories.forEach((cat) => {
+        [
+            cat.physical_presentation_fee,
+            cat.virtual_presentation_fee,
+            cat.full_paper_publication_fee,
+            cat.abstract_publication_fee,
+            cat.listener_fee,
+        ].forEach((f) => {
+            if (f != null && f > 0) fees.push(f);
+        });
+    });
 
     if (fees.length === 0) return null;
     return Math.min(...fees);

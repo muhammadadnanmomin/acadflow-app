@@ -109,30 +109,11 @@ export default async function ConferenceDetail({ params }: Props) {
   const tracks: string[] = conf.tracks ?? [];
   const currencySymbol = getCurrencySymbol(conf.currency);
 
-  /* Fee entries for display */
-  const feeEntries: { label: string; amount: number }[] = [];
-  if (conf.registration_fee != null)
-    feeEntries.push({ label: "Registration", amount: conf.registration_fee });
-  if (conf.physical_presentation_fee != null)
-    feeEntries.push({
-      label: "Physical Presentation",
-      amount: conf.physical_presentation_fee,
-    });
-  if (conf.virtual_presentation_fee != null && conf.virtual_presentation_fee > 0)
-    feeEntries.push({
-      label: "Virtual Presentation",
-      amount: conf.virtual_presentation_fee,
-    });
-  if (conf.full_paper_publication_fee != null)
-    feeEntries.push({
-      label: "Full Paper Publication",
-      amount: conf.full_paper_publication_fee,
-    });
-  if (conf.abstract_publication_fee != null)
-    feeEntries.push({
-      label: "Abstract Publication",
-      amount: conf.abstract_publication_fee,
-    });
+  /* Category-based fees */
+  const { data: categoryFees } = await supabaseServerClient
+    .from("conference_fee_categories")
+    .select("*")
+    .eq("conference_id", id);
 
   /* Deadline entries */
   const deadlineEntries: { label: string; date: string }[] = [];
@@ -513,20 +494,65 @@ export default async function ConferenceDetail({ params }: Props) {
                   </p>
                 </div>
               </div>
-            ) : feeEntries.length > 0 ? (
+            ) : categoryFees && categoryFees.length > 0 ? (
               <div className="grid sm:grid-cols-2 gap-3">
-                {feeEntries.map((fe) => (
-                  <div
-                    key={fe.label}
-                    className="flex items-center justify-between rounded-lg border px-4 py-3"
-                  >
-                    <span className="text-sm text-gray-600">{fe.label}</span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      {currencySymbol}
-                      {fe.amount}
-                    </span>
-                  </div>
-                ))}
+                {categoryFees.map((cat: any) => {
+                  const isListener = cat.category_name === "Listener";
+                  return (
+                    <div
+                      key={cat.category_name}
+                      className="rounded-lg border p-4 space-y-2"
+                    >
+                      <p className="text-sm font-semibold text-gray-900">
+                        {cat.category_name}
+                      </p>
+
+                      {isListener ? (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Listener Fee</span>
+                          <span className="font-medium text-gray-900">
+                            {currencySymbol}{cat.listener_fee ?? 0}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {cat.physical_presentation_fee != null && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">Physical Presentation</span>
+                              <span className="font-medium text-gray-900">
+                                {currencySymbol}{cat.physical_presentation_fee}
+                              </span>
+                            </div>
+                          )}
+                          {cat.virtual_presentation_fee != null && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">Virtual Presentation</span>
+                              <span className="font-medium text-gray-900">
+                                {currencySymbol}{cat.virtual_presentation_fee}
+                              </span>
+                            </div>
+                          )}
+                          {cat.full_paper_publication_fee != null && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">Full Paper Publication</span>
+                              <span className="font-medium text-gray-900">
+                                {currencySymbol}{cat.full_paper_publication_fee}
+                              </span>
+                            </div>
+                          )}
+                          {cat.abstract_publication_fee != null && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">Abstract Publication</span>
+                              <span className="font-medium text-gray-900">
+                                {currencySymbol}{cat.abstract_publication_fee}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-gray-500">

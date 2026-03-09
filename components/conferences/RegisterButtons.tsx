@@ -11,7 +11,7 @@ type Props = {
 };
 
 type Registration = {
-  role: "author" | "attendee";
+  role: "author" | "listener";
   paid: boolean | null;
 };
 
@@ -96,13 +96,13 @@ export default function RegisterButtons({ conferenceId }: Props) {
 
         <Link href={`/conferences/${conferenceId}/register?role=author`}>
           <Button className="w-full">
-            Register as Author (Free)
+            Register as Author (Submit Paper – Free)
           </Button>
         </Link>
 
-        <Link href={`/conferences/${conferenceId}/register?role=attendee`}>
+        <Link href={`/conferences/${conferenceId}/register?role=listener`}>
           <Button variant="outline" className="w-full">
-            Register as Attendee
+            Register as Listener (Attend Only)
           </Button>
         </Link>
 
@@ -130,16 +130,16 @@ export default function RegisterButtons({ conferenceId }: Props) {
     );
   }
 
-  /* ---------------- ATTENDEE ---------------- */
+  /* ---------------- LISTENER ---------------- */
 
-  if (registration.role === "attendee") {
+  if (registration.role === "listener") {
     return (
       <div className="flex flex-col gap-3">
 
         {!registration.paid && (
-          <Link href={`/payment/${conferenceId}`}>
+          <Link href="/dashboard/participant/payments">
             <Button className="w-full">
-              Pay to Attend
+              Complete Payment
             </Button>
           </Link>
         )}
@@ -151,7 +151,7 @@ export default function RegisterButtons({ conferenceId }: Props) {
         )}
 
         <Button disabled variant="outline" className="w-full">
-          Registered as Attendee
+          Registered as Listener
         </Button>
 
       </div>

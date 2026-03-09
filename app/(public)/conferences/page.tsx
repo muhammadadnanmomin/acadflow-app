@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 export default async function ConferencesPage() {
   const { data: conferences } = await supabaseServerClient
     .from("conferences")
-    .select("*, organizations(name, slug)")
+    .select("*, organizations(name, slug), conference_fee_categories(category_name, physical_presentation_fee, virtual_presentation_fee, full_paper_publication_fee, abstract_publication_fee, listener_fee)")
     .eq("is_published", true)
     .order("start_date");
 
