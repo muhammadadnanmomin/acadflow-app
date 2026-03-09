@@ -96,7 +96,7 @@ export default function RegisterButtons({ conferenceId }: Props) {
 
         <Link href={`/conferences/${conferenceId}/register?role=author`}>
           <Button className="w-full">
-            Register as Author (Submit Paper – Free)
+            Register as Author (Submit Paper)
           </Button>
         </Link>
 
