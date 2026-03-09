@@ -32,8 +32,7 @@ import jsPDF from "jspdf";
 import {
   calculateFeeBreakdown,
   formatINR,
-  RAZORPAY_FEE_PERCENT,
-  GST_ON_GATEWAY_PERCENT,
+  PLATFORM_FEE_PERCENT,
   type FeeBreakdown,
 } from "@/lib/payment/fees";
 
@@ -199,7 +198,7 @@ export default function ParticipantPaymentsPage() {
     return total;
   }
 
-  /** Full fee breakdown including gateway + GST */
+  /** Full fee breakdown including platform processing fee */
   function getBreakdown(confId: string): FeeBreakdown {
     return calculateFeeBreakdown(getConferenceFee(confId));
   }
@@ -359,12 +358,8 @@ export default function ParticipantPaymentsPage() {
 
     addRow("Conference Fee", `Rs. ${formatINR(breakdown.conferenceFee)}`);
     addRow(
-      `Payment Gateway Fee (Razorpay ${RAZORPAY_FEE_PERCENT}%)`,
-      `Rs. ${formatINR(breakdown.gatewayFee)}`
-    );
-    addRow(
-      `GST on Gateway Fee (${GST_ON_GATEWAY_PERCENT}%)`,
-      `Rs. ${formatINR(breakdown.gstOnGateway)}`
+      `Platform Processing Fee (${PLATFORM_FEE_PERCENT}%)`,
+      `Rs. ${formatINR(breakdown.processingFee)}`
     );
 
     y += 2;
@@ -373,7 +368,7 @@ export default function ParticipantPaymentsPage() {
     y += 8;
 
     doc.setFontSize(13);
-    addRow("Total Paid", `Rs. ${formatINR(breakdown.totalPayable)}`, true);
+    addRow("Total Paid", `Rs. ${formatINR(breakdown.total)}`, true);
 
     y += 8;
 
@@ -397,13 +392,13 @@ export default function ParticipantPaymentsPage() {
     );
     y += 5;
     doc.text(
-      `Payment gateway charges (Rs. ${formatINR(breakdown.gatewayFee)} + Rs. ${formatINR(breakdown.gstOnGateway)} GST) are retained by Razorpay.`,
+      `Platform processing fee of Rs. ${formatINR(breakdown.processingFee)} is retained by AcadFlow.`,
       20,
       y
     );
     y += 5;
     doc.text(
-      "AcadFlow provides the technology platform for conference management.",
+      "AcadFlow charges a small platform processing fee to support secure payment infrastructure and platform operations.",
       20,
       y
     );
@@ -487,9 +482,8 @@ export default function ParticipantPaymentsPage() {
               signature: response.razorpay_signature,
               submissionId: row.id,
               conferenceFee: serverBreakdown.conferenceFee,
-              gatewayFee: serverBreakdown.gatewayFee,
-              gstOnGateway: serverBreakdown.gstOnGateway,
-              totalPayable: serverBreakdown.totalPayable,
+              processingFee: serverBreakdown.processingFee,
+              total: serverBreakdown.total,
             }),
           });
 
@@ -832,23 +826,13 @@ export default function ParticipantPaymentsPage() {
                           </div>
                         </div>
 
-                        {/* Gateway fee */}
+                        {/* Platform processing fee */}
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-500">
-                            Payment Gateway Fee (Razorpay {RAZORPAY_FEE_PERCENT}%)
+                            Platform Processing Fee ({PLATFORM_FEE_PERCENT}%)
                           </span>
                           <span className="text-gray-600 tabular-nums">
-                            ₹{formatINR(breakdown.gatewayFee)}
-                          </span>
-                        </div>
-
-                        {/* GST on gateway */}
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-500">
-                            GST on Gateway Fee ({GST_ON_GATEWAY_PERCENT}%)
-                          </span>
-                          <span className="text-gray-600 tabular-nums">
-                            ₹{formatINR(breakdown.gstOnGateway)}
+                            ₹{formatINR(breakdown.processingFee)}
                           </span>
                         </div>
                       </div>
@@ -860,7 +844,7 @@ export default function ParticipantPaymentsPage() {
                             Total Payable
                           </span>
                           <span className="text-xl font-bold text-indigo-700 tabular-nums">
-                            ₹{formatINR(breakdown.totalPayable)}
+                            ₹{formatINR(breakdown.total)}
                           </span>
                         </div>
                       </div>
@@ -888,17 +872,9 @@ export default function ParticipantPaymentsPage() {
                         <span className="text-gray-400">Payment Recipient:</span>{" "}
                         <span className="font-medium text-gray-700">{fees[confId]?.organizer_name || "Conference Organizer"}</span>
                       </p>
-                      {breakdown.conferenceFee > 0 && (
-                        <p>
-                          <span className="text-gray-400">Gateway charges:</span>{" "}
-                          <span className="font-medium text-gray-700">
-                            ₹{formatINR(breakdown.gatewayFee)} + ₹{formatINR(breakdown.gstOnGateway)} GST — retained by Razorpay
-                          </span>
-                        </p>
-                      )}
                     </div>
                     <p className="text-xs text-gray-400 leading-relaxed">
-                      AcadFlow provides the technology platform. The conference fee (₹{formatINR(breakdown.conferenceFee)}) goes directly to the organizer.
+                      AcadFlow charges a small platform processing fee to support secure payment infrastructure and platform operations. The conference fee (₹{formatINR(breakdown.conferenceFee)}) goes directly to the organizer.
                     </p>
                   </div>
 
@@ -916,8 +892,8 @@ export default function ParticipantPaymentsPage() {
                     ) : (
                       <>
                         <CreditCard className="h-5 w-5 mr-2" />
-                        {breakdown.totalPayable > 0
-                          ? `Pay ₹${formatINR(breakdown.totalPayable)}`
+                        {breakdown.total > 0
+                          ? `Pay ₹${formatINR(breakdown.total)}`
                           : "Complete Payment"}
                       </>
                     )}
@@ -926,7 +902,7 @@ export default function ParticipantPaymentsPage() {
                   {/* Legal Confirmation */}
                   <p className="text-xs text-center text-gray-400 leading-relaxed">
                     By proceeding, you agree that the conference fee will be transferred to the organizer.
-                    Payment gateway charges are retained by Razorpay.
+                    A small platform processing fee is charged by AcadFlow.
                   </p>
                 </div>
               )}

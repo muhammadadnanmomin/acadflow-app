@@ -6,26 +6,22 @@
  *
  * Business rule:
  *   Organiser receives the exact conference fee they set.
- *   Razorpay gateway fee + GST on that fee are transparently passed to the author.
+ *   AcadFlow charges a flat platform processing fee on top.
+ *   Payment gateway fees are absorbed by the processing fee.
  */
 
 // ── Constants ───────────────────────────────────────────────────────
-/** Razorpay standard domestic rate (cards / UPI) */
-export const RAZORPAY_FEE_PERCENT = 2;
-
-/** GST charged by Razorpay on the gateway service fee */
-export const GST_ON_GATEWAY_PERCENT = 18;
+/** Platform processing fee charged on top of the conference fee */
+export const PLATFORM_FEE_PERCENT = 4;
 
 // ── Types ───────────────────────────────────────────────────────────
 export interface FeeBreakdown {
     /** The base conference fee set by the organiser (₹) */
     conferenceFee: number;
-    /** Razorpay gateway fee = conferenceFee × RAZORPAY_FEE_PERCENT (₹) */
-    gatewayFee: number;
-    /** GST on the gateway fee = gatewayFee × GST_ON_GATEWAY_PERCENT (₹) */
-    gstOnGateway: number;
-    /** Total the author pays = conferenceFee + gatewayFee + gstOnGateway (₹) */
-    totalPayable: number;
+    /** Platform processing fee = conferenceFee × PLATFORM_FEE_PERCENT (₹) */
+    processingFee: number;
+    /** Total the author pays = conferenceFee + processingFee (₹) */
+    total: number;
     /** Total in paise for the Razorpay Orders API */
     razorpayAmountPaise: number;
 }
@@ -35,10 +31,9 @@ export interface FeeBreakdown {
  * Calculate the full fee breakdown for a given conference fee.
  *
  * Rounding strategy:
- *   • `gatewayFee`   → ceil to paise (0.01) to never under‑collect
- *   • `gstOnGateway` → ceil to paise
- *   • `totalPayable`   arithmetic sum (no further rounding)
- *   • `razorpayAmountPaise` → Math.round of totalPayable × 100
+ *   • `processingFee` → ceil to paise (0.01) to never under‑collect
+ *   • `total`         → arithmetic sum (no further rounding)
+ *   • `razorpayAmountPaise` → Math.round of total × 100
  *
  * @param conferenceFee  Base fee set by the organiser (₹, ≥ 0)
  */
@@ -46,29 +41,23 @@ export function calculateFeeBreakdown(conferenceFee: number): FeeBreakdown {
     if (conferenceFee <= 0) {
         return {
             conferenceFee: 0,
-            gatewayFee: 0,
-            gstOnGateway: 0,
-            totalPayable: 0,
+            processingFee: 0,
+            total: 0,
             razorpayAmountPaise: 0,
         };
     }
 
-    // Gateway fee — ceil at paise level
-    const gatewayFee =
-        Math.ceil(conferenceFee * (RAZORPAY_FEE_PERCENT / 100) * 100) / 100;
+    // Processing fee — ceil at paise level
+    const processingFee =
+        Math.ceil(conferenceFee * (PLATFORM_FEE_PERCENT / 100) * 100) / 100;
 
-    // GST on gateway — ceil at paise level
-    const gstOnGateway =
-        Math.ceil(gatewayFee * (GST_ON_GATEWAY_PERCENT / 100) * 100) / 100;
-
-    const totalPayable = conferenceFee + gatewayFee + gstOnGateway;
+    const total = conferenceFee + processingFee;
 
     return {
         conferenceFee,
-        gatewayFee,
-        gstOnGateway,
-        totalPayable,
-        razorpayAmountPaise: Math.round(totalPayable * 100),
+        processingFee,
+        total,
+        razorpayAmountPaise: Math.round(total * 100),
     };
 }
 

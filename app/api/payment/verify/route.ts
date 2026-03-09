@@ -11,9 +11,8 @@ export async function POST(req: Request) {
             signature,
             submissionId,
             conferenceFee,
-            gatewayFee,
-            gstOnGateway,
-            totalPayable,
+            processingFee,
+            total,
         } = body;
 
         if (!orderId || !paymentId || !signature || !submissionId) {
@@ -44,10 +43,9 @@ export async function POST(req: Request) {
                 payment_status: "paid",
                 presentation_payment_id: paymentId,
                 payment_order_id: orderId,
-                payment_amount: totalPayable ?? null,
+                payment_amount: total ?? null,
                 payment_conference_fee: conferenceFee ?? null,
-                payment_gateway_fee: gatewayFee ?? null,
-                payment_gst: gstOnGateway ?? null,
+                payment_processing_fee: processingFee ?? null,
                 paid_at: new Date().toISOString(),
             })
             .eq("id", submissionId);

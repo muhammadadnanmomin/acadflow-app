@@ -92,9 +92,8 @@ export async function POST(req: Request) {
         userId,
         submissionId,
         conferenceFee: String(breakdown.conferenceFee),
-        gatewayFee: String(breakdown.gatewayFee),
-        gstOnGateway: String(breakdown.gstOnGateway),
-        totalPayable: String(breakdown.totalPayable),
+        processingFee: String(breakdown.processingFee),
+        total: String(breakdown.total),
       },
     });
 
