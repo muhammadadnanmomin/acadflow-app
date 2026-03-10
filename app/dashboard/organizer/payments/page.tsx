@@ -156,36 +156,43 @@ export default function OrganizerPayments() {
     if (!profile) return;
     setLoading(true);
 
+    /* ================= FETCH ORGANIZER CONFERENCES ================= */
+    const { data: myConferences } = await supabase
+      .from("conferences")
+      .select("id")
+      .eq("organizer_id", profile.id);
+
+    const confIds = myConferences?.map((c) => c.id) || [];
+
+    if (confIds.length === 0) {
+      setPayments([]);
+      setTotal(0);
+      setFeeBreakdown({ conferenceFees: 0, gatewayFees: 0, gstFees: 0 });
+      setLoading(false);
+      return;
+    }
+
     /* ================= REGISTRATION PAYMENTS ================= */
     const { data: regData } = await supabase
       .from("conference_registrations")
       .select(`
         id, amount, payment_status, payment_id, created_at,
         profiles ( name, email ),
-        conferences ( title, organizer_id )
+        conferences ( title )
       `)
-      .eq("conferences.organizer_id", profile.id);
+      .in("conference_id", confIds);
 
     /* ================= PAPER PAYMENTS ================= */
-    let paperQuery = supabase
+    const { data: paperData } = await supabase
       .from("paper_submissions")
       .select(`
-        id, presentation_fee, payment_status, presentation_payment_id, created_at,
-        payment_conference_fee, payment_gateway_fee, payment_gst,
+        id, payment_amount, presentation_fee, payment_status, presentation_payment_id, created_at,
+        payment_conference_fee, payment_processing_fee, payment_gst,
         user_id, profiles ( name, email ),
-        conferences ( title, organizer_id )
+        conferences ( title )
       `)
+      .in("conference_id", confIds)
       .eq("payment_status", "paid");
-
-    if (organization) {
-      paperQuery = paperQuery.or(
-        `conferences.organizer_id.eq.${profile.id}`
-      );
-    } else {
-      paperQuery = paperQuery.eq("conferences.organizer_id", profile.id);
-    }
-
-    const { data: paperData } = await paperQuery;
 
     const formattedRegs =
       regData?.map((p: any) => ({
@@ -207,13 +214,13 @@ export default function OrganizerPayments() {
         id: p.id,
         participant: p.profiles,
         conference: p.conferences?.title,
-        amount: p.presentation_fee,
+        amount: Number(p.payment_amount) || 0,
         status: p.payment_status,
         payment_id: p.presentation_payment_id,
         created_at: p.created_at,
         type: "Paper Fee",
         conferenceFee: Number(p.payment_conference_fee) || p.presentation_fee || 0,
-        gatewayFee: Number(p.payment_gateway_fee) || 0,
+        gatewayFee: Number(p.payment_processing_fee) || 0,
         gst: Number(p.payment_gst) || 0,
       })) || [];
 
@@ -372,7 +379,7 @@ export default function OrganizerPayments() {
       "Type",
       "Amount",
       "Conference Fee",
-      "Gateway Fee",
+      "Platform Processing Fee",
       "GST",
       "Status",
       "Payment ID",
@@ -512,7 +519,7 @@ export default function OrganizerPayments() {
             iconColor="text-green-600"
           />
           <StatCard
-            title="Total Earned"
+            title="Total Payments Receive"
             value={`₹${formatINR(balance.totalEarned)}`}
             icon={TrendingUp}
             iconBg="bg-emerald-50"
@@ -566,7 +573,7 @@ export default function OrganizerPayments() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50">
               <BarChart3 className="h-4 w-4 text-indigo-600" />
             </div>
-            <h3 className="text-base font-semibold text-gray-900">Monthly Earnings</h3>
+            <h3 className="text-base font-semibold text-gray-900">Payments Overview</h3>
           </div>
 
           <div className="flex items-end justify-between gap-2 h-36">
@@ -604,11 +611,11 @@ export default function OrganizerPayments() {
 
           <div className="space-y-3">
             <FeeRow label="Conference Fees (Your Share)" value={feeBreakdown.conferenceFees} color="text-emerald-600" />
-            <FeeRow label="Gateway Fees (Razorpay)" value={feeBreakdown.gatewayFees} color="text-gray-500" />
-            <FeeRow label="GST on Gateway" value={feeBreakdown.gstFees} color="text-gray-500" />
+            <FeeRow label="Platform Processing Fee (4%)" value={feeBreakdown.gatewayFees} color="text-gray-500" />
+            <FeeRow label="GST on Platform Processing Fee" value={feeBreakdown.gstFees} color="text-gray-500" />
             <Separator />
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-900">Net Earnings</span>
+              <span className="text-sm font-semibold text-gray-900">Net Collections</span>
               <span className="text-lg font-bold text-emerald-600">₹{formatINR(netEarnings)}</span>
             </div>
           </div>
