@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import Razorpay from "razorpay";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(req: Request) {
@@ -12,9 +13,6 @@ export async function POST(req: Request) {
             submissionId,
             registrationId,
             paymentType,
-            conferenceFee,
-            processingFee,
-            total,
         } = body;
 
         const isListener = paymentType === "listener";
@@ -39,6 +37,19 @@ export async function POST(req: Request) {
                 { status: 400 }
             );
         }
+
+        // ── Fetch order from Razorpay to get trusted fee values ──
+        const razorpay = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID!,
+            key_secret: process.env.RAZORPAY_KEY_SECRET!,
+        });
+
+        const order = await razorpay.orders.fetch(orderId);
+        const notes = order.notes || {};
+
+        const conferenceFee = notes.conferenceFee ? Number(notes.conferenceFee) : null;
+        const processingFee = notes.processingFee ? Number(notes.processingFee) : null;
+        const total = notes.total ? Number(notes.total) : null;
 
         // ── Update payment status based on payment type ──
         if (isListener && registrationId) {
@@ -65,12 +76,13 @@ export async function POST(req: Request) {
                     payment_status: "paid",
                     presentation_payment_id: paymentId,
                     payment_order_id: orderId,
-                    payment_amount: total ?? null,
-                    payment_conference_fee: conferenceFee ?? null,
-                    payment_processing_fee: processingFee ?? null,
+                    payment_amount: total,
+                    payment_conference_fee: conferenceFee,
+                    payment_processing_fee: processingFee,
                     paid_at: new Date().toISOString(),
                 })
-                .eq("id", submissionId);
+                .eq("id", submissionId)
+                .neq("payment_status", "paid");
 
             if (error) {
                 console.error("DB ERROR:", error);

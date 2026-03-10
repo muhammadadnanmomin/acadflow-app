@@ -60,42 +60,49 @@ export async function POST(req: Request) {
 
     // ── Server-side fee validation ──
     // Fetch actual conference fees from DB to prevent frontend tampering
-    const { data: conf } = await supabaseAdmin
-      .from("conferences")
-      .select(
-        "physical_presentation_fee, virtual_presentation_fee, full_paper_publication_fee, abstract_publication_fee"
-      )
-      .eq("id", conferenceId)
-      .single();
+    // Validate fee against category fee table
+    const { data: feeRows } = await supabaseAdmin
+      .from("conference_fee_categories")
+      .select(`
+    physical_presentation_fee,
+    virtual_presentation_fee,
+    full_paper_publication_fee,
+    abstract_publication_fee,
+    listener_fee
+  `)
+      .eq("conference_id", conferenceId);
 
-    if (!conf) {
+    if (!feeRows || feeRows.length === 0) {
       return NextResponse.json(
-        { error: "Conference not found" },
+        { error: "Conference fee configuration not found" },
         { status: 404 }
       );
     }
 
-    // Validate that the submitted conference fee doesn't exceed
-    // the maximum possible fee (both highest options combined)
-    const maxPossibleFee =
-      Math.max(
-        Number(conf.physical_presentation_fee || 0),
-        Number(conf.virtual_presentation_fee || 0)
-      ) +
-      Math.max(
-        Number(conf.full_paper_publication_fee || 0),
-        Number(conf.abstract_publication_fee || 0)
+    // Calculate maximum possible fee across all categories
+    let maxPossibleFee = 0;
+
+    feeRows.forEach((row) => {
+      const maxPresentation = Math.max(
+        Number(row.physical_presentation_fee || 0),
+        Number(row.virtual_presentation_fee || 0)
       );
 
-    // For listeners, skip the maxPossibleFee validation (listener fee comes from category fees)
-    if (!isListener && (conferenceFee > maxPossibleFee || conferenceFee <= 0)) {
-      return NextResponse.json(
-        { error: "Invalid conference fee amount" },
-        { status: 400 }
+      const maxPublication = Math.max(
+        Number(row.full_paper_publication_fee || 0),
+        Number(row.abstract_publication_fee || 0)
       );
-    }
 
-    if (conferenceFee <= 0) {
+      const listener = Number(row.listener_fee || 0);
+
+      maxPossibleFee = Math.max(
+        maxPossibleFee,
+        maxPresentation + maxPublication,
+        listener
+      );
+    });
+
+    if (conferenceFee > maxPossibleFee || conferenceFee <= 0) {
       return NextResponse.json(
         { error: "Invalid conference fee amount" },
         { status: 400 }
