@@ -1,8 +1,31 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 export function HeroSection() {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const handleGetStarted = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      router.push("/dashboard/participant/overview");
+    } else {
+      router.push("/signup");
+    }
+  };
+
+  const handleOrganizerSetup = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      router.push("/dashboard/onboarding/organization");
+    } else {
+      router.push("/signup");
+    }
+  };
+
   return (
     <section className="relative overflow-hidden bg-slate-50 px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-32">
 
@@ -44,12 +67,12 @@ export function HeroSection() {
           <div className="flex flex-wrap gap-4 justify-center mt-8">
 
             {/* Primary CTA */}
-            <Link
-              href="/signup"
+            <button
+              onClick={handleGetStarted}
               className="px-7 py-3 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition"
             >
               Get Started Free
-            </Link>
+            </button>
 
             {/* Secondary CTA */}
             <Link
@@ -64,9 +87,9 @@ export function HeroSection() {
           {/* Organizer hint */}
           <p className="mt-4 text-sm text-gray-500">
             Planning a conference?{" "}
-            <Link href="/signup?role=organizer" className="text-indigo-600 hover:underline">
+            <button onClick={handleOrganizerSetup} className="text-indigo-600 hover:underline">
               Set up your organizer workspace →
-            </Link>
+            </button>
           </p>
 
           {/* Micro trust indicators */}

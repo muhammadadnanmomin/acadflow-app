@@ -50,28 +50,28 @@ export function Header() {
         <nav className="hidden items-center gap-8 md:flex">
 
           <Link
-            href="#features"
+            href="/#features"
             className="text-sm font-medium text-gray-600 hover:text-gray-900"
           >
             Features
           </Link>
 
           <Link
-            href="#how-it-works"
+            href="/#how-it-works"
             className="text-sm font-medium text-gray-600 hover:text-gray-900"
           >
             How it Works
           </Link>
 
           <Link
-            href="#benefits"
+            href="/#benefits"
             className="text-sm font-medium text-gray-600 hover:text-gray-900"
           >
             Benefits
           </Link>
 
           <Link
-            href="#pricing"
+            href="/#pricing"
             className="text-sm font-medium text-gray-600 hover:text-gray-900"
           >
             Plans & Access
