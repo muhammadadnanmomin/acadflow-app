@@ -5,6 +5,11 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 import { useRouter } from "next/navigation";
 
+import { PhoneInput, defaultCountries } from "react-international-phone";
+import "react-international-phone/style.css";
+
+const allowedCountries = defaultCountries.filter(c => c[1] !== "il");
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -503,10 +508,19 @@ export default function ParticipantSubmissionsPage() {
 
                   <div>
                     <label className="text-sm font-medium">Contact Number</label>
-                    <Input
-                      placeholder="+91 9876543210"
-                      onChange={e => setContacts(p => ({ ...p, [confId]: e.target.value }))}
-                    />
+                    <div className="mt-1">
+                      <PhoneInput
+                        defaultCountry="in"
+                        countries={allowedCountries}
+                        value={contacts[confId] || ""}
+                        onChange={(phone) =>
+                          setContacts(prev => ({
+                            ...prev,
+                            [confId]: phone,
+                          }))
+                        }
+                      />
+                    </div>
                   </div>
 
                   <div>

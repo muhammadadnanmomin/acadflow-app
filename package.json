@@ -30,6 +30,7 @@
     "axios": "^1.13.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "country-list": "^2.4.1",
     "date-fns": "^4.1.0",
     "jspdf": "^2.5.1",
     "lucide-react": "^0.563.0",
@@ -41,6 +42,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.1",
+    "react-international-phone": "^4.8.0",
     "resend": "^6.9.3",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
@@ -49,6 +51,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/country-list": "^2.1.4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

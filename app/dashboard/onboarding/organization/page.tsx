@@ -6,6 +6,7 @@ import Image from "next/image";
 
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
+import { getNames } from "country-list";
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,28 +34,7 @@ import {
 
 /* ---------- Constants ---------- */
 
-const COUNTRIES = [
-  "India",
-  "United States",
-  "United Kingdom",
-  "Germany",
-  "Canada",
-  "Australia",
-  "Singapore",
-  "Japan",
-  "France",
-  "Netherlands",
-  "South Korea",
-  "Brazil",
-  "China",
-  "Italy",
-  "Spain",
-  "Sweden",
-  "Switzerland",
-  "United Arab Emirates",
-  "Malaysia",
-  "New Zealand",
-];
+const COUNTRIES = getNames().filter((c) => c !== "Israel").sort();
 
 const MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2 MB
 const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg"];
