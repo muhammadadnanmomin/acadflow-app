@@ -86,7 +86,7 @@ export function DashboardHeader({
 
       // 🔹 reviewer role
       const { data: reviewerRegs } = await supabase
-        .from("conference_registrations")
+        .from("conference_staff")
         .select("id")
         .eq("user_id", user.id)
         .eq("role", "reviewer")

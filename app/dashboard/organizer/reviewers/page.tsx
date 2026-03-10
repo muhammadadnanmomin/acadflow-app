@@ -133,7 +133,7 @@ export default function OrganizerReviewers() {
       }
 
       const { data: regs, error: regError } = await supabase
-        .from("conference_registrations")
+        .from("conference_staff")
         .select("conference_id, user_id, profiles(name)")
         .in("conference_id", conferenceIds)
         .eq("role", "reviewer");
@@ -334,9 +334,9 @@ export default function OrganizerReviewers() {
         return;
       }
 
-      // Safe to remove — delete conference_registrations entry only
+      // Safe to remove — delete conference_staff entry only
       const { error } = await supabase
-        .from("conference_registrations")
+        .from("conference_staff")
         .delete()
         .eq("user_id", removeTarget.reviewerId)
         .eq("conference_id", removeTarget.conferenceId)

@@ -226,7 +226,7 @@ export default function ParticipantDashboard() {
           </div>
 
           <Button asChild>
-            <Link href="/onboarding/organization">
+            <Link href="/dashboard/onboarding/organization">
               <Building2 className="h-4 w-4" />
               Create Organization
             </Link>

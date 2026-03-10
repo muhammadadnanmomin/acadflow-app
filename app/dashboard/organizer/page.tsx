@@ -138,7 +138,7 @@ export default function OrganizerDashboard() {
       let reviewerCount = 0;
       if (conferenceIds.length > 0) {
         const { data } = await supabase
-          .from("conference_registrations")
+          .from("conference_staff")
           .select("user_id")
           .in("conference_id", conferenceIds)
           .eq("role", "reviewer");

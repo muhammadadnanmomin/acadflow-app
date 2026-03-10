@@ -47,7 +47,7 @@ export default function OrganizerSubmissionsSummary() {
 
     /* 1️⃣ get reviewers from registrations */
     const { data: registrations, error: regError } = await supabase
-      .from("conference_registrations")
+      .from("conference_staff")
       .select("user_id, conference_id")
       .in("conference_id", conferenceIds)
       .eq("role", "reviewer");

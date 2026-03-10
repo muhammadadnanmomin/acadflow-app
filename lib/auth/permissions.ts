@@ -64,7 +64,7 @@ export async function requireReviewerAccess(
   const supabase = await createServerSupabaseClient();
 
   const { data } = await supabase
-    .from("conference_roles")
+    .from("conference_staff")
     .select("id")
     .eq("user_id", user.id)
     .eq("conference_id", conferenceId)

@@ -106,15 +106,14 @@ serve(async (req) => {
     }
 
     /* -------------------------------
-       6️⃣ Register reviewer
+       6️⃣ Register reviewer in conference_staff
     -------------------------------- */
     const { error: regErr } = await supabaseAdmin
-      .from("conference_registrations")
+      .from("conference_staff")
       .insert({
         user_id: user.id,
         conference_id: invite.conference_id,
         role: "reviewer",
-        paid: true,
       });
 
     if (regErr && regErr.code !== "23505") {

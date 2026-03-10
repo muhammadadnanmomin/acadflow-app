@@ -58,12 +58,11 @@ export async function POST(req: Request) {
 
     // 3. Register reviewer (NO PAYMENT)
     const { error: regError } = await supabase
-        .from("conference_registrations")
+        .from("conference_staff")
         .insert({
             user_id: user.id,
             conference_id: invite.conference_id,
             role: "reviewer",
-            paid: false,
         });
 
     if (regError) {

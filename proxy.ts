@@ -96,7 +96,7 @@ export async function proxy(request: NextRequest) {
     /* ================= REVIEWER ================= */
     if (path.startsWith("/dashboard/reviewer")) {
       const { data: reviewer } = await supabase
-        .from("conference_registrations")
+        .from("conference_staff")
         .select("id")
         .eq("user_id", user.id)
         .eq("role", "reviewer")
