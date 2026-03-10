@@ -835,7 +835,7 @@ export default function OrganizerPaperReviewPage() {
                   variant="outline"
                   size="sm"
                   disabled={submitting}
-                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-400"
                   onClick={() => setConfirmAction("revision_required")}
                 >
                   <RotateCcw className="h-4 w-4 mr-1" /> Revision

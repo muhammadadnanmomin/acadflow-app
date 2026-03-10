@@ -485,6 +485,10 @@ export default function ReviewerReviewPage() {
               rows={8}
             />
 
+            <p className="text-xs text-gray-500">
+              Comment is required when requesting a revision.
+            </p>
+
             <div className="flex justify-between text-xs text-gray-500">
               <span>Include strengths &amp; suggestions</span>
               <span>

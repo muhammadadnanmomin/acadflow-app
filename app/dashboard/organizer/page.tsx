@@ -166,13 +166,13 @@ export default function OrganizerDashboard() {
         /* Paper fee payments */
         const { data: paperPayments } = await supabase
           .from("paper_submissions")
-          .select("presentation_fee, payment_status")
+          .select("payment_conference_fee")
           .in("conference_id", conferenceIds)
           .eq("payment_status", "paid");
 
         if (paperPayments) {
           revenue += paperPayments.reduce(
-            (sum, p) => sum + (p.presentation_fee || 0),
+            (sum, p) => sum + (Number(p.payment_conference_fee) || 0),
             0
           );
         }
