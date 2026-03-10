@@ -137,7 +137,7 @@ export default function RegisterButtons({ conferenceId }: Props) {
       <div className="flex flex-col gap-3">
 
         {!registration.paid && (
-          <Link href="/dashboard/participant/payments">
+          <Link href={`/dashboard/participant/payments?conference=${conferenceId}`}>
             <Button className="w-full">
               Complete Payment
             </Button>

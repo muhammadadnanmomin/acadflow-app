@@ -6,9 +6,11 @@ import { calculateFeeBreakdown } from "@/lib/payment/fees";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { conferenceFee, conferenceId, userId, submissionId } = body;
+    const { conferenceFee, conferenceId, userId, submissionId, registrationId, paymentType } = body;
 
-    if (!conferenceFee || !conferenceId || !userId || !submissionId) {
+    const isListener = paymentType === "listener";
+
+    if (!conferenceFee || !conferenceId || !userId || (!submissionId && !isListener)) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -26,17 +28,34 @@ export async function POST(req: Request) {
     }
 
     // ── Guard: prevent double payment ──
-    const { data: submission } = await supabaseAdmin
-      .from("paper_submissions")
-      .select("payment_status")
-      .eq("id", submissionId)
-      .single();
+    if (isListener && registrationId) {
+      // Listener: check conference_registrations.paid
+      const { data: reg } = await supabaseAdmin
+        .from("conference_registrations")
+        .select("paid")
+        .eq("id", registrationId)
+        .single();
 
-    if (submission?.payment_status === "paid") {
-      return NextResponse.json(
-        { error: "Payment already completed for this submission" },
-        { status: 409 }
-      );
+      if (reg?.paid) {
+        return NextResponse.json(
+          { error: "Payment already completed for this registration" },
+          { status: 409 }
+        );
+      }
+    } else if (submissionId) {
+      // Author: check paper_submissions.payment_status
+      const { data: submission } = await supabaseAdmin
+        .from("paper_submissions")
+        .select("payment_status")
+        .eq("id", submissionId)
+        .single();
+
+      if (submission?.payment_status === "paid") {
+        return NextResponse.json(
+          { error: "Payment already completed for this submission" },
+          { status: 409 }
+        );
+      }
     }
 
     // ── Server-side fee validation ──
@@ -68,7 +87,15 @@ export async function POST(req: Request) {
         Number(conf.abstract_publication_fee || 0)
       );
 
-    if (conferenceFee > maxPossibleFee || conferenceFee <= 0) {
+    // For listeners, skip the maxPossibleFee validation (listener fee comes from category fees)
+    if (!isListener && (conferenceFee > maxPossibleFee || conferenceFee <= 0)) {
+      return NextResponse.json(
+        { error: "Invalid conference fee amount" },
+        { status: 400 }
+      );
+    }
+
+    if (conferenceFee <= 0) {
       return NextResponse.json(
         { error: "Invalid conference fee amount" },
         { status: 400 }
@@ -90,7 +117,9 @@ export async function POST(req: Request) {
       notes: {
         conferenceId,
         userId,
-        submissionId,
+        submissionId: submissionId || "",
+        registrationId: registrationId || "",
+        paymentType: paymentType || "author",
         conferenceFee: String(breakdown.conferenceFee),
         processingFee: String(breakdown.processingFee),
         total: String(breakdown.total),
@@ -110,3 +139,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

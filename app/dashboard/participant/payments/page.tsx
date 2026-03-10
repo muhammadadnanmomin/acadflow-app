@@ -62,6 +62,7 @@ export default function ParticipantPaymentsPage() {
     setLoading(true);
 
     try {
+      /* ── 1. Load accepted papers (author flow) ── */
       const { data, error } = await supabase
         .from("paper_submissions")
         .select(`
@@ -94,15 +95,51 @@ export default function ParticipantPaymentsPage() {
         return;
       }
 
-      if (!data) {
+      /* ── 2. Load listener registrations ── */
+      const { data: listenerRegs } = await supabase
+        .from("conference_registrations")
+        .select(`
+          id,
+          conference_id,
+          role,
+          paid,
+          conferences (
+            title,
+            mode,
+            organizations (
+              name
+            )
+          )
+        `)
+        .eq("user_id", profile.id)
+        .eq("role", "listener");
+
+      /* ── 3. Transform & merge rows ── */
+      const authorRows = (data || []).map((d: any) => ({ ...d, type: "author" as const }));
+
+      const listenerRows = (listenerRegs || []).map((reg: any) => ({
+        id: reg.id,
+        conference_id: reg.conference_id,
+        payment_status: reg.paid ? "paid" : "pending",
+        participant_category: "Listener",
+        presentation_type: null,
+        publication_type: null,
+        conferences: reg.conferences,
+        type: "listener" as const,
+      }));
+
+      const allRows = [...authorRows, ...listenerRows];
+
+      if (allRows.length === 0) {
         setAcceptedPapers([]);
         setLoading(false);
         return;
       }
 
+      /* ── 4. Build fee map & conference IDs ── */
       const feeMap: Record<string, any> = {};
       const confIds = new Set<string>();
-      data.forEach((d) => {
+      allRows.forEach((d) => {
         const conf = d.conferences as any;
         feeMap[d.conference_id] = {
           ...conf,
@@ -129,24 +166,29 @@ export default function ParticipantPaymentsPage() {
 
       // Auto-select presentation type when conference mode allows only one option
       const autoPresType: Record<string, string> = {};
-      data.forEach((d) => {
+      authorRows.forEach((d) => {
         const conf = d.conferences as any;
         const m = conf?.mode;
         if (m === "online") autoPresType[d.conference_id] = "Virtual Presentation";
         else if (m === "offline") autoPresType[d.conference_id] = "Physical Presentation";
       });
 
-      // Restore saved category from paper_submissions
+      // Restore saved category from paper_submissions (authors only)
       const autoCat: Record<string, string> = {};
-      data.forEach((d) => {
+      authorRows.forEach((d) => {
         if (d.participant_category) autoCat[d.conference_id] = d.participant_category;
+      });
+
+      // Auto-select Listener category for listener rows
+      listenerRows.forEach((d) => {
+        autoCat[d.conference_id] = "Listener";
       });
 
       setCategoryFees(catFeeMap);
       setSelectedCategory((prev) => ({ ...autoCat, ...prev }));
       setFees(feeMap);
       setPresentationType((prev) => ({ ...autoPresType, ...prev }));
-      setAcceptedPapers(data);
+      setAcceptedPapers(allRows);
       setLoading(false);
     } catch (err) {
       console.error("Unexpected error loading payments:", err);
@@ -233,6 +275,11 @@ export default function ParticipantPaymentsPage() {
     const confId = row.conference_id;
     const cat = selectedCategory[confId];
     const isListener = cat === "Listener";
+
+    // Listener registrations: category is fixed, no options to save
+    if (row.type === "listener") {
+      return true;
+    }
 
     if (!cat) {
       toast({
@@ -437,6 +484,8 @@ export default function ParticipantPaymentsPage() {
       return;
     }
 
+    const isListener = row.type === "listener";
+
     try {
       const res = await fetch("/api/payment/create-order", {
         method: "POST",
@@ -445,7 +494,9 @@ export default function ParticipantPaymentsPage() {
           conferenceFee,
           conferenceId: confId,
           userId: profile.id,
-          submissionId: row.id,
+          submissionId: isListener ? null : row.id,
+          registrationId: isListener ? row.id : null,
+          paymentType: row.type,
         }),
       });
 
@@ -480,7 +531,9 @@ export default function ParticipantPaymentsPage() {
               orderId: order.id,
               paymentId: response.razorpay_payment_id,
               signature: response.razorpay_signature,
-              submissionId: row.id,
+              submissionId: isListener ? null : row.id,
+              registrationId: isListener ? row.id : null,
+              paymentType: row.type,
               conferenceFee: serverBreakdown.conferenceFee,
               processingFee: serverBreakdown.processingFee,
               total: serverBreakdown.total,
@@ -589,7 +642,7 @@ export default function ParticipantPaymentsPage() {
           </div>
           <p className="text-gray-500 font-medium text-lg">No payments due at this time</p>
           <p className="text-xs text-gray-400 mt-2 max-w-sm mx-auto">
-            Once your papers are accepted for a conference, payment options for presentation and publication fees will appear here.
+            Once your papers are accepted or you register as a listener, payment options will appear here.
           </p>
         </Card>
       )}
