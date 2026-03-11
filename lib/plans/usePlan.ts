@@ -20,8 +20,10 @@ export interface PlanInfo {
 
     /** Number of conferences the org has created */
     conferencesUsed: number;
-    /** Limit from DB (null = unlimited) */
+    /** Resolved conference limit for display (null = unlimited) */
     conferenceLimit: number | null;
+    /** Raw conference_slots value from the organization */
+    conferenceSlots: number;
 
     /**
      * Per-conference submission count.
@@ -29,7 +31,7 @@ export interface PlanInfo {
      * When not provided, this is the total across all org conferences.
      */
     submissionsUsed: number;
-    /** Limit from DB (null = unlimited) */
+    /** Submission limit from PLAN_LIMITS (null = unlimited) */
     submissionLimit: number | null;
 
     /** Convenience booleans */
@@ -52,6 +54,7 @@ export function usePlan(conferenceId?: string): PlanInfo {
         planType: "free",
         conferencesUsed: 0,
         conferenceLimit: 1,
+        conferenceSlots: 1,
         submissionsUsed: 0,
         submissionLimit: 150,
         canCreateConference: true,
@@ -68,10 +71,21 @@ export function usePlan(conferenceId?: string): PlanInfo {
         async function load() {
             /* ---- Plan fields from org ---- */
             const planType: PlanType = organization.plan_type || "free";
-            const confLimit: number | null =
-                organization.conference_limit ?? PLAN_LIMITS[planType].conferences;
-            const subLimit: number | null =
-                organization.submission_limit ?? PLAN_LIMITS[planType].submissions;
+            const conferenceSlots: number = organization.conference_slots ?? 1;
+
+            /* Resolve the effective conference limit for display */
+            const planConf = PLAN_LIMITS[planType]?.conferences;
+            let confLimit: number | null;
+            if (planConf === null) {
+                confLimit = null; // unlimited (enterprise)
+            } else if (planConf === "slot_based") {
+                confLimit = conferenceSlots; // early_adopter
+            } else {
+                confLimit = planConf; // free (fixed number)
+            }
+
+            /* Resolve submission limit */
+            const subLimit: number | null = PLAN_LIMITS[planType]?.submissions ?? 150;
 
             /* ---- Conference count ---- */
             const { count: confCount } = await supabase
@@ -116,9 +130,10 @@ export function usePlan(conferenceId?: string): PlanInfo {
                 planType,
                 conferencesUsed,
                 conferenceLimit: confLimit,
+                conferenceSlots,
                 submissionsUsed,
                 submissionLimit: subLimit,
-                canCreateConference: canCreateConference(planType, conferencesUsed),
+                canCreateConference: canCreateConference(planType, conferencesUsed, conferenceSlots),
                 canSubmitPaper: canSubmitPaper(planType, submissionsUsed),
                 loading: false,
             });

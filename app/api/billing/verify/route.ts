@@ -28,13 +28,31 @@ export async function POST(req: Request) {
             );
         }
 
-        /* ---- Upgrade org to Pro ---- */
+        /* ---- Fetch current org data ---- */
+        const { data: org, error: orgError } = await supabaseAdmin
+            .from("organizations")
+            .select("plan_type, conference_slots")
+            .eq("id", organizationId)
+            .single();
+
+        if (orgError || !org) {
+            console.error("DB ERROR:", orgError);
+            return NextResponse.json(
+                { error: "Organization not found" },
+                { status: 404 }
+            );
+        }
+
+        /* ---- Increment conference_slots and upgrade plan ---- */
+        const currentSlots = org.conference_slots ?? 1;
+        const newPlanType =
+            org.plan_type === "enterprise" ? "enterprise" : "early_adopter";
+
         const { error } = await supabaseAdmin
             .from("organizations")
             .update({
-                plan_type: "pro",
-                conference_limit: null, // null = unlimited
-                submission_limit: null, // null = unlimited
+                plan_type: newPlanType,
+                conference_slots: currentSlots + 1,
                 payment_id: paymentId,
             })
             .eq("id", organizationId);
@@ -47,7 +65,9 @@ export async function POST(req: Request) {
             );
         }
 
-        console.log(`✅ Organization ${organizationId} upgraded to Pro`);
+        console.log(
+            `✅ Organization ${organizationId} — conference slot purchased (${currentSlots} → ${currentSlots + 1})`
+        );
 
         return NextResponse.json({ success: true });
     } catch (err) {

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 import { useOrganization } from "@/lib/organizations/useOrganization";
 import { usePlan } from "@/lib/plans/usePlan";
-import { formatLimit, PLAN_LABELS } from "@/lib/config/pricing";
+import { formatLimit, PLAN_LABELS, type PlanType } from "@/lib/config/pricing";
 import UpgradeModal from "@/components/upgrade/UpgradeModal";
 
 import { Card } from "@/components/ui/card";
@@ -279,13 +279,13 @@ export default function OrganizerDashboard() {
             <div className="flex items-center gap-3">
               <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${plan.planType === "free"
                 ? "bg-gray-100"
-                : plan.planType === "pro"
+                : plan.planType === "early_adopter"
                   ? "bg-indigo-100"
                   : "bg-purple-100"
                 }`}>
                 <Crown className={`h-5 w-5 ${plan.planType === "free"
                   ? "text-gray-500"
-                  : plan.planType === "pro"
+                  : plan.planType === "early_adopter"
                     ? "text-indigo-600"
                     : "text-purple-600"
                   }`} />
@@ -296,7 +296,7 @@ export default function OrganizerDashboard() {
                   <p className="text-sm text-gray-500">Current Plan</p>
                   <Badge className={`text-[11px] ${plan.planType === "free"
                     ? "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-100"
-                    : plan.planType === "pro"
+                    : plan.planType === "early_adopter"
                       ? "bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
                       : "bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100"
                     }`}>
@@ -344,13 +344,13 @@ export default function OrganizerDashboard() {
               </div>
             </div>
 
-            {plan.planType === "free" && (
+            {plan.planType !== "enterprise" && (
               <Button
                 onClick={() => setShowUpgradeModal(true)}
                 className="bg-indigo-600 hover:bg-indigo-700 gap-2 shrink-0"
               >
                 <Sparkles className="h-4 w-4" />
-                Upgrade to Pro
+                {plan.planType === "free" ? "Upgrade Plan" : "Buy Conference Slot"}
               </Button>
             )}
           </div>

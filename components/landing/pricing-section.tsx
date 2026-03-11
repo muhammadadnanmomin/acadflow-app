@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
-import { PRO_CONFERENCE_PRICE } from "@/lib/config/pricing";
+import { EARLY_ADOPTER_SLOT_PRICE } from "@/lib/config/pricing";
 
 /* ------------------------------------------------------------------ */
 /*  Plan data                                                          */
@@ -35,7 +35,7 @@ const plans = [
     name: "Early Adopter",
     description:
       "The complete conference management workflow for growing academic events.",
-    price: `₹${PRO_CONFERENCE_PRICE.toLocaleString("en-IN")}`,
+    price: `₹${EARLY_ADOPTER_SLOT_PRICE.toLocaleString("en-IN")}`,
     period: "per conference",
     badge: null,
     valueHighlight: "Perfect for conferences with 150+ submissions.",

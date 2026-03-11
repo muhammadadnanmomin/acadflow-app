@@ -114,6 +114,42 @@ async function handlePaymentCaptured(
   const paymentId = payment.id;
   const method = payment.method; // "upi", "card", "netbanking", "wallet"
 
+  const notes = payment.notes ?? {};
+
+  // ── Handle slot_purchase (billing plan payment) ──
+  if (notes.type === "slot_purchase" && notes.organization_id) {
+    const orgId = notes.organization_id;
+
+    // Fetch current org data
+    const { data: org } = await supabaseAdmin
+      .from("organizations")
+      .select("plan_type, conference_slots")
+      .eq("id", orgId)
+      .maybeSingle();
+
+    if (org) {
+      const currentSlots = org.conference_slots ?? 1;
+      const newPlanType =
+        org.plan_type === "enterprise" ? "enterprise" : "early_adopter";
+
+      await supabaseAdmin
+        .from("organizations")
+        .update({
+          plan_type: newPlanType,
+          conference_slots: currentSlots + 1,
+          payment_id: paymentId,
+        })
+        .eq("id", orgId);
+
+      console.log(
+        `✅ Webhook: Org ${orgId} slot purchased (${currentSlots} → ${currentSlots + 1})`
+      );
+    }
+
+    // Slot purchases don't need further processing below
+    return;
+  }
+
   // ── Update paper_submissions via order ID ──
   if (orderId) {
     await supabaseAdmin
@@ -128,7 +164,6 @@ async function handlePaymentCaptured(
   }
 
   // ── Update conference_registrations via receipt notes ──
-  const notes = payment.notes ?? {};
   const conferenceId = notes.conferenceId;
   const userId = notes.userId;
 

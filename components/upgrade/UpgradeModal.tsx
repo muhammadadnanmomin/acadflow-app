@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Sparkles, Loader2 } from "lucide-react";
-import { PRO_CONFERENCE_PRICE } from "@/lib/config/pricing";
+import { EARLY_ADOPTER_SLOT_PRICE } from "@/lib/config/pricing";
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
@@ -42,17 +42,17 @@ declare global {
 export default function UpgradeModal({
     open,
     onClose,
-    title = "Upgrade to Pro",
-    description = "Your conference is growing! Upgrade to Pro to accept unlimited submissions and unlock advanced features.",
+    title = "Buy Conference Slot",
+    description = "Purchase an additional conference slot to create and manage more academic events on AcadFlow.",
     organizationId,
     userId,
 }: UpgradeModalProps) {
     const [loading, setLoading] = useState(false);
 
-    const PRO_BENEFITS = [
+    const SLOT_BENEFITS = [
+        "Unlocks one additional conference",
         "Unlimited paper submissions",
-        "Unlimited conferences",
-        "Analytics & reports",
+        "Full organizer dashboard access",
         "Priority support",
     ];
 
@@ -93,7 +93,7 @@ export default function UpgradeModal({
                 amount: order.amount,
                 currency: order.currency,
                 name: "AcadFlow",
-                description: "Upgrade to Pro Plan",
+                description: "Conference Slot — Early Adopter",
                 order_id: order.id,
                 handler: async (response: any) => {
                     /* 4. Verify payment */
@@ -142,22 +142,22 @@ export default function UpgradeModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                {/* Pro benefits */}
+                {/* Slot benefits */}
                 <div className="rounded-lg border bg-indigo-50/50 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                         <Badge className="bg-indigo-600 text-white hover:bg-indigo-700">
-                            Pro Plan
+                            Early Adopter
                         </Badge>
                         <div className="text-right">
                             <span className="text-2xl font-bold text-gray-900">
-                                ₹{PRO_CONFERENCE_PRICE.toLocaleString("en-IN")}
+                                ₹{EARLY_ADOPTER_SLOT_PRICE.toLocaleString("en-IN")}
                             </span>
-                            <span className="text-sm text-gray-500"> / conference</span>
+                            <span className="text-sm text-gray-500"> / slot</span>
                         </div>
                     </div>
 
                     <ul className="space-y-2">
-                        {PRO_BENEFITS.map((benefit) => (
+                        {SLOT_BENEFITS.map((benefit) => (
                             <li key={benefit} className="flex items-center gap-2 text-sm text-gray-700">
                                 <Check className="h-4 w-4 text-indigo-600 shrink-0" />
                                 {benefit}
@@ -183,7 +183,7 @@ export default function UpgradeModal({
                         ) : (
                             <>
                                 <Sparkles className="h-4 w-4 mr-2" />
-                                Upgrade Now — ₹{PRO_CONFERENCE_PRICE.toLocaleString("en-IN")}
+                                Buy Slot — ₹{EARLY_ADOPTER_SLOT_PRICE.toLocaleString("en-IN")}
                             </>
                         )}
                     </Button>

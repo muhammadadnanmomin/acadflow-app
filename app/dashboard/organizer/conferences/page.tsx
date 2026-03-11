@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 
 import { useProfile } from "@/lib/auth/useProfile";
 import { useOrganization } from "@/lib/organizations/useOrganization";
+import { usePlan } from "@/lib/plans/usePlan";
+import UpgradeModal from "@/components/upgrade/UpgradeModal";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,9 +40,12 @@ import {
   CheckCircle,
   XCircle,
   Tag,
+  AlertTriangle,
   Pencil,
   Share2,
   ExternalLink,
+  Sparkles,
+  Lock,
 } from "lucide-react";
 
 const supabase = createClient();
@@ -77,6 +82,8 @@ function getCurrencySymbol(currency: string | null) {
 export default function OrganizerConferences() {
   const { profile } = useProfile();
   const { organization } = useOrganization();
+  const plan = usePlan();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const [conferences, setConferences] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -196,13 +203,45 @@ export default function OrganizerConferences() {
           </p>
         </div>
 
-        <Link href="/dashboard/organizer/conferences/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Conference
+        {plan.canCreateConference ? (
+          <Link href="/dashboard/organizer/conferences/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Conference
+            </Button>
+          </Link>
+        ) : (
+          <Button
+            className="gap-2 bg-indigo-600 hover:bg-indigo-700"
+            onClick={() => setShowUpgradeModal(true)}
+          >
+            <Sparkles className="h-4 w-4" />
+            Buy Conference Slot
           </Button>
-        </Link>
+        )}
       </div>
+
+      {/* Conference Limit Banner */}
+      {!plan.loading && !plan.canCreateConference && (
+        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <Lock className="h-5 w-5 text-amber-600 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-800">
+              Conference limit reached
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              You have used all {plan.conferenceLimit ?? 0} conference slot{(plan.conferenceLimit ?? 0) !== 1 ? "s" : ""}. Purchase another slot to create more conferences.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            className="bg-amber-600 hover:bg-amber-700 shrink-0"
+            onClick={() => setShowUpgradeModal(true)}
+          >
+            Buy Slot
+          </Button>
+        </div>
+      )}
 
       {/* ============================================================ */}
       {/*  Search Bar                                                   */}
@@ -505,6 +544,18 @@ export default function OrganizerConferences() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ============================================================ */}
+      {/*  Upgrade Modal                                                */}
+      {/* ============================================================ */}
+      {organization && profile && (
+        <UpgradeModal
+          open={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          organizationId={organization.id}
+          userId={profile.id}
+        />
+      )}
 
     </div>
   );
