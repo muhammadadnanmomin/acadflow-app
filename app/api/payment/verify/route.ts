@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import Razorpay from "razorpay";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { sendPaymentConfirmation } from "@/lib/email/sendPaymentConfirmation";
 
 export async function POST(req: Request) {
     try {
@@ -68,6 +69,33 @@ export async function POST(req: Request) {
             }
 
             console.log("✅ Listener payment verified & conference_registrations updated");
+
+            // ── Send confirmation email (listener) ──
+            const { data: reg } = await supabaseAdmin
+                .from("conference_registrations")
+                .select("user_id, amount, conference_id, conferences ( title )")
+                .eq("id", registrationId)
+                .maybeSingle();
+
+            if (reg?.user_id) {
+                const { data: profile } = await supabaseAdmin
+                    .from("profiles")
+                    .select("email, name")
+                    .eq("id", reg.user_id)
+                    .maybeSingle();
+
+                if (profile?.email) {
+                    sendPaymentConfirmation({
+                        email: profile.email,
+                        name: profile.name || "Participant",
+                        conferenceName: (reg.conferences as any)?.title || "Conference",
+                        amount: total || Number(reg.amount) || 0,
+                        paymentId,
+                        orderId,
+                        paidAt: new Date().toISOString(),
+                    }).catch(() => {});
+                }
+            }
         } else {
             // Author: update paper_submissions with payment details + fee breakdown
             const { error } = await supabaseAdmin
@@ -93,6 +121,33 @@ export async function POST(req: Request) {
             }
 
             console.log("✅ Payment verified & DB updated with fee breakdown");
+
+            // ── Send confirmation email (author) ──
+            const { data: sub } = await supabaseAdmin
+                .from("paper_submissions")
+                .select("user_id, conference_id, conferences ( title )")
+                .eq("id", submissionId)
+                .maybeSingle();
+
+            if (sub?.user_id) {
+                const { data: profile } = await supabaseAdmin
+                    .from("profiles")
+                    .select("email, name")
+                    .eq("id", sub.user_id)
+                    .maybeSingle();
+
+                if (profile?.email) {
+                    sendPaymentConfirmation({
+                        email: profile.email,
+                        name: profile.name || "Participant",
+                        conferenceName: (sub.conferences as any)?.title || "Conference",
+                        amount: total || 0,
+                        paymentId,
+                        orderId,
+                        paidAt: new Date().toISOString(),
+                    }).catch(() => {});
+                }
+            }
         }
 
         return NextResponse.json({ success: true });
@@ -103,4 +158,5 @@ export async function POST(req: Request) {
             { status: 500 }
         );
     }
-}
+}
+

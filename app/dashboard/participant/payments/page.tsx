@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-import jsPDF from "jspdf";
+import { generatePaymentReceipt, type ParticipantReceiptData } from "@/lib/payments/generatePaymentReceipt";
 
 import {
   calculateFeeBreakdown,
@@ -55,6 +55,22 @@ export default function ParticipantPaymentsPage() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [payLoading, setPayLoading] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+
+  /* Payment history */
+  interface PaymentHistoryItem {
+    id: string;
+    type: "paper" | "listener";
+    conferenceName: string;
+    organizerName: string;
+    paymentId: string;
+    orderId: string;
+    conferenceFee: number;
+    processingFee: number;
+    total: number;
+    paidAt: string;
+  }
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   async function loadData() {
     if (!profile) return;
@@ -198,7 +214,80 @@ export default function ParticipantPaymentsPage() {
 
   useEffect(() => {
     loadData();
+    loadPaymentHistory();
   }, [profile]);
+
+  /* ── Payment History loader ──────────────────────────────────────── */
+
+  async function loadPaymentHistory() {
+    if (!profile) return;
+    setHistoryLoading(true);
+
+    const history: PaymentHistoryItem[] = [];
+
+    /* Paid paper submissions */
+    const { data: paidPapers } = await supabase
+      .from("paper_submissions")
+      .select(`
+        id, conference_id, payment_amount, payment_conference_fee, payment_processing_fee,
+        presentation_payment_id, payment_order_id, payment_status, created_at,
+        conferences ( title, organizations ( name ) )
+      `)
+      .eq("user_id", profile.id)
+      .eq("payment_status", "paid");
+
+    if (paidPapers) {
+      paidPapers.forEach((p: any) => {
+        const confFee = Number(p.payment_conference_fee) || 0;
+        const procFee = Number(p.payment_processing_fee) || 0;
+        history.push({
+          id: p.id,
+          type: "paper",
+          conferenceName: p.conferences?.title || "Conference",
+          organizerName: p.conferences?.organizations?.name || "Organizer",
+          paymentId: p.presentation_payment_id || "N/A",
+          orderId: p.payment_order_id || "N/A",
+          conferenceFee: confFee,
+          processingFee: procFee,
+          total: Number(p.payment_amount) || confFee + procFee,
+          paidAt: p.created_at,
+        });
+      });
+    }
+
+    /* Paid listener registrations */
+    const { data: paidRegs } = await supabase
+      .from("conference_registrations")
+      .select(`
+        id, conference_id, amount, payment_id, order_id, created_at,
+        conferences ( title, organizations ( name ) )
+      `)
+      .eq("user_id", profile.id)
+      .eq("paid", true);
+
+    if (paidRegs) {
+      paidRegs.forEach((r: any) => {
+        const amt = Number(r.amount) || 0;
+        const breakdown = calculateFeeBreakdown(amt);
+        history.push({
+          id: r.id,
+          type: "listener",
+          conferenceName: r.conferences?.title || "Conference",
+          organizerName: r.conferences?.organizations?.name || "Organizer",
+          paymentId: r.payment_id || "N/A",
+          orderId: r.order_id || "N/A",
+          conferenceFee: breakdown.conferenceFee,
+          processingFee: breakdown.processingFee,
+          total: breakdown.total,
+          paidAt: r.created_at,
+        });
+      });
+    }
+
+    history.sort((a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime());
+    setPaymentHistory(history);
+    setHistoryLoading(false);
+  }
 
   // ── Fee calculation helpers ──────────────────────────────────────
 
@@ -319,139 +408,18 @@ export default function ParticipantPaymentsPage() {
     return true;
   }
 
-  // ── Invoice / Receipt PDF ────────────────────────────────────────
+  // ── Receipt helpers ──────────────────────────────────────────────
 
-  function generateInvoice(
-    title: string,
-    organizer: string,
-    breakdown: FeeBreakdown,
-    paymentId: string,
-    orderId: string
-  ) {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let y = 20;
-
-    // ── Header ──
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text("Payment Receipt", 20, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100);
-    doc.text("Powered by AcadFlow", 20, y);
-    doc.setTextColor(0);
-    y += 6;
-
-    // divider
-    doc.setDrawColor(200);
-    doc.line(20, y, pageWidth - 20, y);
-    y += 12;
-
-    // ── Conference Details ──
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Conference Details", 20, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Conference Name: ${title}`, 20, y);
-    y += 6;
-    doc.text(`Organized By: ${organizer}`, 20, y);
-    y += 12;
-
-    // divider
-    doc.line(20, y, pageWidth - 20, y);
-    y += 12;
-
-    // ── Payment Details ──
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Payment Details", 20, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Razorpay Payment ID: ${paymentId}`, 20, y);
-    y += 6;
-    doc.text(`Razorpay Order ID: ${orderId}`, 20, y);
-    y += 6;
-    doc.text(`Date & Time: ${new Date().toLocaleString("en-IN")}`, 20, y);
-    y += 12;
-
-    // divider
-    doc.line(20, y, pageWidth - 20, y);
-    y += 12;
-
-    // ── Fee Breakdown ──
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Fee Breakdown", 20, y);
-    y += 10;
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-
-    // Line items
-    const rightX = pageWidth - 20;
-
-    const addRow = (label: string, amount: string, bold = false) => {
-      if (bold) doc.setFont("helvetica", "bold");
-      else doc.setFont("helvetica", "normal");
-      doc.text(label, 20, y);
-      doc.text(amount, rightX, y, { align: "right" });
-      y += 7;
-    };
-
-    addRow("Conference Fee", `Rs. ${formatINR(breakdown.conferenceFee)}`);
-    addRow(
-      `Platform Processing Fee (${PLATFORM_FEE_PERCENT}%)`,
-      `Rs. ${formatINR(breakdown.processingFee)}`
-    );
-
-    y += 2;
-    doc.setDrawColor(180);
-    doc.line(20, y, rightX, y);
-    y += 8;
-
-    doc.setFontSize(13);
-    addRow("Total Paid", `Rs. ${formatINR(breakdown.total)}`, true);
-
-    y += 8;
-
-    // divider
-    doc.setDrawColor(200);
-    doc.line(20, y, pageWidth - 20, y);
-    y += 12;
-
-    // ── Transparency Section ──
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Transparency Notice", 20, y);
-    y += 8;
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(80);
-    doc.text(
-      `Conference fee of Rs. ${formatINR(breakdown.conferenceFee)} has been transferred to ${organizer}.`,
-      20,
-      y
-    );
-    y += 5;
-    doc.text(
-      `Platform processing fee of Rs. ${formatINR(breakdown.processingFee)} is retained by AcadFlow.`,
-      20,
-      y
-    );
-    y += 5;
-    doc.text(
-      "AcadFlow charges a small platform processing fee to support secure payment infrastructure and platform operations.",
-      20,
-      y
-    );
-    doc.setTextColor(0);
-
-    doc.save("AcadFlow_Receipt.pdf");
+  function downloadReceipt(confId: string, breakdown: FeeBreakdown, paymentId = "N/A", orderId = "N/A") {
+    generatePaymentReceipt({
+      paymentId,
+      orderId,
+      conferenceName: fees[confId]?.title || "Conference",
+      organizerName: fees[confId]?.organizer_name || "Conference Organizer",
+      conferenceFee: breakdown.conferenceFee,
+      processingFee: breakdown.processingFee,
+      total: breakdown.total,
+    });
   }
 
   // ── Open Razorpay Checkout ───────────────────────────────────────
@@ -555,16 +523,19 @@ export default function ParticipantPaymentsPage() {
             )
           );
 
-          generateInvoice(
-            fees[confId].title,
-            fees[confId]?.organizer_name || "Conference Organizer",
-            serverBreakdown,
-            response.razorpay_payment_id,
-            order.id
-          );
+          generatePaymentReceipt({
+            paymentId: response.razorpay_payment_id,
+            orderId: order.id,
+            conferenceName: fees[confId]?.title || "Conference",
+            organizerName: fees[confId]?.organizer_name || "Conference Organizer",
+            conferenceFee: serverBreakdown.conferenceFee,
+            processingFee: serverBreakdown.processingFee,
+            total: serverBreakdown.total,
+          });
           setPaymentSuccess(true);
 
           await loadData();
+          await loadPaymentHistory();
 
           toast({
             title: "Payment Successful 🎉",
@@ -598,14 +569,17 @@ export default function ParticipantPaymentsPage() {
               <div className="flex items-center justify-center h-16 w-16 rounded-full bg-white/20 mx-auto mb-4">
                 <CheckCircle className="h-10 w-10 text-white" />
               </div>
-              <h2 className="text-2xl font-bold">Payment Successful!</h2>
+              <h2 className="text-2xl font-bold">Payment Successful! 🎉</h2>
               <p className="text-green-100 mt-2 text-sm">
                 Your conference fee has been confirmed.
               </p>
             </div>
-            <div className="p-6 text-center">
-              <p className="text-sm text-gray-600 mb-4">
-                Your presentation slot is now confirmed. A receipt has been downloaded.
+            <div className="p-6 text-center space-y-3">
+              <p className="text-sm text-gray-600">
+                Your presentation slot is now confirmed. A receipt has been downloaded automatically.
+              </p>
+              <p className="text-xs text-gray-400">
+                You can also download it anytime from Payment History below.
               </p>
               <Button
                 onClick={() => setPaymentSuccess(false)}
@@ -717,22 +691,7 @@ export default function ParticipantPaymentsPage() {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => generateInvoice(
-                        fees[confId]?.title || "Conference",
-                        fees[confId]?.organizer_name || "Conference Organizer",
-                        breakdown,
-                        "N/A",
-                        "N/A"
-                      )}
-                    >
-                      <Receipt className="h-4 w-4 mr-2" /> Download Receipt
-                    </Button>
-                  </div>
+
                 </div>
               )}
 
@@ -996,6 +955,151 @@ export default function ParticipantPaymentsPage() {
           </div>
         </div>
       )}
+
+      {/* ============================================================ */}
+      {/*  Payment History                                              */}
+      {/* ============================================================ */}
+      <Card className="overflow-hidden">
+        <div className="flex items-center justify-between p-5 border-b bg-gray-50/60">
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-indigo-100">
+              <Receipt className="h-4 w-4 text-indigo-600" />
+            </div>
+            <div>
+              <span className="font-semibold text-gray-800 block">Payment History</span>
+              <span className="text-xs text-gray-400">
+                {paymentHistory.length} payment{paymentHistory.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Loading */}
+        {historyLoading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+          </div>
+        )}
+
+        {/* Empty */}
+        {!historyLoading && paymentHistory.length === 0 && (
+          <div className="py-10 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 mb-3">
+              <CreditCard className="h-6 w-6 text-gray-400" />
+            </div>
+            <p className="text-sm text-gray-500 font-medium">No payments yet</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Your completed payments will appear here.
+            </p>
+          </div>
+        )}
+
+        {/* Desktop table */}
+        {!historyLoading && paymentHistory.length > 0 && (
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50/80 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="py-3 px-4">Conference</th>
+                  <th className="py-3 px-4">Amount</th>
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Payment ID</th>
+                  <th className="py-3 px-4">Receipt</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paymentHistory.map((h, i) => (
+                  <tr
+                    key={h.id}
+                    className={`border-b last:border-0 hover:bg-gray-50 transition-colors ${i % 2 === 1 ? "bg-gray-50/40" : ""}`}
+                  >
+                    <td className="py-3 px-4">
+                      <p className="font-medium text-gray-900 truncate max-w-[200px]">{h.conferenceName}</p>
+                      <p className="text-xs text-gray-400">{h.type === "listener" ? "Listener" : "Paper"} Fee</p>
+                    </td>
+                    <td className="py-3 px-4 font-semibold text-gray-900">
+                      ₹{formatINR(h.total)}
+                    </td>
+                    <td className="py-3 px-4 text-gray-500">
+                      {new Date(h.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    </td>
+                    <td className="py-3 px-4 font-mono text-xs text-gray-500">
+                      {h.paymentId}
+                    </td>
+                    <td className="py-3 px-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 text-xs"
+                        onClick={() =>
+                          generatePaymentReceipt({
+                            paymentId: h.paymentId,
+                            orderId: h.orderId,
+                            conferenceName: h.conferenceName,
+                            organizerName: h.organizerName,
+                            conferenceFee: h.conferenceFee,
+                            processingFee: h.processingFee,
+                            total: h.total,
+                            paidAt: h.paidAt,
+                          })
+                        }
+                      >
+                        <Download className="h-3 w-3" />
+                        PDF
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Mobile cards */}
+        {!historyLoading && paymentHistory.length > 0 && (
+          <div className="md:hidden divide-y">
+            {paymentHistory.map((h) => (
+              <div key={h.id} className="p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{h.conferenceName}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{h.type === "listener" ? "Listener" : "Paper"} Fee</p>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900 shrink-0">
+                    ₹{formatINR(h.total)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">
+                    <Clock className="h-3 w-3 inline mr-1" />
+                    {new Date(h.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 gap-1 text-indigo-600 text-[11px] px-2"
+                    onClick={() =>
+                      generatePaymentReceipt({
+                        paymentId: h.paymentId,
+                        orderId: h.orderId,
+                        conferenceName: h.conferenceName,
+                        organizerName: h.organizerName,
+                        conferenceFee: h.conferenceFee,
+                        processingFee: h.processingFee,
+                        total: h.total,
+                        paidAt: h.paidAt,
+                      })
+                    }
+                  >
+                    <Download className="h-3 w-3" />
+                    Receipt
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
