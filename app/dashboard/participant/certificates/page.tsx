@@ -57,14 +57,22 @@ export default function ParticipantCertificatesPage() {
 
     setLoading(true);
 
-    if (!profile) return;
-
+    // Fetch certificates where the author email matches the current user email
     const { data, error } = await supabase
       .from("certificates")
       .select(`
         id,
         file_url,
         issued_at,
+        verification_code,
+        paper_authors!inner (
+          id,
+          name,
+          email
+        ),
+        paper_submissions:paper_id (
+          title
+        ),
         conferences (
           id,
           title,
@@ -72,7 +80,7 @@ export default function ParticipantCertificatesPage() {
           end_date
         )
       `)
-      .eq("user_id", profile.id)
+      .eq("paper_authors.email", profile.email)
       .order("issued_at", { ascending: false });
 
     if (error) {
@@ -331,6 +339,14 @@ function CertificateCard({ certificate: c }: { certificate: any }) {
         <Calendar className="h-4 w-4 shrink-0" />
         {formatDate(conf?.start_date)} → {formatDate(conf?.end_date)}
       </div>
+
+      {/* Paper title */}
+      {(c as any).paper_submissions?.title && (
+        <p className="text-sm text-gray-600">
+          <span className="text-gray-400">Paper:</span>{" "}
+          <span className="font-medium">{(c as any).paper_submissions.title}</span>
+        </p>
+      )}
 
       {/* Issued date */}
       <p className="text-sm text-gray-500">

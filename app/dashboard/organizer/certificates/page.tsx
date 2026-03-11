@@ -26,32 +26,40 @@ import {
   Loader2,
   Sparkles,
   Mic,
+  Users,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-interface CertificatePaper {
-  id: string;
-  title: string;
-  payment_status: string | null;
-  user_id: string;
-  certificate_url: string | null;
+interface AuthorCertRow {
+  paperId: string;
+  paperTitle: string;
+  paymentStatus: string | null;
   presented: boolean | null;
-  presented_at: string | null;
-  conferences: {
-    id: string;
-    title: string;
-    organizer_id: string;
-  } | null;
-  profiles: {
-    name: string | null;
-    email: string | null;
-  } | null;
-  /* Future-ready fields */
-  certificate_template_id?: string;
-  issued_at?: string;
+  presentedAt: string | null;
+  conferenceId: string;
+  conferenceTitle: string;
+  authorId: string;
+  authorName: string;
+  authorEmail: string | null;
+  authorOrder: number;
+  isPrimary: boolean;
+  certificateUrl: string | null;
+  certificateId: string | null;
+  verificationCode: string | null;
+  issuedAt: string | null;
+}
+
+interface PaperGroup {
+  paperId: string;
+  paperTitle: string;
+  paymentStatus: string | null;
+  presented: boolean | null;
+  conferenceId: string;
+  conferenceTitle: string;
+  authors: AuthorCertRow[];
 }
 
 type CertificateStatus = "issued" | "ready" | "awaiting_payment" | "awaiting_presentation";
@@ -60,11 +68,32 @@ type CertificateStatus = "issued" | "ready" | "awaiting_payment" | "awaiting_pre
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-function getCertificateStatus(paper: CertificatePaper): CertificateStatus {
-  if (paper.certificate_url) return "issued";
-  if (paper.payment_status !== "paid") return "awaiting_payment";
-  if (paper.presented !== true) return "awaiting_presentation";
+function getStatus(row: AuthorCertRow): CertificateStatus {
+  if (row.certificateUrl) return "issued";
+  if (row.paymentStatus !== "paid") return "awaiting_payment";
+  if (row.presented !== true) return "awaiting_presentation";
   return "ready";
+}
+
+function groupByPaper(rows: AuthorCertRow[]): PaperGroup[] {
+  const map = new Map<string, PaperGroup>();
+
+  for (const r of rows) {
+    if (!map.has(r.paperId)) {
+      map.set(r.paperId, {
+        paperId: r.paperId,
+        paperTitle: r.paperTitle,
+        paymentStatus: r.paymentStatus,
+        presented: r.presented,
+        conferenceId: r.conferenceId,
+        conferenceTitle: r.conferenceTitle,
+        authors: [],
+      });
+    }
+    map.get(r.paperId)!.authors.push(r);
+  }
+
+  return Array.from(map.values());
 }
 
 const supabase = createClient();
@@ -77,7 +106,7 @@ export default function OrganizerCertificates() {
   const { profile } = useProfile();
 
   const [loading, setLoading] = useState(true);
-  const [papers, setPapers] = useState<CertificatePaper[]>([]);
+  const [rows, setRows] = useState<AuthorCertRow[]>([]);
   const [bulkGenerating, setBulkGenerating] = useState(false);
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
 
@@ -87,70 +116,143 @@ export default function OrganizerCertificates() {
   const [conferenceFilter, setConferenceFilter] = useState("all");
 
   /* ---------------------------------------------------------------- */
-  /*  Data loading (unchanged Supabase query + profiles join)          */
+  /*  Data loading                                                     */
   /* ---------------------------------------------------------------- */
 
-  async function loadPapers() {
+  async function loadData() {
     if (!profile) return;
-
     setLoading(true);
 
-    const { data, error } = await supabase
+    const { data: papers, error } = await supabase
       .from("paper_submissions")
       .select(`
         id,
         title,
         payment_status,
-        user_id,
         presented,
         presented_at,
         conferences!inner (
           id,
           title,
           organizer_id
-        ),
-        certificate_url:file_url,
-        profiles ( name, email )
+        )
       `)
       .eq("conferences.organizer_id", profile.id)
       .eq("status", "accepted")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Supabase error:", JSON.stringify(error, null, 2));
+    if (error || !papers) {
+      console.error("Load papers error:", error);
       setLoading(false);
       return;
     }
 
-    setPapers((data as any[] as CertificatePaper[]) || []);
+    const paperIds = papers.map((p: any) => p.id);
+
+    if (paperIds.length === 0) {
+      setRows([]);
+      setLoading(false);
+      return;
+    }
+
+    const { data: authors } = await supabase
+      .from("paper_authors")
+      .select("id, submission_id, name, email, author_order, is_primary")
+      .in("submission_id", paperIds)
+      .order("author_order", { ascending: true });
+
+    const { data: certs } = await supabase
+      .from("certificates")
+      .select("id, paper_id, author_id, file_url, verification_code, issued_at")
+      .in("paper_id", paperIds);
+
+    const certMap = new Map<string, any>();
+    (certs || []).forEach((c: any) => {
+      certMap.set(`${c.paper_id}_${c.author_id}`, c);
+    });
+
+    const result: AuthorCertRow[] = [];
+
+    for (const p of papers as any[]) {
+      const conf = p.conferences;
+      const paperAuthors = (authors || []).filter(
+        (a: any) => a.submission_id === p.id
+      );
+
+      if (paperAuthors.length === 0) {
+        result.push({
+          paperId: p.id,
+          paperTitle: p.title,
+          paymentStatus: p.payment_status,
+          presented: p.presented,
+          presentedAt: p.presented_at,
+          conferenceId: conf?.id || "",
+          conferenceTitle: conf?.title || "—",
+          authorId: "",
+          authorName: "Unknown Author",
+          authorEmail: null,
+          authorOrder: 1,
+          isPrimary: true,
+          certificateUrl: null,
+          certificateId: null,
+          verificationCode: null,
+          issuedAt: null,
+        });
+        continue;
+      }
+
+      for (const a of paperAuthors) {
+        const cert = certMap.get(`${p.id}_${a.id}`);
+        result.push({
+          paperId: p.id,
+          paperTitle: p.title,
+          paymentStatus: p.payment_status,
+          presented: p.presented,
+          presentedAt: p.presented_at,
+          conferenceId: conf?.id || "",
+          conferenceTitle: conf?.title || "—",
+          authorId: a.id,
+          authorName: a.name || "Author",
+          authorEmail: a.email || null,
+          authorOrder: a.author_order,
+          isPrimary: a.is_primary || false,
+          certificateUrl: cert?.file_url || null,
+          certificateId: cert?.id || null,
+          verificationCode: cert?.verification_code || null,
+          issuedAt: cert?.issued_at || null,
+        });
+      }
+    }
+
+    setRows(result);
     setLoading(false);
   }
 
   useEffect(() => {
-    loadPapers();
+    loadData();
   }, [profile]);
 
   /* ---------------------------------------------------------------- */
-  /*  Generate certificate (unchanged API call)                        */
+  /*  Generate certificate                                             */
   /* ---------------------------------------------------------------- */
 
-  async function generateCertificate(p: CertificatePaper) {
-    if (p.payment_status !== "paid" || p.presented !== true) return;
+  async function generateCertificate(row: AuthorCertRow) {
+    if (row.paymentStatus !== "paid" || row.presented !== true || !row.authorId) return;
 
-    setGeneratingIds((prev) => new Set(prev).add(p.id));
-
-    const authorName = p.profiles?.name || "Participant";
-    const conferenceTitle = p.conferences?.title || "Conference";
+    const key = `${row.paperId}_${row.authorId}`;
+    setGeneratingIds((prev) => new Set(prev).add(key));
 
     try {
       const res = await fetch("/api/generate-certificate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          paperId: p.id,
-          authorName,
-          conferenceTitle,
-          paperTitle: p.title || undefined,
+          paperId: row.paperId,
+          authorId: row.authorId,
+          authorName: row.authorName,
+          conferenceId: row.conferenceId,
+          conferenceTitle: row.conferenceTitle,
+          paperTitle: row.paperTitle || undefined,
         }),
       });
 
@@ -161,28 +263,14 @@ export default function OrganizerCertificates() {
         return;
       }
 
-      const data = await res.json();
-
-      if (!data.url) {
-        alert("Certificate generation failed");
-        return;
-      }
-
-      await supabase.from("certificates").insert({
-        paper_id: p.id,
-        user_id: p.user_id,
-        conference_id: p.conferences?.id,
-        file_url: data.url,
-      });
-
-      await loadPapers();
+      await loadData();
     } catch (err) {
       console.error(err);
       alert("Something went wrong");
     } finally {
       setGeneratingIds((prev) => {
         const next = new Set(prev);
-        next.delete(p.id);
+        next.delete(key);
         return next;
       });
     }
@@ -193,18 +281,21 @@ export default function OrganizerCertificates() {
   /* ---------------------------------------------------------------- */
 
   async function generateAllCertificates() {
-    const eligible = papers.filter(
-      (p) =>
-        p.payment_status === "paid" &&
-        p.presented === true &&
-        !p.certificate_url
+    const eligible = rows.filter(
+      (r) =>
+        r.paymentStatus === "paid" &&
+        r.presented === true &&
+        !r.certificateUrl &&
+        r.authorId
     );
     if (eligible.length === 0) return;
 
     setBulkGenerating(true);
 
-    for (const p of eligible) {
-      await generateCertificate(p);
+    const batchSize = 5;
+    for (let i = 0; i < eligible.length; i += batchSize) {
+      const batch = eligible.slice(i, i + batchSize);
+      await Promise.all(batch.map((r) => generateCertificate(r)));
     }
 
     setBulkGenerating(false);
@@ -214,14 +305,14 @@ export default function OrganizerCertificates() {
   /*  Mark presented                                                   */
   /* ---------------------------------------------------------------- */
 
-  async function markPresented(p: CertificatePaper) {
+  async function markPresented(paperId: string) {
     const { error } = await supabase
       .from("paper_submissions")
       .update({
         presented: true,
         presented_at: new Date().toISOString(),
       })
-      .eq("id", p.id);
+      .eq("id", paperId);
 
     if (error) {
       console.error("Failed to mark presented:", error);
@@ -229,81 +320,58 @@ export default function OrganizerCertificates() {
       return;
     }
 
-    await loadPapers();
+    await loadData();
   }
 
   /* ---------------------------------------------------------------- */
   /*  Derived data                                                     */
   /* ---------------------------------------------------------------- */
 
-  const totalAccepted = papers.length;
+  const totalAuthors = rows.length;
   const issuedCount = useMemo(
-    () => papers.filter((p) => !!p.certificate_url).length,
-    [papers]
+    () => rows.filter((r) => !!r.certificateUrl).length,
+    [rows]
   );
   const readyCount = useMemo(
     () =>
-      papers.filter(
-        (p) =>
-          p.payment_status === "paid" &&
-          p.presented === true &&
-          !p.certificate_url
+      rows.filter(
+        (r) =>
+          r.paymentStatus === "paid" &&
+          r.presented === true &&
+          !r.certificateUrl &&
+          r.authorId
       ).length,
-    [papers]
-  );
-  const awaitingPresentationCount = useMemo(
-    () =>
-      papers.filter(
-        (p) =>
-          p.payment_status === "paid" &&
-          p.presented !== true &&
-          !p.certificate_url
-      ).length,
-    [papers]
+    [rows]
   );
 
   const uniqueConferences = useMemo(() => {
     const set = new Set<string>();
-    papers.forEach((p) => {
-      if (p.conferences?.title) set.add(p.conferences.title);
+    rows.forEach((r) => {
+      if (r.conferenceTitle) set.add(r.conferenceTitle);
     });
     return Array.from(set).sort();
-  }, [papers]);
+  }, [rows]);
 
-  /* Client-side filtering */
-  const filteredPapers = useMemo(() => {
-    return papers.filter((p) => {
-      const status = getCertificateStatus(p);
-
-      /* Status filter */
+  /* Client-side filter + group */
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) => {
+      const status = getStatus(r);
       if (statusFilter === "issued" && status !== "issued") return false;
       if (statusFilter === "ready" && status !== "ready") return false;
-      if (statusFilter === "awaiting_payment" && status !== "awaiting_payment")
-        return false;
-      if (
-        statusFilter === "awaiting_presentation" &&
-        status !== "awaiting_presentation"
-      )
-        return false;
-
-      /* Conference filter */
-      if (
-        conferenceFilter !== "all" &&
-        p.conferences?.title !== conferenceFilter
-      )
-        return false;
-
-      /* Search */
+      if (statusFilter === "awaiting_payment" && status !== "awaiting_payment") return false;
+      if (statusFilter === "awaiting_presentation" && status !== "awaiting_presentation") return false;
+      if (conferenceFilter !== "all" && r.conferenceTitle !== conferenceFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const titleMatch = p.title?.toLowerCase().includes(q);
-        const nameMatch = p.profiles?.name?.toLowerCase().includes(q);
+        const titleMatch = r.paperTitle?.toLowerCase().includes(q);
+        const nameMatch = r.authorName?.toLowerCase().includes(q);
         if (!titleMatch && !nameMatch) return false;
       }
-
       return true;
     });
-  }, [papers, statusFilter, conferenceFilter, searchQuery]);
+  }, [rows, statusFilter, conferenceFilter, searchQuery]);
+
+  const paperGroups = useMemo(() => groupByPaper(filteredRows), [filteredRows]);
 
   /* ---------------------------------------------------------------- */
   /*  Render                                                           */
@@ -312,9 +380,7 @@ export default function OrganizerCertificates() {
   return (
     <div className="space-y-6 max-w-6xl">
 
-      {/* ============================================================ */}
-      {/*  Header                                                       */}
-      {/* ============================================================ */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="bg-indigo-50 p-2.5 rounded-lg">
@@ -323,17 +389,16 @@ export default function OrganizerCertificates() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Certificates</h1>
             <p className="text-gray-500 mt-0.5">
-              Generate and manage participant certificates
+              Generate and manage author certificates
             </p>
           </div>
         </div>
 
-        {/* Header stat badges */}
-        {!loading && papers.length > 0 && (
+        {!loading && rows.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary" className="gap-1.5 text-xs py-1 px-2.5">
-              <FileText className="h-3 w-3" />
-              {totalAccepted} Accepted
+              <Users className="h-3 w-3" />
+              {totalAuthors} Authors
             </Badge>
             <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100 gap-1.5 text-xs py-1 px-2.5">
               <CheckCircle className="h-3 w-3" />
@@ -347,45 +412,21 @@ export default function OrganizerCertificates() {
         )}
       </div>
 
-      {/* ============================================================ */}
-      {/*  Summary Stats                                                */}
-      {/* ============================================================ */}
+      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="Total Accepted Papers"
-          value={loading ? "—" : totalAccepted}
-          icon={FileText}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
-        />
-        <StatCard
-          title="Certificates Issued"
-          value={loading ? "—" : issuedCount}
-          icon={CheckCircle}
-          iconBg="bg-green-50"
-          iconColor="text-green-600"
-        />
-        <StatCard
-          title="Ready to Generate"
-          value={loading ? "—" : readyCount}
-          icon={Sparkles}
-          iconBg="bg-amber-50"
-          iconColor="text-amber-600"
-        />
+        <StatCard title="Total Author Certificates" value={loading ? "—" : totalAuthors} icon={Users} iconBg="bg-blue-50" iconColor="text-blue-600" />
+        <StatCard title="Certificates Issued" value={loading ? "—" : issuedCount} icon={CheckCircle} iconBg="bg-green-50" iconColor="text-green-600" />
+        <StatCard title="Ready to Generate" value={loading ? "—" : readyCount} icon={Sparkles} iconBg="bg-amber-50" iconColor="text-amber-600" />
       </div>
 
-      {/* ============================================================ */}
-      {/*  Filters                                                      */}
-      {/* ============================================================ */}
-      {!loading && papers.length > 0 && (
+      {/* Filters */}
+      {!loading && rows.length > 0 && (
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-700">
             <Filter className="h-4 w-4 text-gray-400" />
             Filters
           </div>
-
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
@@ -395,21 +436,17 @@ export default function OrganizerCertificates() {
                 className="pl-10"
               />
             </div>
-
-            {/* Status */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="all">All Statuses</option>
-              <option value="issued">Issued</option>
-              <option value="ready">Ready</option>
+              <option value="issued">Certificate Issued</option>
+              <option value="ready">Ready for Certificate</option>
               <option value="awaiting_presentation">Awaiting Presentation</option>
               <option value="awaiting_payment">Awaiting Payment</option>
             </select>
-
-            {/* Conference */}
             <select
               value={conferenceFilter}
               onChange={(e) => setConferenceFilter(e.target.value)}
@@ -417,260 +454,252 @@ export default function OrganizerCertificates() {
             >
               <option value="all">All Conferences</option>
               {uniqueConferences.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+                <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
         </Card>
       )}
 
-      {/* ============================================================ */}
-      {/*  Bulk Generate Button                                         */}
-      {/* ============================================================ */}
+      {/* Bulk Generate */}
       {!loading && readyCount > 0 && (
         <div className="flex justify-end">
-          <Button
-            onClick={generateAllCertificates}
-            disabled={bulkGenerating}
-            className="gap-2"
-          >
+          <Button onClick={generateAllCertificates} disabled={bulkGenerating} className="gap-2">
             {bulkGenerating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Generating…
-              </>
+              <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</>
             ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                Generate All Certificates ({readyCount})
-              </>
+              <><Sparkles className="h-4 w-4" /> Generate All Certificates ({readyCount})</>
             )}
           </Button>
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/*  Loading Skeleton                                             */}
-      {/* ============================================================ */}
+      {/* Loading */}
       {loading && (
-        <>
-          {/* Desktop skeleton */}
-          <Card className="p-0 overflow-hidden hidden md:block">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="border-b bg-gray-50/80 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <th className="py-3 px-4">Paper</th>
-                    <th className="py-3 px-4">Author</th>
-                    <th className="py-3 px-4">Conference</th>
-                    <th className="py-3 px-4">Payment</th>
-                    <th className="py-3 px-4">Certificate Status</th>
-                    <th className="py-3 px-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="border-b last:border-0">
-                      <td className="py-3 px-4">
-                        <Skeleton className="h-4 w-48" />
-                      </td>
-                      <td className="py-3 px-4">
-                        <Skeleton className="h-4 w-28" />
-                      </td>
-                      <td className="py-3 px-4">
-                        <Skeleton className="h-4 w-36" />
-                      </td>
-                      <td className="py-3 px-4">
-                        <Skeleton className="h-5 w-16 rounded-full" />
-                      </td>
-                      <td className="py-3 px-4">
-                        <Skeleton className="h-5 w-20 rounded-full" />
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <Skeleton className="h-8 w-24 ml-auto rounded-md" />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-
-          {/* Mobile skeleton */}
-          <div className="space-y-3 md:hidden">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="p-4 space-y-3">
-                <Skeleton className="h-5 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-4 w-2/3" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-5 w-16 rounded-full" />
-                  <Skeleton className="h-5 w-20 rounded-full" />
-                </div>
-                <Skeleton className="h-8 w-28 rounded-md" />
-              </Card>
-            ))}
-          </div>
-        </>
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="p-5 space-y-4">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
 
-      {/* ============================================================ */}
-      {/*  Empty State                                                  */}
-      {/* ============================================================ */}
-      {!loading && papers.length === 0 && (
+      {/* Empty */}
+      {!loading && rows.length === 0 && (
         <Card className="p-12 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50">
             <Award className="h-8 w-8 text-indigo-400" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            No accepted papers yet
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">No accepted papers yet</h2>
           <p className="text-gray-500 mt-2 max-w-sm mx-auto">
             Certificates will appear here once papers are accepted.
           </p>
         </Card>
       )}
 
-      {/* No results from filter */}
-      {!loading && papers.length > 0 && filteredPapers.length === 0 && (
+      {/* No filter match */}
+      {!loading && rows.length > 0 && filteredRows.length === 0 && (
         <p className="text-sm text-gray-500 py-8 text-center">
           No papers match the current filters.
         </p>
       )}
 
       {/* ============================================================ */}
-      {/*  Table (Desktop)                                              */}
+      {/*  Paper Cards (grouped by paper)                               */}
       {/* ============================================================ */}
-      {!loading && filteredPapers.length > 0 && (
-        <Card className="p-0 overflow-hidden hidden md:block">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50/80 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0">
-                  <th className="py-3 px-4">Paper</th>
-                  <th className="py-3 px-4">Author</th>
-                  <th className="py-3 px-4">Conference</th>
-                  <th className="py-3 px-4">Payment</th>
-                  <th className="py-3 px-4">Certificate Status</th>
-                  <th className="py-3 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredPapers.map((p, i) => (
-                  <CertificateRow
-                    key={p.id}
-                    paper={p}
-                    index={i}
-                    isGenerating={generatingIds.has(p.id)}
-                    onGenerate={() => generateCertificate(p)}
-                    onMarkPresented={() => markPresented(p)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
-      {/* ============================================================ */}
-      {/*  Cards (Mobile)                                               */}
-      {/* ============================================================ */}
-      {!loading && filteredPapers.length > 0 && (
-        <div className="space-y-3 md:hidden">
-          {filteredPapers.map((p) => {
-            const status = getCertificateStatus(p);
-            const isGen = generatingIds.has(p.id);
+      {!loading && paperGroups.length > 0 && (
+        <div className="space-y-4">
+          {paperGroups.map((group) => {
+            const allIssued = group.authors.every((a) => !!a.certificateUrl);
+            const someIssued = group.authors.some((a) => !!a.certificateUrl);
 
             return (
-              <Card key={p.id} className="p-4 space-y-3">
-                {/* Paper title */}
-                <div className="flex items-start gap-2">
-                  <FileText className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
-                  <p className="font-medium text-gray-900 line-clamp-2">
-                    {p.title}
-                  </p>
-                </div>
+              <Card key={group.paperId} className="overflow-hidden">
+                {/* Paper Header */}
+                <div className="flex items-start justify-between gap-3 p-5 border-b bg-gray-50/50">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                      <h3 className="font-semibold text-gray-900 truncate">
+                        {group.paperTitle}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Calendar className="h-3.5 w-3.5 shrink-0" />
+                      {group.conferenceTitle}
+                    </div>
+                  </div>
 
-                {/* Author */}
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <User className="h-3.5 w-3.5 text-gray-400" />
-                  {p.profiles?.name || "Participant"}
-                </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {allIssued ? (
+                      <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100 text-xs gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        All Issued
+                      </Badge>
+                    ) : someIssued ? (
+                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 text-xs gap-1">
+                        <Clock className="h-3 w-3" />
+                        Partially Issued
+                      </Badge>
+                    ) : group.presented ? (
+                      <Badge className="bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 text-xs gap-1">
+                        <Mic className="h-3 w-3" />
+                        Presented
+                      </Badge>
+                    ) : null}
 
-                {/* Conference */}
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                  <span className="truncate">
-                    {p.conferences?.title || "—"}
-                  </span>
-                </div>
-
-                {/* Badges */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <PaymentStatusBadge status={p.payment_status} />
-                  <CertificateStatusBadge status={status} />
-                  {p.presented && <PresentedBadge />}
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 pt-1">
-                  {status === "issued" && p.certificate_url ? (
-                    <>
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href={p.certificate_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Preview
-                        </a>
+                    {!group.presented && group.paymentStatus === "paid" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => markPresented(group.paperId)}
+                      >
+                        <Mic className="h-4 w-4 mr-1" />
+                        Mark Presented
                       </Button>
-                      <Button size="sm" variant="outline" asChild>
-                        <a
-                          href={p.certificate_url}
-                          download
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          Download
-                        </a>
-                      </Button>
-                    </>
-                  ) : status === "awaiting_payment" ? (
-                    <Button size="sm" disabled variant="outline">
-                      Payment Pending
-                    </Button>
-                  ) : status === "awaiting_presentation" ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => markPresented(p)}
-                    >
-                      <Mic className="h-4 w-4 mr-1" />
-                      Mark Presented
-                    </Button>
-                  ) : status === "ready" ? (
-                    <Button
-                      size="sm"
-                      onClick={() => generateCertificate(p)}
-                      disabled={isGen}
-                    >
-                      {isGen ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                          Generating…
-                        </>
-                      ) : (
-                        <>
-                          <Award className="h-4 w-4 mr-1" />
-                          Generate
-                        </>
-                      )}
-                    </Button>
-                  ) : null}
+                    )}
+                  </div>
+                </div>
+
+                {/* Authors Table */}
+                <div className="p-0">
+                  {/* Desktop */}
+                  <table className="w-full text-sm hidden md:table">
+                    <thead>
+                      <tr className="border-b bg-gray-50/40 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="py-2.5 px-5">Author</th>
+                        <th className="py-2.5 px-5">Role</th>
+                        <th className="py-2.5 px-5">Certificate Status</th>
+                        <th className="py-2.5 px-5 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.authors.map((a) => {
+                        const status = getStatus(a);
+                        const key = `${a.paperId}_${a.authorId}`;
+                        const isGen = generatingIds.has(key);
+
+                        return (
+                          <tr key={key} className="border-b last:border-0 hover:bg-gray-50/60 transition-colors">
+                            <td className="py-3 px-5">
+                              <div className="min-w-0">
+                                <p className="font-medium text-gray-900">{a.authorName}</p>
+                                {a.authorEmail && (
+                                  <p className="text-xs text-gray-500 truncate">{a.authorEmail}</p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-5">
+                              {a.isPrimary ? (
+                                <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">Primary Author</Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-xs">Co-Author</Badge>
+                              )}
+                            </td>
+                            <td className="py-3 px-5">
+                              <CertificateStatusBadge status={status} />
+                            </td>
+                            <td className="py-3 px-5 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {status === "issued" && a.certificateUrl ? (
+                                  <>
+                                    <Button size="sm" variant="outline" asChild>
+                                      <a href={a.certificateUrl} target="_blank" rel="noopener noreferrer">
+                                        <Eye className="h-4 w-4 mr-1" />
+                                        Preview
+                                      </a>
+                                    </Button>
+                                    <Button size="sm" variant="outline" asChild>
+                                      <a href={a.certificateUrl} download>
+                                        <Download className="h-4 w-4 mr-1" />
+                                        Download
+                                      </a>
+                                    </Button>
+                                  </>
+                                ) : status === "awaiting_payment" ? (
+                                  <Button size="sm" disabled variant="outline">Payment Pending</Button>
+                                ) : status === "ready" ? (
+                                  <Button size="sm" onClick={() => generateCertificate(a)} disabled={isGen}>
+                                    {isGen ? (
+                                      <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Generating…</>
+                                    ) : (
+                                      <><Award className="h-4 w-4 mr-1" /> Generate</>
+                                    )}
+                                  </Button>
+                                ) : status === "awaiting_presentation" ? (
+                                  <span className="text-xs text-gray-400">Awaiting Presentation</span>
+                                ) : null}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
+                  {/* Mobile */}
+                  <div className="md:hidden divide-y">
+                    {group.authors.map((a) => {
+                      const status = getStatus(a);
+                      const key = `${a.paperId}_${a.authorId}`;
+                      const isGen = generatingIds.has(key);
+
+                      return (
+                        <div key={key} className="p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <User className="h-3.5 w-3.5 text-gray-400" />
+                              <span className="font-medium text-sm">{a.authorName}</span>
+                            </div>
+                            {a.isPrimary ? (
+                              <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">Primary</Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">Co-Author</Badge>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <CertificateStatusBadge status={status} />
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {status === "issued" && a.certificateUrl ? (
+                              <>
+                                <Button size="sm" variant="outline" asChild>
+                                  <a href={a.certificateUrl} target="_blank" rel="noopener noreferrer">
+                                    <Eye className="h-4 w-4 mr-1" /> Preview
+                                  </a>
+                                </Button>
+                                <Button size="sm" variant="outline" asChild>
+                                  <a href={a.certificateUrl} download>
+                                    <Download className="h-4 w-4 mr-1" /> Download
+                                  </a>
+                                </Button>
+                              </>
+                            ) : status === "ready" ? (
+                              <Button size="sm" onClick={() => generateCertificate(a)} disabled={isGen}>
+                                {isGen ? (
+                                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Generating…</>
+                                ) : (
+                                  <><Award className="h-4 w-4 mr-1" /> Generate</>
+                                )}
+                              </Button>
+                            ) : status === "awaiting_payment" ? (
+                              <Button size="sm" disabled variant="outline">Payment Pending</Button>
+                            ) : (
+                              <span className="text-xs text-gray-400">Awaiting Presentation</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </Card>
             );
@@ -704,137 +733,10 @@ function StatCard({
         <p className="text-sm text-gray-500">{title}</p>
         <p className="text-2xl font-bold mt-1">{value}</p>
       </div>
-
       <div className={`${iconBg} p-3 rounded-lg`}>
         <Icon className={`h-5 w-5 ${iconColor}`} />
       </div>
     </Card>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  CertificateRow                                                     */
-/* ------------------------------------------------------------------ */
-
-function CertificateRow({
-  paper: p,
-  index: i,
-  isGenerating,
-  onGenerate,
-  onMarkPresented,
-}: {
-  paper: CertificatePaper;
-  index: number;
-  isGenerating: boolean;
-  onGenerate: () => void;
-  onMarkPresented: () => void;
-}) {
-  const status = getCertificateStatus(p);
-
-  return (
-    <tr
-      className={`border-b last:border-0 hover:bg-gray-50 transition-colors ${i % 2 === 1 ? "bg-gray-50/40" : ""
-        }`}
-    >
-      {/* Paper */}
-      <td className="py-3 px-4">
-        <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-gray-400 shrink-0" />
-          <span className="font-medium text-gray-900 max-w-[220px] truncate">
-            {p.title}
-          </span>
-        </div>
-      </td>
-
-      {/* Author */}
-      <td className="py-3 px-4">
-        <div className="flex items-center gap-2 text-sm">
-          <User className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-gray-900 truncate">
-              {p.profiles?.name || "Participant"}
-            </p>
-            {p.profiles?.email && (
-              <p className="text-xs text-gray-500 truncate">
-                {p.profiles.email}
-              </p>
-            )}
-          </div>
-        </div>
-      </td>
-
-      {/* Conference */}
-      <td className="py-3 px-4">
-        <div className="flex items-center gap-2 text-sm text-gray-700">
-          <Calendar className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-          <span className="max-w-[180px] truncate">
-            {p.conferences?.title || "—"}
-          </span>
-        </div>
-      </td>
-
-      {/* Payment */}
-      <td className="py-3 px-4">
-        <PaymentStatusBadge status={p.payment_status} />
-      </td>
-
-      {/* Certificate Status */}
-      <td className="py-3 px-4">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <CertificateStatusBadge status={status} />
-          {p.presented && <PresentedBadge />}
-        </div>
-      </td>
-
-      {/* Action */}
-      <td className="py-3 px-4 text-right">
-        <div className="flex items-center justify-end gap-2">
-          {status === "issued" && p.certificate_url ? (
-            <>
-              <Button size="sm" variant="outline" asChild>
-                <a
-                  href={p.certificate_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  Preview
-                </a>
-              </Button>
-              <Button size="sm" variant="outline" asChild>
-                <a href={p.certificate_url} download>
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </a>
-              </Button>
-            </>
-          ) : status === "awaiting_payment" ? (
-            <Button size="sm" disabled variant="outline">
-              Payment Pending
-            </Button>
-          ) : status === "awaiting_presentation" ? (
-            <Button size="sm" variant="outline" onClick={onMarkPresented}>
-              <Mic className="h-4 w-4 mr-1" />
-              Mark Presented
-            </Button>
-          ) : status === "ready" ? (
-            <Button size="sm" onClick={onGenerate} disabled={isGenerating}>
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  Generating…
-                </>
-              ) : (
-                <>
-                  <Award className="h-4 w-4 mr-1" />
-                  Generate
-                </>
-              )}
-            </Button>
-          ) : null}
-        </div>
-      </td>
-    </tr>
   );
 }
 
@@ -847,15 +749,15 @@ function CertificateStatusBadge({ status }: { status: CertificateStatus }) {
     return (
       <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100 text-xs gap-1">
         <CheckCircle className="h-3 w-3" />
-        Issued
+        Certificate Issued
       </Badge>
     );
 
   if (status === "ready")
     return (
       <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 text-xs gap-1">
-        <Clock className="h-3 w-3" />
-        Ready
+        <Sparkles className="h-3 w-3" />
+        Ready for Certificate
       </Badge>
     );
 
@@ -871,40 +773,6 @@ function CertificateStatusBadge({ status }: { status: CertificateStatus }) {
     <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-100 text-xs gap-1">
       <AlertCircle className="h-3 w-3" />
       Awaiting Payment
-    </Badge>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  PaymentStatusBadge                                                 */
-/* ------------------------------------------------------------------ */
-
-function PaymentStatusBadge({ status }: { status: string | null }) {
-  if (status === "paid")
-    return (
-      <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100 text-xs gap-1">
-        <CheckCircle className="h-3 w-3" />
-        Paid
-      </Badge>
-    );
-
-  return (
-    <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-100 text-xs gap-1">
-      <AlertCircle className="h-3 w-3" />
-      Unpaid
-    </Badge>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  PresentedBadge                                                     */
-/* ------------------------------------------------------------------ */
-
-function PresentedBadge() {
-  return (
-    <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100 text-xs gap-1">
-      <Mic className="h-3 w-3" />
-      Presented
     </Badge>
   );
 }

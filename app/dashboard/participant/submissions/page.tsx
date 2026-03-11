@@ -52,6 +52,7 @@ export default function ParticipantSubmissionsPage() {
   const [titles, setTitles] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState<string | null>(null);
 
+  const [authorNames, setAuthorNames] = useState<Record<string, string>>({});
   const [affiliations, setAffiliations] = useState<Record<string, string>>({});
   const [emails, setEmails] = useState<Record<string, string>>({});
   const [contacts, setContacts] = useState<Record<string, string>>({});
@@ -328,9 +329,10 @@ export default function ParticipantSubmissionsPage() {
   async function uploadPaper(confId: string) {
     const file = files[confId];
     const title = titles[confId];
+    const primaryName = authorNames[confId]?.trim();
 
-    if (!title || !emails[confId]) {
-      toast({ variant: "destructive", title: "Please fill all required fields" });
+    if (!title || !primaryName || !emails[confId]) {
+      toast({ variant: "destructive", title: "Please fill all required fields (Title, Primary Author Name, Email)" });
       return;
     }
 
@@ -343,6 +345,18 @@ export default function ParticipantSubmissionsPage() {
     if (!file) {
       toast({ variant: "destructive", title: "Please upload the PDF file" });
       return;
+    }
+
+    // Duplicate email check
+    const allEmails: string[] = [emails[confId]?.toLowerCase()].filter(Boolean);
+    const coAuthorList = coAuthors[confId] || [];
+    for (const ca of coAuthorList) {
+      const e = ca.email?.trim().toLowerCase();
+      if (e && allEmails.includes(e)) {
+        toast({ variant: "destructive", title: "Duplicate author email detected. Each author must have a unique email address." });
+        return;
+      }
+      if (e) allEmails.push(e);
     }
 
     setUploading(confId);
@@ -381,13 +395,13 @@ export default function ParticipantSubmissionsPage() {
     const authorsToInsert = [
       {
         submission_id: submission.id,
-        name: profile?.name || "Primary Author",
+        name: primaryName || profile?.name || "Author",
         email: session.user.email,
         affiliation: affiliations[confId],
         is_primary: true,
         author_order: 1,
       },
-      ...(coAuthors[confId] || []).map((a, i) => ({
+      ...(coAuthorList).map((a, i) => ({
         submission_id: submission.id,
         name: a.name,
         email: a.email,
@@ -489,61 +503,104 @@ export default function ParticipantSubmissionsPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium">Primary Author Affiliation</label>
-                    <Input
-                      placeholder="e.g. ABC College of Engineering"
-                      onChange={e => setAffiliations(p => ({ ...p, [confId]: e.target.value }))}
-                    />
-                  </div>
+                  {/* ── Authors Section ── */}
+                  <div className="border border-gray-200 rounded-lg p-4 space-y-4 bg-gray-50/50">
+                    <h3 className="font-semibold text-base flex items-center gap-2">
+                      <Users className="h-4 w-4 text-gray-600" />
+                      Authors
+                    </h3>
 
-                  <div>
-                    <label className="text-sm font-medium">Primary Author Email *</label>
-                    <Input
-                      type="email"
-                      placeholder="author@email.com"
-                      onChange={e => setEmails(p => ({ ...p, [confId]: e.target.value }))}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Contact Number</label>
-                    <div className="mt-1">
-                      <PhoneInput
-                        defaultCountry="in"
-                        countries={allowedCountries}
-                        value={contacts[confId] || ""}
-                        onChange={(phone) =>
-                          setContacts(prev => ({
-                            ...prev,
-                            [confId]: phone,
-                          }))
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-base mt-2">Co-Authors (Optional)</h3>
-                    <p className="text-xs text-gray-500 mb-2">
-                      Add co-authors in the order they should appear in the publication.
-                    </p>
-
-                    {(coAuthors[confId] || []).map((a, i) => (
-                      <div key={i} className="flex gap-2 mb-2">
-                        <Input placeholder="Author Name"
-                          onChange={e => updateAuthor(confId, i, "name", e.target.value)} />
-                        <Input placeholder="Email Address"
-                          onChange={e => updateAuthor(confId, i, "email", e.target.value)} />
-                        <Input placeholder="Affiliation"
-                          onChange={e => updateAuthor(confId, i, "affiliation", e.target.value)} />
-                        <Button size="sm" variant="outline" onClick={() => removeAuthor(confId, i)}>✕</Button>
+                    {/* Primary Author */}
+                    <div className="space-y-3 bg-white border border-blue-100 rounded-lg p-4">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">Primary Author</Badge>
                       </div>
-                    ))}
 
-                    <Button size="sm" variant="outline" onClick={() => addAuthor(confId)}>
-                      + Add Co-Author
-                    </Button>
+                      <div>
+                        <label className="text-sm font-medium">Full Name *</label>
+                        <Input
+                          placeholder="Enter full name as it should appear on the certificate"
+                          value={authorNames[confId] || ""}
+                          onChange={e => setAuthorNames(p => ({ ...p, [confId]: e.target.value }))}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter the full name exactly as it should appear on the certificate.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium">Affiliation</label>
+                        <Input
+                          placeholder="e.g. ABC College of Engineering"
+                          onChange={e => setAffiliations(p => ({ ...p, [confId]: e.target.value }))}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium">Email *</label>
+                        <Input
+                          type="email"
+                          placeholder="author@email.com"
+                          onChange={e => setEmails(p => ({ ...p, [confId]: e.target.value }))}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium">Contact Number</label>
+                        <div className="mt-1">
+                          <PhoneInput
+                            defaultCountry="in"
+                            countries={allowedCountries}
+                            value={contacts[confId] || ""}
+                            onChange={(phone) =>
+                              setContacts(prev => ({
+                                ...prev,
+                                [confId]: phone,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Co-Authors */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-gray-700">Co-Authors (Optional)</h4>
+                        <Button size="sm" variant="outline" onClick={() => addAuthor(confId)} className="text-xs">
+                          + Add Co-Author
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Add co-authors in the order they should appear in the publication.
+                      </p>
+
+                      {(coAuthors[confId] || []).map((a, i) => (
+                        <div key={i} className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="secondary" className="text-xs">Co-Author {i + 1}</Badge>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-gray-400 hover:text-red-500" onClick={() => removeAuthor(confId, i)}>✕</Button>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <Input
+                              placeholder="Author Name"
+                              value={a.name || ""}
+                              onChange={e => updateAuthor(confId, i, "name", e.target.value)}
+                            />
+                            <Input
+                              placeholder="Email Address"
+                              value={a.email || ""}
+                              onChange={e => updateAuthor(confId, i, "email", e.target.value)}
+                            />
+                            <Input
+                              placeholder="Affiliation"
+                              value={a.affiliation || ""}
+                              onChange={e => updateAuthor(confId, i, "affiliation", e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div>
@@ -762,14 +819,19 @@ export default function ParticipantSubmissionsPage() {
                     >
                       <div className="space-y-2">
                         {authors[submission.id].map((a: any, i: number) => (
-                          <div key={i} className="flex items-center gap-2 text-sm">
-                            <span className="font-medium">{a.name}</span>
-                            {a.is_primary && (
-                              <Badge className="bg-blue-100 text-blue-700 text-xs">Primary</Badge>
-                            )}
-                            {a.affiliation && (
-                              <span className="text-gray-400">— {a.affiliation}</span>
-                            )}
+                          <div key={i} className={`flex items-center justify-between text-sm rounded-md px-3 py-2 ${a.is_primary ? "bg-blue-50 border border-blue-100" : "bg-gray-50"}`}>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-medium text-gray-900">{a.name}</span>
+                              {a.is_primary ? (
+                                <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs shrink-0">Primary Author</Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-xs shrink-0">Co-Author</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-gray-500 shrink-0">
+                              {a.affiliation && <span>{a.affiliation}</span>}
+                              {a.email && <span className="text-gray-400">{a.email}</span>}
+                            </div>
                           </div>
                         ))}
                       </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import crypto from "crypto";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -36,18 +37,28 @@ function formatDate(date: Date) {
   });
 }
 
+function generateVerificationCode(): string {
+  return "CERT-" + crypto.randomBytes(4).toString("hex").toUpperCase();
+}
+
 /* ------------------------------------------------------------------ */
 /*  POST handler                                                       */
 /* ------------------------------------------------------------------ */
 
 export async function POST(req: Request) {
   try {
-    const { paperId, authorName, conferenceTitle, paperTitle } =
-      await req.json();
+    const {
+      paperId,
+      authorId,
+      authorName,
+      conferenceId,
+      conferenceTitle,
+      paperTitle,
+    } = await req.json();
 
-    if (!paperId) {
+    if (!paperId || !authorId) {
       return NextResponse.json(
-        { error: "Missing paperId" },
+        { error: "Missing paperId or authorId" },
         { status: 400 }
       );
     }
@@ -347,16 +358,36 @@ export async function POST(req: Request) {
     });
 
     /* -------------------------------------------------------------- */
-    /*  Save & upload (unchanged)                                      */
+    /*  Verification code (bottom-right)                               */
+    /* -------------------------------------------------------------- */
+
+    const verificationCode = generateVerificationCode();
+    const vcText = `Verification: ${verificationCode}`;
+    const vcSize = 7;
+
+    page.drawText(vcText, {
+      x: PAGE_W - MARGIN - fontRegular.widthOfTextAtSize(vcText, vcSize) - 12,
+      y: MARGIN + 14,
+      size: vcSize,
+      font: fontRegular,
+      color: COL_SUB,
+    });
+
+    /* -------------------------------------------------------------- */
+    /*  Save & upload                                                  */
     /* -------------------------------------------------------------- */
 
     const pdfBytes = await pdfDoc.save();
-    const filePath = `${paperId}.pdf`;
+
+    // Structured path: conference_id/paper_id/author_id.pdf
+    const storagePath = conferenceId
+      ? `${conferenceId}/${paperId}/${authorId}.pdf`
+      : `${paperId}/${authorId}.pdf`;
 
     // Upload to Supabase Storage
     const { error: uploadError } = await supabaseAdmin.storage
       .from("certificates")
-      .upload(filePath, pdfBytes, {
+      .upload(storagePath, pdfBytes, {
         contentType: "application/pdf",
         upsert: true,
       });
@@ -366,9 +397,35 @@ export async function POST(req: Request) {
     // Get public URL
     const { data } = supabaseAdmin.storage
       .from("certificates")
-      .getPublicUrl(filePath);
+      .getPublicUrl(storagePath);
 
-    return NextResponse.json({ url: data.publicUrl });
+    /* -------------------------------------------------------------- */
+    /*  Insert certificate record                                      */
+    /* -------------------------------------------------------------- */
+
+    const { data: certRow, error: insertError } = await supabaseAdmin
+      .from("certificates")
+      .insert({
+        paper_id: paperId,
+        author_id: authorId,
+        conference_id: conferenceId || null,
+        certificate_type: "presentation",
+        file_url: data.publicUrl,
+        verification_code: verificationCode,
+      })
+      .select("id")
+      .single();
+
+    if (insertError) {
+      console.error("Certificate DB insert error:", insertError);
+      // Still return the URL even if DB insert fails
+    }
+
+    return NextResponse.json({
+      url: data.publicUrl,
+      certificateId: certRow?.id || null,
+      verificationCode,
+    });
 
   } catch (err: any) {
     console.error("CERT API ERROR:", err);
@@ -378,4 +435,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-}
+}
