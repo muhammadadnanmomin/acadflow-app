@@ -157,7 +157,7 @@ export function generateReceipt(data: ReceiptData): void {
 
     doc.setFont("helvetica", "bold");
     doc.text(
-        `₹${data.amount.toLocaleString("en-IN")}`,
+        `Rs.${data.amount.toLocaleString("en-IN")}`,
         pageWidth - margin - 4,
         y,
         { align: "right" }
@@ -190,7 +190,7 @@ export function generateReceipt(data: ReceiptData): void {
 
     // Amount — right-aligned inside box with padding
     doc.text(
-        `₹${data.amount.toLocaleString("en-IN")}`,
+        `Rs.${data.amount.toLocaleString("en-IN")}`,
         totalBoxX + totalBoxW - totalPad,
         totalTextY,
         { align: "right" }
@@ -206,7 +206,7 @@ export function generateReceipt(data: ReceiptData): void {
     doc.setTextColor(22, 163, 74); // green-600
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text("✓ PAID", margin + 12, y + 3);
+    doc.text("PAID", margin + 12, y + 3);
 
     y += 24;
 

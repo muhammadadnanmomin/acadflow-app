@@ -72,7 +72,7 @@ const organizerNav = [
   { name: "Reviewers", href: "/dashboard/organizer/reviewers", icon: Users },
   { name: "Payments", href: "/dashboard/organizer/payments", icon: CreditCard },
   { name: "Bank Details", href: "/dashboard/organizer/bank-details", icon: Building2 },
-  { name: "Billing", href: "/dashboard/billing/upgrade", icon: Receipt },
+  { name: "Billing", href: "/dashboard/organizer/billing", icon: Receipt },
   { name: "Certificates", href: "/dashboard/organizer/certificates", icon: Award },
   { name: "Notifications", href: "/dashboard/organizer/notifications", icon: Bell },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -256,7 +256,7 @@ export function DashboardSidebar({
           {/* Upgrade button for free plan */}
           {!collapsed && (!organization.plan_type || organization.plan_type === "free" || organization.plan_type === "early_adopter") && organization.plan_type !== "enterprise" && (
             <Link
-              href="/dashboard/billing/upgrade"
+              href="/dashboard/organizer/billing"
               className="mx-3 mt-1 inline-flex items-center justify-center rounded-md border border-indigo-300 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-50"
             >
               {organization.plan_type === "early_adopter" ? "Buy Slot" : "Upgrade"}

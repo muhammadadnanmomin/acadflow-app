@@ -48,7 +48,7 @@ const plans = [
       "Priority support",
     ],
     cta: "Start Conference",
-    link: "/dashboard/billing/upgrade",
+    link: "/dashboard/organizer/billing",
     popular: true,
   },
   {

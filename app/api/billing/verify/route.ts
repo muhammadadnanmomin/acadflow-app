@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { sendPaymentConfirmationEmail } from "@/lib/email/sendPaymentEmail";
+import { EARLY_ADOPTER_SLOT_PRICE } from "@/lib/config/pricing";
 
 export async function POST(req: Request) {
     try {
@@ -31,7 +33,7 @@ export async function POST(req: Request) {
         /* ---- Fetch current org data ---- */
         const { data: org, error: orgError } = await supabaseAdmin
             .from("organizations")
-            .select("plan_type, conference_slots")
+            .select("plan_type, conference_slots, name")
             .eq("id", organizationId)
             .single();
 
@@ -69,6 +71,45 @@ export async function POST(req: Request) {
             `✅ Organization ${organizationId} — conference slot purchased (${currentSlots} → ${currentSlots + 1})`
         );
 
+        /* ---- Record the purchase for billing history ---- */
+        await supabaseAdmin.from("organizer_slot_purchases").insert({
+            organization_id: organizationId,
+            payment_id: paymentId,
+            order_id: orderId,
+            amount: EARLY_ADOPTER_SLOT_PRICE,
+            description: "Conference Slot — Early Adopter Plan",
+        });
+
+        /* ---- Send confirmation email (non-blocking) ---- */
+        // Find the organizer's email via organization_members
+        const { data: member } = await supabaseAdmin
+            .from("organization_members")
+            .select("user_id")
+            .eq("organization_id", organizationId)
+            .eq("role", "owner")
+            .maybeSingle();
+
+        if (member?.user_id) {
+            const { data: profile } = await supabaseAdmin
+                .from("profiles")
+                .select("email, name")
+                .eq("id", member.user_id)
+                .maybeSingle();
+
+            if (profile?.email) {
+                // Fire-and-forget — don't block the response
+                sendPaymentConfirmationEmail({
+                    to: profile.email,
+                    name: profile.name || org.name || "Organizer",
+                    paymentId,
+                    orderId,
+                    amount: EARLY_ADOPTER_SLOT_PRICE,
+                    description: "Conference Slot — Early Adopter Plan",
+                    paidAt: new Date().toISOString(),
+                }).catch(() => {});
+            }
+        }
+
         return NextResponse.json({ success: true });
     } catch (err) {
         console.error("BILLING VERIFY ERROR:", err);
@@ -78,3 +119,4 @@ export async function POST(req: Request) {
         );
     }
 }
+
