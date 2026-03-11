@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
     Dialog,
     DialogContent,
@@ -13,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Sparkles, Loader2 } from "lucide-react";
 import { EARLY_ADOPTER_SLOT_PRICE } from "@/lib/config/pricing";
+import { generateReceipt, type ReceiptData } from "@/lib/billing/generateReceipt";
+import PaymentSuccessModal from "@/components/payments/PaymentSuccessModal";
+import { toast } from "@/components/ui/use-toast";
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                              */
@@ -27,6 +31,10 @@ interface UpgradeModalProps {
     description?: string;
     organizationId: string;
     userId: string;
+    /** Payer name for receipt */
+    payerName?: string;
+    /** Payer email for receipt */
+    payerEmail?: string;
 }
 
 declare global {
@@ -46,8 +54,12 @@ export default function UpgradeModal({
     description = "Purchase an additional conference slot to create and manage more academic events on AcadFlow.",
     organizationId,
     userId,
+    payerName = "",
+    payerEmail = "",
 }: UpgradeModalProps) {
+    const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [successData, setSuccessData] = useState<ReceiptData | null>(null);
 
     const SLOT_BENEFITS = [
         "Unlocks one additional conference",
@@ -109,7 +121,29 @@ export default function UpgradeModal({
                     });
 
                     if (verifyRes.ok) {
-                        window.location.reload();
+                        /* 5. Build receipt data */
+                        const receipt: ReceiptData = {
+                            paymentId: response.razorpay_payment_id,
+                            orderId: order.id,
+                            amount: EARLY_ADOPTER_SLOT_PRICE,
+                            description: "Conference Slot — Early Adopter Plan",
+                            payerName: payerName || "Organizer",
+                            payerEmail: payerEmail || undefined,
+                            paidAt: new Date().toISOString(),
+                        };
+
+                        /* 6. Auto-download receipt */
+                        generateReceipt(receipt);
+
+                        /* 7. Show success modal */
+                        setSuccessData(receipt);
+                    } else {
+                        toast({
+                            variant: "destructive",
+                            title: "Payment verification failed",
+                            description:
+                                "Your payment could not be verified. Please contact support at acadflow.platform@gmail.com",
+                        });
                     }
                 },
                 theme: { color: "#4f46e5" },
@@ -119,14 +153,44 @@ export default function UpgradeModal({
             rzp.open();
         } catch (err) {
             console.error("Upgrade error:", err);
+            toast({
+                variant: "destructive",
+                title: "Payment failed",
+                description: "Something went wrong. Please try again.",
+            });
         } finally {
             setLoading(false);
         }
     }
 
     /* -------------------------------------------------------------- */
+    /*  Handle continue after success                                  */
+    /* -------------------------------------------------------------- */
+    function handleSuccessContinue() {
+        setSuccessData(null);
+        onClose();
+        router.refresh();
+        window.location.reload();
+    }
+
+    /* -------------------------------------------------------------- */
     /*  Render                                                         */
     /* -------------------------------------------------------------- */
+
+    /* Success state */
+    if (successData) {
+        return (
+            <PaymentSuccessModal
+                open={true}
+                onClose={handleSuccessContinue}
+                receipt={successData}
+                continueLabel="Continue to Dashboard"
+                onContinue={handleSuccessContinue}
+            />
+        );
+    }
+
+    /* Purchase state */
     return (
         <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
             <DialogContent className="sm:max-w-md">

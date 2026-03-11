@@ -10,6 +10,9 @@ import {
     PLAN_LABELS,
     type PlanType,
 } from "@/lib/config/pricing";
+import { generateReceipt, type ReceiptData } from "@/lib/billing/generateReceipt";
+import PaymentSuccessModal from "@/components/payments/PaymentSuccessModal";
+import { toast } from "@/components/ui/use-toast";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +39,7 @@ export default function BillingUpgradePage() {
 
     const [paying, setPaying] = useState(false);
     const [alreadyPaid, setAlreadyPaid] = useState(false);
+    const [successData, setSuccessData] = useState<ReceiptData | null>(null);
 
     useEffect(() => {
         if (organization?.plan_type === "enterprise") {
@@ -120,8 +124,29 @@ export default function BillingUpgradePage() {
                     });
 
                     if (verifyRes.ok) {
-                        router.push("/dashboard/organizer");
-                        router.refresh();
+                        /* 5. Build receipt data */
+                        const receipt: ReceiptData = {
+                            paymentId: response.razorpay_payment_id,
+                            orderId: order.id,
+                            amount: EARLY_ADOPTER_SLOT_PRICE,
+                            description: "Conference Slot — Early Adopter Plan",
+                            payerName: profile.name || "Organizer",
+                            payerEmail: profile.email || undefined,
+                            paidAt: new Date().toISOString(),
+                        };
+
+                        /* 6. Auto-download receipt */
+                        generateReceipt(receipt);
+
+                        /* 7. Show success modal */
+                        setSuccessData(receipt);
+                    } else {
+                        toast({
+                            variant: "destructive",
+                            title: "Payment verification failed",
+                            description:
+                                "Your payment could not be verified. Please contact support at acadflow.platform@gmail.gmail.com",
+                        });
                     }
                 },
                 theme: { color: "#4f46e5" },
@@ -264,6 +289,25 @@ export default function BillingUpgradePage() {
                 <span>•</span>
                 <span>No recurring charges</span>
             </div>
+
+            {/* Payment Success Modal */}
+            {successData && (
+                <PaymentSuccessModal
+                    open={true}
+                    onClose={() => {
+                        setSuccessData(null);
+                        router.push("/dashboard/organizer");
+                        router.refresh();
+                    }}
+                    receipt={successData}
+                    continueLabel="Continue to Dashboard"
+                    onContinue={() => {
+                        setSuccessData(null);
+                        router.push("/dashboard/organizer");
+                        router.refresh();
+                    }}
+                />
+            )}
         </div>
     );
 }
