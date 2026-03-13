@@ -122,6 +122,20 @@ export async function POST(req: Request) {
 
             console.log("✅ Payment verified & DB updated with fee breakdown");
 
+            // ── Auto-generate certificates (fire-and-forget) ──
+            import("@/lib/certificates/autoGenerateCertificates")
+              .then(({ autoGenerateCertificates }) =>
+                autoGenerateCertificates(submissionId)
+              )
+              .then((res: any) => {
+                if (res.generated > 0)
+                  console.info("✅ Auto-generated certificates after payment", res);
+              })
+              .catch((err: any) =>
+                console.error("Auto-cert after payment failed:", err)
+              );
+
+
             // ── Send confirmation email (author) ──
             const { data: sub } = await supabaseAdmin
                 .from("paper_submissions")

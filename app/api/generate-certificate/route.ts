@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import crypto from "crypto";
+import QRCode from "qrcode";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -38,7 +39,7 @@ function formatDate(date: Date) {
 }
 
 function generateVerificationCode(): string {
-  return "CERT-" + crypto.randomBytes(4).toString("hex").toUpperCase();
+  return "CERT-" + crypto.randomBytes(8).toString("hex").toUpperCase();
 }
 
 /* ------------------------------------------------------------------ */
@@ -61,6 +62,27 @@ export async function POST(req: Request) {
         { error: "Missing paperId or authorId" },
         { status: 400 }
       );
+    }
+
+    /* -------------------------------------------------------------- */
+    /*  Duplicate check – return existing cert if already generated    */
+    /* -------------------------------------------------------------- */
+
+    const { data: existing } = await supabaseAdmin
+      .from("certificates")
+      .select("id,file_url,verification_code")
+      .eq("paper_id", paperId)
+      .eq("author_id", authorId)
+      .maybeSingle();
+
+    if (existing) {
+      return NextResponse.json({
+        success: true,
+        existing: true,
+        url: existing.file_url,
+        certificateId: existing.id,
+        verificationCode: existing.verification_code,
+      });
     }
 
     /* -------------------------------------------------------------- */
@@ -358,17 +380,55 @@ export async function POST(req: Request) {
     });
 
     /* -------------------------------------------------------------- */
-    /*  Verification code (bottom-right)                               */
+    /*  Verification code + QR code                                    */
     /* -------------------------------------------------------------- */
 
     const verificationCode = generateVerificationCode();
+
+    // Verification text (bottom-left area)
     const vcText = `Verification: ${verificationCode}`;
     const vcSize = 7;
 
     page.drawText(vcText, {
-      x: PAGE_W - MARGIN - fontRegular.widthOfTextAtSize(vcText, vcSize) - 12,
+      x: MARGIN + 14,
       y: MARGIN + 14,
       size: vcSize,
+      font: fontRegular,
+      color: COL_SUB,
+    });
+
+    // QR code (bottom-right corner)
+    const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/verify/${verificationCode}`;
+    const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+      width: 200,
+      margin: 1,
+      color: { dark: "#1E1E24", light: "#FAF8F0" },
+    });
+
+    // Decode base64 data URL and embed into PDF
+    const qrBase64 = qrDataUrl.split(",")[1];
+    const qrBytes = Uint8Array.from(atob(qrBase64), (ch) => ch.charCodeAt(0));
+    const qrImage = await pdfDoc.embedPng(qrBytes);
+
+    const qrSize = 52;
+    const qrX = PAGE_W - MARGIN - qrSize - 14;
+    const qrY = MARGIN + 14;
+
+    page.drawImage(qrImage, {
+      x: qrX,
+      y: qrY,
+      width: qrSize,
+      height: qrSize,
+    });
+
+    // "Scan to verify" label below QR
+    const scanLabel = "Scan to verify";
+    const scanLabelSize = 5.5;
+    const scanLabelW = fontRegular.widthOfTextAtSize(scanLabel, scanLabelSize);
+    page.drawText(scanLabel, {
+      x: qrX + (qrSize - scanLabelW) / 2,
+      y: qrY - 8,
+      size: scanLabelSize,
       font: fontRegular,
       color: COL_SUB,
     });
@@ -378,6 +438,12 @@ export async function POST(req: Request) {
     /* -------------------------------------------------------------- */
 
     const pdfBytes = await pdfDoc.save();
+
+    // Compute SHA-256 hash for tamper protection
+    const pdfHash = crypto
+      .createHash("sha256")
+      .update(pdfBytes)
+      .digest("hex");
 
     // Structured path: conference_id/paper_id/author_id.pdf
     const storagePath = conferenceId
@@ -412,6 +478,7 @@ export async function POST(req: Request) {
         certificate_type: "presentation",
         file_url: data.publicUrl,
         verification_code: verificationCode,
+        pdf_hash: pdfHash,
       })
       .select("id")
       .single();
@@ -422,6 +489,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
+      success: true,
+      existing: false,
       url: data.publicUrl,
       certificateId: certRow?.id || null,
       verificationCode,
@@ -435,4 +504,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-}
+}

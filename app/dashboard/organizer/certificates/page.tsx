@@ -27,6 +27,7 @@ import {
   Sparkles,
   Mic,
   Users,
+  ShieldCheck,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -161,10 +162,12 @@ export default function OrganizerCertificates() {
       .in("submission_id", paperIds)
       .order("author_order", { ascending: true });
 
-    const { data: certs } = await supabase
-      .from("certificates")
-      .select("id, paper_id, author_id, file_url, verification_code, issued_at")
-      .in("paper_id", paperIds);
+    const certsRes = await fetch("/api/certificates/list", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paperIds }),
+    });
+    const certs = certsRes.ok ? await certsRes.json() : [];
 
     const certMap = new Map<string, any>();
     (certs || []).forEach((c: any) => {
@@ -263,7 +266,21 @@ export default function OrganizerCertificates() {
         return;
       }
 
-      await loadData();
+      const data = await res.json();
+
+      setRows(prev =>
+        prev.map(r =>
+          r.paperId === row.paperId && r.authorId === row.authorId
+            ? {
+                ...r,
+                certificateUrl: data.url,
+                certificateId: data.certificateId,
+                verificationCode: data.verificationCode,
+                issuedAt: new Date().toISOString()
+              }
+            : r
+        )
+      );
     } catch (err) {
       console.error(err);
       alert("Something went wrong");
@@ -292,7 +309,7 @@ export default function OrganizerCertificates() {
 
     setBulkGenerating(true);
 
-    const batchSize = 5;
+    const batchSize = 20;
     for (let i = 0; i < eligible.length; i += batchSize) {
       const batch = eligible.slice(i, i + batchSize);
       await Promise.all(batch.map((r) => generateCertificate(r)));
@@ -621,6 +638,18 @@ export default function OrganizerCertificates() {
                                         Download
                                       </a>
                                     </Button>
+                                    {a.verificationCode && (
+                                      <Button size="sm" variant="outline" asChild>
+                                        <a
+                                          href={`/verify/${a.verificationCode}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          <ShieldCheck className="h-4 w-4 mr-1" />
+                                          Verify
+                                        </a>
+                                      </Button>
+                                    )}
                                   </>
                                 ) : status === "awaiting_payment" ? (
                                   <Button size="sm" disabled variant="outline">Payment Pending</Button>
@@ -681,6 +710,17 @@ export default function OrganizerCertificates() {
                                     <Download className="h-4 w-4 mr-1" /> Download
                                   </a>
                                 </Button>
+                                {a.verificationCode && (
+                                  <Button size="sm" variant="outline" asChild>
+                                    <a
+                                      href={`/verify/${a.verificationCode}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      <ShieldCheck className="h-4 w-4 mr-1" /> Verify
+                                    </a>
+                                  </Button>
+                                )}
                               </>
                             ) : status === "ready" ? (
                               <Button size="sm" onClick={() => generateCertificate(a)} disabled={isGen}>
