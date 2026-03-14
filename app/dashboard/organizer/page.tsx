@@ -323,23 +323,25 @@ export default function OrganizerDashboard() {
                     )}
                   </div>
 
-                  {/* Submission usage */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      Submissions: {plan.submissionsUsed} / {formatLimit(plan.submissionLimit)}
-                    </span>
-                    {plan.submissionLimit !== null && (
-                      <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${plan.submissionsUsed >= plan.submissionLimit
-                            ? "bg-red-500"
-                            : "bg-blue-500"
-                            }`}
-                          style={{ width: `${Math.min(100, (plan.submissionsUsed / plan.submissionLimit) * 100)}%` }}
-                        />
-                      </div>
-                    )}
-                  </div>
+                  {/* Submission usage – only shown for free plan */}
+                  {plan.planType === "free" && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        Submissions: {plan.submissionsUsed} / {formatLimit(plan.submissionLimit)}
+                      </span>
+                      {plan.submissionLimit !== null && (
+                        <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${plan.submissionsUsed >= plan.submissionLimit
+                              ? "bg-red-500"
+                              : "bg-blue-500"
+                              }`}
+                            style={{ width: `${Math.min(100, (plan.submissionsUsed / plan.submissionLimit) * 100)}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
