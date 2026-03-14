@@ -13,13 +13,14 @@ const PAGE_H = 595;
 const MARGIN = 40;
 
 /* ------------------------------------------------------------------ */
-/*  Color palette                                                      */
+/*  AcadFlow color palette                                             */
 /* ------------------------------------------------------------------ */
 
-const COL_GOLD = rgb(0.72, 0.53, 0.04);       // decorative border & accents
-const COL_DARK = rgb(0.12, 0.12, 0.14);       // main text
-const COL_SUB = rgb(0.35, 0.35, 0.4);        // secondary text
-const COL_BG = rgb(0.98, 0.97, 0.94);       // light beige background
+const COL_PRIMARY = rgb(0.16, 0.24, 0.46);    // deep academic blue
+const COL_GOLD = rgb(0.72, 0.53, 0.04);       // gold accent
+const COL_TEXT = rgb(0.12, 0.12, 0.14);       // main text
+const COL_SUB = rgb(0.4, 0.4, 0.45);          // secondary text
+const COL_BG = rgb(0.98, 0.97, 0.94);         // warm background
 const COL_LINE = rgb(0.78, 0.65, 0.35);       // border lines
 
 /* ------------------------------------------------------------------ */
@@ -109,21 +110,21 @@ export async function POST(req: Request) {
     });
 
     /* -------------------------------------------------------------- */
-    /*  Decorative border (double frame)                                */
+    /*  Decorative border (enhanced double frame)                       */
     /* -------------------------------------------------------------- */
 
-    // Outer border
+    // Outer border (slightly thicker)
     page.drawRectangle({
       x: MARGIN,
       y: MARGIN,
       width: PAGE_W - MARGIN * 2,
       height: PAGE_H - MARGIN * 2,
       borderColor: COL_LINE,
-      borderWidth: 2,
+      borderWidth: 2.5,
     });
 
-    // Inner border
-    const INNER = MARGIN + 8;
+    // Inner border (thin)
+    const INNER = MARGIN + 10;
     page.drawRectangle({
       x: INNER,
       y: INNER,
@@ -134,30 +135,61 @@ export async function POST(req: Request) {
     });
 
     /* -------------------------------------------------------------- */
-    /*  Corner accents (small decorative squares)                       */
+    /*  Corner accents (decorative squares)                             */
     /* -------------------------------------------------------------- */
 
+    const cSz = 7;
     const corners = [
       { x: MARGIN + 2, y: MARGIN + 2 },
-      { x: PAGE_W - MARGIN - 8, y: MARGIN + 2 },
-      { x: MARGIN + 2, y: PAGE_H - MARGIN - 8 },
-      { x: PAGE_W - MARGIN - 8, y: PAGE_H - MARGIN - 8 },
+      { x: PAGE_W - MARGIN - cSz - 1, y: MARGIN + 2 },
+      { x: MARGIN + 2, y: PAGE_H - MARGIN - cSz - 1 },
+      { x: PAGE_W - MARGIN - cSz - 1, y: PAGE_H - MARGIN - cSz - 1 },
     ];
     for (const c of corners) {
       page.drawRectangle({
         x: c.x,
         y: c.y,
-        width: 6,
-        height: 6,
+        width: cSz,
+        height: cSz,
         color: COL_GOLD,
       });
     }
 
     /* -------------------------------------------------------------- */
-    /*  Decorative top line                                             */
+    /*  Conference header section                                       */
     /* -------------------------------------------------------------- */
 
-    const lineY = PAGE_H - 78;
+    const headerText = conferenceTitle || "International Academic Conference";
+    const headerSize = 18;
+    const headerW = fontBold.widthOfTextAtSize(headerText, headerSize);
+    const headerY = PAGE_H - 80;
+
+    page.drawText(headerText, {
+      x: centerX(PAGE_W, headerW),
+      y: headerY,
+      size: headerSize,
+      font: fontBold,
+      color: COL_PRIMARY,
+    });
+
+    const subHeaderText = "International Academic Conference";
+    const subHeaderSize = 10;
+    const subHeaderW = fontRegular.widthOfTextAtSize(subHeaderText, subHeaderSize);
+    const subHeaderY = headerY - 18;
+
+    page.drawText(subHeaderText, {
+      x: centerX(PAGE_W, subHeaderW),
+      y: subHeaderY,
+      size: subHeaderSize,
+      font: fontRegular,
+      color: COL_SUB,
+    });
+
+    /* -------------------------------------------------------------- */
+    /*  Decorative line below header                                    */
+    /* -------------------------------------------------------------- */
+
+    const lineY = subHeaderY - 14;
     page.drawLine({
       start: { x: MARGIN + 60, y: lineY },
       end: { x: PAGE_W - MARGIN - 60, y: lineY },
@@ -172,7 +204,7 @@ export async function POST(req: Request) {
     const titleText = "CERTIFICATE OF PRESENTATION";
     const titleSize = 32;
     const titleW = fontBold.widthOfTextAtSize(titleText, titleSize);
-    const titleY = PAGE_H - 110;
+    const titleY = lineY - 36;
 
     page.drawText(titleText, {
       x: centerX(PAGE_W, titleW),
@@ -183,134 +215,173 @@ export async function POST(req: Request) {
     });
 
     /* -------------------------------------------------------------- */
-    /*  Subtitle                                                       */
+    /*  "This is to certify that"                                       */
     /* -------------------------------------------------------------- */
 
-    const subText = "This is to certify that";
-    const subSize = 14;
-    const subW = fontItalic.widthOfTextAtSize(subText, subSize);
-    const subY = titleY - 50;
+    const certifyText = "This is to certify that";
+    const certifySize = 14;
+    const certifyW = fontItalic.widthOfTextAtSize(certifyText, certifySize);
+    const certifyY = titleY - 42;
 
-    page.drawText(subText, {
-      x: centerX(PAGE_W, subW),
-      y: subY,
-      size: subSize,
+    page.drawText(certifyText, {
+      x: centerX(PAGE_W, certifyW),
+      y: certifyY,
+      size: certifySize,
       font: fontItalic,
       color: COL_SUB,
     });
 
     /* -------------------------------------------------------------- */
-    /*  Author name                                                    */
+    /*  Author name (visual focus – largest body text)                  */
     /* -------------------------------------------------------------- */
 
     const nameText = authorName || "Participant";
-    const nameSize = 28;
+    const nameSize = 30;
     const nameW = fontBold.widthOfTextAtSize(nameText, nameSize);
-    const nameY = subY - 40;
+    const nameY = certifyY - 38;
 
     page.drawText(nameText, {
       x: centerX(PAGE_W, nameW),
       y: nameY,
       size: nameSize,
       font: fontBold,
-      color: COL_DARK,
+      color: COL_TEXT,
     });
 
     // Decorative underline below author name
     const underW = Math.min(nameW + 60, PAGE_W - 200);
     page.drawLine({
-      start: { x: centerX(PAGE_W, underW), y: nameY - 8 },
-      end: { x: centerX(PAGE_W, underW) + underW, y: nameY - 8 },
+      start: { x: centerX(PAGE_W, underW), y: nameY - 10 },
+      end: { x: centerX(PAGE_W, underW) + underW, y: nameY - 10 },
       thickness: 0.75,
       color: COL_LINE,
     });
 
     /* -------------------------------------------------------------- */
-    /*  Description                                                    */
+    /*  "has presented a research paper entitled"                       */
     /* -------------------------------------------------------------- */
 
-    const descText = "has successfully presented a research paper at";
+    const desc1Text = "has presented a research paper entitled";
     const descSize = 14;
-    const descW = fontRegular.widthOfTextAtSize(descText, descSize);
-    const descY = nameY - 38;
+    const desc1W = fontRegular.widthOfTextAtSize(desc1Text, descSize);
+    const desc1Y = nameY - 34;
 
-    page.drawText(descText, {
-      x: centerX(PAGE_W, descW),
-      y: descY,
+    page.drawText(desc1Text, {
+      x: centerX(PAGE_W, desc1W),
+      y: desc1Y,
       size: descSize,
       font: fontRegular,
       color: COL_SUB,
     });
 
     /* -------------------------------------------------------------- */
-    /*  Conference title                                                */
+    /*  Paper title (italic, in quotes)                                 */
     /* -------------------------------------------------------------- */
 
-    const confText = conferenceTitle || "Conference";
-    const confSize = 22;
-    const confW = fontBold.widthOfTextAtSize(confText, confSize);
-    const confY = descY - 38;
-
-    page.drawText(confText, {
-      x: centerX(PAGE_W, confW),
-      y: confY,
-      size: confSize,
-      font: fontBold,
-      color: COL_DARK,
-    });
-
-    /* -------------------------------------------------------------- */
-    /*  Paper title (optional)                                         */
-    /* -------------------------------------------------------------- */
-
-    let nextY = confY - 34;
+    let nextY = desc1Y - 26;
 
     if (paperTitle) {
-      const ptLabel = "Paper: ";
-      const ptLabelSize = 12;
-      const ptTitleSize = 13;
+      const ptTitleSize = 14;
+      const maxWidth = PAGE_W - MARGIN * 2 - 120;
 
-      const fullWidth =
-        fontRegular.widthOfTextAtSize(ptLabel, ptLabelSize) +
-        fontItalic.widthOfTextAtSize(paperTitle, ptTitleSize);
+      // Add quotes around paper title
+      const quotedTitle = `\u201C${paperTitle}\u201D`;
+      const quotedW = fontItalic.widthOfTextAtSize(quotedTitle, ptTitleSize);
 
       // Truncate very long titles visually
-      const maxWidth = PAGE_W - MARGIN * 2 - 120;
       const displayTitle =
-        fullWidth > maxWidth
-          ? paperTitle.substring(0, 70) + "…"
-          : paperTitle;
+        quotedW > maxWidth
+          ? `\u201C${paperTitle.substring(0, 65)}\u2026\u201D`
+          : quotedTitle;
 
-      const displayW =
-        fontRegular.widthOfTextAtSize(ptLabel, ptLabelSize) +
-        fontItalic.widthOfTextAtSize(displayTitle, ptTitleSize);
-
-      const ptX = centerX(PAGE_W, displayW);
-
-      page.drawText(ptLabel, {
-        x: ptX,
-        y: nextY,
-        size: ptLabelSize,
-        font: fontRegular,
-        color: COL_SUB,
-      });
+      const displayW = fontItalic.widthOfTextAtSize(displayTitle, ptTitleSize);
 
       page.drawText(displayTitle, {
-        x: ptX + fontRegular.widthOfTextAtSize(ptLabel, ptLabelSize),
+        x: centerX(PAGE_W, displayW),
         y: nextY,
         size: ptTitleSize,
         font: fontItalic,
-        color: COL_DARK,
+        color: COL_TEXT,
       });
 
-      nextY -= 28;
+      nextY -= 26;
     }
+
+    /* -------------------------------------------------------------- */
+    /*  "at the" + Conference title                                     */
+    /* -------------------------------------------------------------- */
+
+    const atTheText = "at the";
+    const atTheW = fontRegular.widthOfTextAtSize(atTheText, descSize);
+    page.drawText(atTheText, {
+      x: centerX(PAGE_W, atTheW),
+      y: nextY,
+      size: descSize,
+      font: fontRegular,
+      color: COL_SUB,
+    });
+
+    nextY -= 26;
+
+    const confText = conferenceTitle || "Conference";
+    const confSize = 18;
+    const confW = fontBold.widthOfTextAtSize(confText, confSize);
+
+    page.drawText(confText, {
+      x: centerX(PAGE_W, confW),
+      y: nextY,
+      size: confSize,
+      font: fontBold,
+      color: COL_PRIMARY,
+    });
+
+    nextY -= 22;
+
+    /* -------------------------------------------------------------- */
+    /*  "organized under the Academic Conference Program."              */
+    /* -------------------------------------------------------------- */
+
+    const orgText = "organized under the Academic Conference Program.";
+    const orgW = fontRegular.widthOfTextAtSize(orgText, 11);
+    page.drawText(orgText, {
+      x: centerX(PAGE_W, orgW),
+      y: nextY,
+      size: 11,
+      font: fontRegular,
+      color: COL_SUB,
+    });
+
+    nextY -= 22;
+
+    /* -------------------------------------------------------------- */
+    /*  Recognition line                                                */
+    /* -------------------------------------------------------------- */
+
+    const recogText = "This certificate is awarded in recognition of the author\u2019s valuable";
+    const recogW = fontItalic.widthOfTextAtSize(recogText, 10);
+    page.drawText(recogText, {
+      x: centerX(PAGE_W, recogW),
+      y: nextY,
+      size: 10,
+      font: fontItalic,
+      color: COL_SUB,
+    });
+
+    const recog2Text = "contribution to academic research and scholarly discussion.";
+    const recog2W = fontItalic.widthOfTextAtSize(recog2Text, 10);
+    page.drawText(recog2Text, {
+      x: centerX(PAGE_W, recog2W),
+      y: nextY - 14,
+      size: 10,
+      font: fontItalic,
+      color: COL_SUB,
+    });
 
     /* -------------------------------------------------------------- */
     /*  Bottom decorative line                                         */
     /* -------------------------------------------------------------- */
 
-    const bottomLineY = MARGIN + 100;
+    const bottomLineY = MARGIN + 110;
     page.drawLine({
       start: { x: MARGIN + 60, y: bottomLineY },
       end: { x: PAGE_W - MARGIN - 60, y: bottomLineY },
@@ -319,52 +390,52 @@ export async function POST(req: Request) {
     });
 
     /* -------------------------------------------------------------- */
-    /*  Signature section                                              */
+    /*  Signature section (wider spacing)                               */
     /* -------------------------------------------------------------- */
 
-    const sigY = MARGIN + 58;
-    const sigLineW = 160;
+    const sigY = MARGIN + 68;
+    const sigLineW = 170;
 
     // Left signature
-    const leftSigX = MARGIN + 80;
+    const leftSigX = MARGIN + 70;
     page.drawLine({
-      start: { x: leftSigX, y: sigY + 18 },
-      end: { x: leftSigX + sigLineW, y: sigY + 18 },
+      start: { x: leftSigX, y: sigY + 20 },
+      end: { x: leftSigX + sigLineW, y: sigY + 20 },
       thickness: 0.75,
-      color: COL_DARK,
+      color: COL_TEXT,
     });
 
     const leftLabel = "Conference Chair";
     const leftLabelW = fontRegular.widthOfTextAtSize(leftLabel, 10);
     page.drawText(leftLabel, {
       x: leftSigX + (sigLineW - leftLabelW) / 2,
-      y: sigY,
+      y: sigY + 4,
       size: 10,
       font: fontRegular,
       color: COL_SUB,
     });
 
     // Right signature
-    const rightSigX = PAGE_W - MARGIN - 80 - sigLineW;
+    const rightSigX = PAGE_W - MARGIN - 70 - sigLineW;
     page.drawLine({
-      start: { x: rightSigX, y: sigY + 18 },
-      end: { x: rightSigX + sigLineW, y: sigY + 18 },
+      start: { x: rightSigX, y: sigY + 20 },
+      end: { x: rightSigX + sigLineW, y: sigY + 20 },
       thickness: 0.75,
-      color: COL_DARK,
+      color: COL_TEXT,
     });
 
     const rightLabel = "Organizing Committee";
     const rightLabelW = fontRegular.widthOfTextAtSize(rightLabel, 10);
     page.drawText(rightLabel, {
       x: rightSigX + (sigLineW - rightLabelW) / 2,
-      y: sigY,
+      y: sigY + 4,
       size: 10,
       font: fontRegular,
       color: COL_SUB,
     });
 
     /* -------------------------------------------------------------- */
-    /*  Date                                                           */
+    /*  Date + AcadFlow branding                                       */
     /* -------------------------------------------------------------- */
 
     const dateText = `Issued on: ${formatDate(new Date())}`;
@@ -373,8 +444,20 @@ export async function POST(req: Request) {
 
     page.drawText(dateText, {
       x: centerX(PAGE_W, dateW),
-      y: sigY - 18,
+      y: sigY - 14,
       size: dateSize,
+      font: fontRegular,
+      color: COL_SUB,
+    });
+
+    // "Powered by AcadFlow" branding
+    const brandText = "Powered by AcadFlow";
+    const brandSize = 8;
+    const brandW = fontRegular.widthOfTextAtSize(brandText, brandSize);
+    page.drawText(brandText, {
+      x: centerX(PAGE_W, brandW),
+      y: sigY - 28,
+      size: brandSize,
       font: fontRegular,
       color: COL_SUB,
     });
