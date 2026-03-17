@@ -28,6 +28,7 @@ import {
   PlusCircle,
   Building2,
   Receipt,
+  BookOpen,
 } from "lucide-react";
 
 import Image from "next/image";
@@ -93,6 +94,7 @@ const participantNav = [
   { name: "Conferences", href: "/dashboard/participant/conferences", icon: Calendar },
   { name: "Payments", href: "/dashboard/participant/payments", icon: CreditCard },
   { name: "Certificates", href: "/dashboard/participant/certificates", icon: Award },
+  { name: "Proceedings", href: "/dashboard/participant/proceedings", icon: BookOpen },
   { name: "Notifications", href: "/dashboard/participant/notifications", icon: Bell },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

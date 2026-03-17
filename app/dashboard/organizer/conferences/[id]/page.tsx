@@ -618,6 +618,44 @@ export default function ConferenceDetails() {
       )}
 
       {/* ============================================================ */}
+      {/*  MANAGE PROCEEDINGS (contextual action)                       */}
+      {/* ============================================================ */}
+      <Card className="p-6">
+        <SectionHeading icon={BookOpen} title="Manage Proceedings" />
+
+        {conf.end_date && conf.end_date < today ? (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <p className="text-sm text-gray-600">
+              Upload and publish conference proceedings for authorized
+              participants.
+            </p>
+            <Button
+              onClick={() =>
+                router.push(`/dashboard/organizer/proceedings/${id}`)
+              }
+              className="gap-2 bg-indigo-600 hover:bg-indigo-700 shrink-0"
+            >
+              <BookOpen className="h-4 w-4" />
+              Manage Proceedings
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-5 py-4">
+            <BookOpen className="h-5 w-5 text-gray-400 shrink-0" />
+            <p className="text-sm text-gray-500">
+              Proceedings can be uploaded after the conference ends
+              {conf.end_date && (
+                <span className="text-gray-400">
+                  {" "}
+                  ({formatDate(conf.end_date)})
+                </span>
+              )}
+            </p>
+          </div>
+        )}
+      </Card>
+
+      {/* ============================================================ */}
       {/*  7. LINKS & RESOURCES                                         */}
       {/* ============================================================ */}
       {hasLinks && (
