@@ -43,6 +43,62 @@ function generateVerificationCode(): string {
   return "CERT-" + crypto.randomBytes(8).toString("hex").toUpperCase();
 }
 
+type TextSegment = { text: string; isBold?: boolean };
+type TextAtom = { text: string; isBold: boolean; width: number };
+
+function createAtoms(segments: TextSegment[], fontRegular: any, fontBold: any, size: number): TextAtom[] {
+  const atoms: TextAtom[] = [];
+  for (const seg of segments) {
+    const font = seg.isBold ? fontBold : fontRegular;
+    const tokens = seg.text.split(/(\s+)/);
+    for (const token of tokens) {
+      if (!token) continue;
+      if (/\s+/.test(token)) {
+        for (let i = 0; i < token.length; i++) {
+          atoms.push({ text: token[i], isBold: !!seg.isBold, width: font.widthOfTextAtSize(token[i], size) });
+        }
+      } else {
+        atoms.push({ text: token, isBold: !!seg.isBold, width: font.widthOfTextAtSize(token, size) });
+      }
+    }
+  }
+  return atoms;
+}
+
+function wrapAtoms(atoms: TextAtom[], maxWidth: number) {
+  const lines: { atoms: TextAtom[]; width: number }[] = [];
+  let currentAtoms: TextAtom[] = [];
+  let currentWidth = 0;
+
+  for (const atom of atoms) {
+    if (currentWidth + atom.width > maxWidth && currentAtoms.length > 0) {
+      if (atom.text === " ") continue;
+      lines.push({ atoms: currentAtoms, width: currentWidth });
+      currentAtoms = [atom];
+      currentWidth = atom.width;
+    } else {
+      currentAtoms.push(atom);
+      currentWidth += atom.width;
+    }
+  }
+  if (currentAtoms.length > 0) {
+    lines.push({ atoms: currentAtoms, width: currentWidth });
+  }
+
+  for (const line of lines) {
+    while (line.atoms.length > 0 && line.atoms[line.atoms.length - 1].text === " ") {
+      const popped = line.atoms.pop()!;
+      line.width -= popped.width;
+    }
+    while (line.atoms.length > 0 && line.atoms[0].text === " ") {
+      const shifted = line.atoms.shift()!;
+      line.width -= shifted.width;
+    }
+  }
+
+  return lines;
+}
+
 /* ------------------------------------------------------------------ */
 /*  POST handler                                                       */
 /* ------------------------------------------------------------------ */
@@ -87,6 +143,59 @@ export async function POST(req: Request) {
     }
 
     /* -------------------------------------------------------------- */
+    /*  Fetch conference + organization details                        */
+    /* -------------------------------------------------------------- */
+
+    let organizationName = "";
+    let resolvedConferenceTitle = conferenceTitle || "International Academic Conference";
+    let organizationLogoUrl: string | null = null;
+    let conferenceDates = "";
+
+    if (conferenceId) {
+      const { data: conference } = await supabaseAdmin
+        .from("conferences")
+        .select(`
+          title,
+          short_name,
+          conference_logo_url,
+          start_date,
+          end_date,
+          organizations (
+            name,
+            logo_url
+          )
+        `)
+        .eq("id", conferenceId)
+        .single();
+
+      if (conference) {
+        resolvedConferenceTitle = conference.title || resolvedConferenceTitle;
+        const org = conference.organizations as any;
+        organizationName = org?.name || "";
+        organizationLogoUrl = org?.logo_url || null;
+
+        if (conference.start_date) {
+          const start = formatDate(new Date(conference.start_date));
+          const end = conference.end_date
+            ? formatDate(new Date(conference.end_date))
+            : null;
+          conferenceDates = end ? `${start} – ${end}` : start;
+        }
+      }
+    }
+
+    /* Fetch author affiliation */
+    let authorAffiliation = "";
+    if (authorId) {
+      const { data: authorRow } = await supabaseAdmin
+        .from("paper_authors")
+        .select("affiliation")
+        .eq("id", authorId)
+        .maybeSingle();
+      authorAffiliation = authorRow?.affiliation || "";
+    }
+
+    /* -------------------------------------------------------------- */
     /*  Create PDF                                                     */
     /* -------------------------------------------------------------- */
 
@@ -110,411 +219,298 @@ export async function POST(req: Request) {
     });
 
     /* -------------------------------------------------------------- */
-    /*  Decorative border (enhanced double frame)                       */
+    /*  Single elegant border                                          */
     /* -------------------------------------------------------------- */
 
-    // Outer border (slightly thicker)
     page.drawRectangle({
       x: MARGIN,
       y: MARGIN,
       width: PAGE_W - MARGIN * 2,
       height: PAGE_H - MARGIN * 2,
-      borderColor: COL_LINE,
-      borderWidth: 2.5,
+      borderColor: COL_GOLD,
+      borderWidth: 1.5,
     });
 
-    // Inner border (thin)
-    const INNER = MARGIN + 10;
-    page.drawRectangle({
-      x: INNER,
-      y: INNER,
-      width: PAGE_W - INNER * 2,
-      height: PAGE_H - INNER * 2,
-      borderColor: COL_LINE,
-      borderWidth: 0.75,
-    });
+    /* ============================================================== */
+    /*  LAYOUT — True Centered Block Approach                          */
+    /*                                                                 */
+    /*  1. HEADER: Anchored at top (logo + org + conf name)            */
+    /*  2. CORE BLOCK: (Title + Name + Paragraph) EXACTLY CENTERED     */
+    /*  3. SIGNATURES: Lower 25% of the page                           */
+    /*  4. FOOTER: Anchored at bottom margin                           */
+    /* ============================================================== */
 
-    /* -------------------------------------------------------------- */
-    /*  Corner accents (decorative squares)                             */
-    /* -------------------------------------------------------------- */
+    /* ---- Formatting Constants ---- */
+    const SIZE_ORG    = 18; // Increased from 16
+    const SIZE_CONF   = 12; // Retained
+    const SIZE_TITLE  = 40; // Retained
+    const SIZE_BODY   = 15;
+    const SIZE_SIG    = 10;
+    const SIZE_FOOT   = 9;
 
-    const cSz = 7;
-    const corners = [
-      { x: MARGIN + 2, y: MARGIN + 2 },
-      { x: PAGE_W - MARGIN - cSz - 1, y: MARGIN + 2 },
-      { x: MARGIN + 2, y: PAGE_H - MARGIN - cSz - 1 },
-      { x: PAGE_W - MARGIN - cSz - 1, y: PAGE_H - MARGIN - cSz - 1 },
+    const BODY_MAX_W  = 440; // Narrower width for Word-like centering
+    const GAP_LINE    = 20;  // 20px consistent line height
+
+
+    /* ---- Prepare Text ---- */
+    const nameText = authorName || "Participant";
+
+    const segments: TextSegment[] = [
+      { text: "This is to certify that " },
+      { text: nameText, isBold: true },
     ];
-    for (const c of corners) {
-      page.drawRectangle({
-        x: c.x,
-        y: c.y,
-        width: cSz,
-        height: cSz,
-        color: COL_GOLD,
-      });
+    if (authorAffiliation) {
+      segments.push({ text: " from " });
+      segments.push({ text: authorAffiliation, isBold: true });
+    }
+    segments.push({ text: " has presented a paper " });
+    if (paperTitle) {
+      segments.push({ text: `entitled \u201C` });
+      segments.push({ text: paperTitle, isBold: true });
+      segments.push({ text: `\u201D ` });
+    }
+    segments.push({ text: "at the " });
+    segments.push({ text: resolvedConferenceTitle, isBold: false });
+    if (conferenceDates) {
+      segments.push({ text: ` held during ${conferenceDates}.` });
+    } else {
+      segments.push({ text: "." });
     }
 
+    const atoms = createAtoms(segments, fontRegular, fontBold, SIZE_BODY);
+    const bodyLines = wrapAtoms(atoms, BODY_MAX_W);
+
+    /* ---- Math: Calculate the height of the CORE BLOCK ---- */
+    // Compute total block height to vertically center the entire flow.
+    let totalBlockHeight = 0;
+    const logoGap  = 12; // Increased
+    const orgGap   = 16; // Increased
+    const confGap  = 22; // Conf -> Anchor
+    
+    // Add additional sizing for our inserted graphical anchor structure
+    const anchorHeight = 4;
+    const anchorGap = 20; // Anchor -> CERTIFICATE
+    const titleGap = 26; // CERTIFICATE -> Paragraph (Reduced)
+
+    if (organizationLogoUrl) totalBlockHeight += 44 + logoGap;
+    if (organizationName) totalBlockHeight += SIZE_ORG + orgGap;
+    totalBlockHeight += SIZE_CONF + confGap;
+    totalBlockHeight += anchorHeight + anchorGap;
+    totalBlockHeight += SIZE_TITLE + titleGap;
+    
+    // Paragraph height: (N-1)*GAP_LINE + SIZE_BODY
+    totalBlockHeight += ((bodyLines.length > 0 ? bodyLines.length - 1 : 0) * GAP_LINE) + SIZE_BODY;
+
+    // Center the whole unified block in available space, then bias upward by ~65px
+    let curY = (PAGE_H / 2) + (totalBlockHeight / 2) + 65;
+
     /* -------------------------------------------------------------- */
-    /*  Conference header section                                       */
+    /*  1. HEADER SECTION (Unified Flow)                               */
     /* -------------------------------------------------------------- */
 
-    const headerText = conferenceTitle || "International Academic Conference";
-    const headerSize = 18;
-    const headerW = fontBold.widthOfTextAtSize(headerText, headerSize);
-    const headerY = PAGE_H - 80;
+    if (organizationLogoUrl) {
+      try {
+        const logoRes = await fetch(organizationLogoUrl);
+        if (logoRes.ok) {
+          const logoArrayBuf = await logoRes.arrayBuffer();
+          const logoBytes    = new Uint8Array(logoArrayBuf);
+          let logoImage;
+          try   { logoImage = await pdfDoc.embedPng(logoBytes); }
+          catch { logoImage = await pdfDoc.embedJpg(logoBytes); }
+          const logoDim = logoImage.scaleToFit(44, 44);
+          
+          curY -= logoDim.height;
+          page.drawImage(logoImage, {
+            x: centerX(PAGE_W, logoDim.width),
+            y: curY,
+            width: logoDim.width,
+            height: logoDim.height,
+          });
+          curY -= logoGap;
+        }
+      } catch (logoErr) {
+        console.warn("Could not embed organization logo:", logoErr);
+      }
+    }
 
-    page.drawText(headerText, {
-      x: centerX(PAGE_W, headerW),
-      y: headerY,
-      size: headerSize,
+    if (organizationName) {
+      curY -= SIZE_ORG;
+      const orgW = fontBold.widthOfTextAtSize(organizationName, SIZE_ORG);
+      page.drawText(organizationName, {
+        x: centerX(PAGE_W, orgW),
+        y: curY,
+        size: SIZE_ORG,
+        font: fontBold,
+        color: COL_TEXT,
+      });
+      curY -= orgGap;
+    }
+
+    {
+      curY -= SIZE_CONF;
+      const confW = fontRegular.widthOfTextAtSize(resolvedConferenceTitle, SIZE_CONF);
+      page.drawText(resolvedConferenceTitle, {
+        x: centerX(PAGE_W, confW),
+        y: curY,
+        size: SIZE_CONF,
+        font: fontRegular,
+        color: COL_SUB,
+      });
+      curY -= confGap;
+    }
+    
+    // Introduce Header Anchor divider (Decorative line)
+    curY -= anchorHeight;
+    const anchorWidth = 60; // short, centered elegant rule
+    const ax = centerX(PAGE_W, anchorWidth);
+    page.drawLine({
+      start: { x: ax, y: curY + 2 },
+      end:   { x: ax + anchorWidth, y: curY + 2 },
+      thickness: 1.5,
+      color: COL_GOLD,
+    });
+    curY -= anchorGap;
+
+    /* -------------------------------------------------------------- */
+    /*  2. TITLE & CERTIFYING PARAGRAPH                                */
+    /* -------------------------------------------------------------- */
+
+    // --- TITLE ---
+    curY -= SIZE_TITLE;
+    const titleW = fontBold.widthOfTextAtSize("CERTIFICATE", SIZE_TITLE);
+    page.drawText("CERTIFICATE", {
+      x: centerX(PAGE_W, titleW),
+      y: curY,
+      size: SIZE_TITLE,
       font: fontBold,
       color: COL_PRIMARY,
     });
+    curY -= titleGap;
 
-    const subHeaderText = "International Academic Conference";
-    const subHeaderSize = 10;
-    const subHeaderW = fontRegular.widthOfTextAtSize(subHeaderText, subHeaderSize);
-    const subHeaderY = headerY - 18;
+    // --- CERTIFYING PARAGRAPH (Pseudo-Justified) ---
+    // Start drawing body lines
+    curY -= SIZE_BODY; // first line baseline
+    for (let i = 0; i < bodyLines.length; i++) {
+      const line = bodyLines[i];
+      const isLastLine = i === bodyLines.length - 1;
+      let spaceToAdd = 0;
+      let spaceCount = 0;
+      
+      if (!isLastLine) {
+        spaceCount = line.atoms.filter((a) => a.text === " ").length;
+        if (spaceCount > 0) {
+          // distribute remaining spacing evenly across the spaces
+          spaceToAdd = Math.max(0, (BODY_MAX_W - line.width) / spaceCount);
+        }
+      }
 
-    page.drawText(subHeaderText, {
-      x: centerX(PAGE_W, subHeaderW),
-      y: subHeaderY,
-      size: subHeaderSize,
-      font: fontRegular,
-      color: COL_SUB,
-    });
+      // If pseudo-justifying, curX starts so total width occupies BODY_MAX_W.
+      // If it's the last line, it centers just normally.
+      let curX = (!isLastLine && spaceCount > 0) 
+                 ? centerX(PAGE_W, BODY_MAX_W) 
+                 : centerX(PAGE_W, line.width);
 
-    /* -------------------------------------------------------------- */
-    /*  Decorative line below header                                    */
-    /* -------------------------------------------------------------- */
-
-    const lineY = subHeaderY - 14;
-    page.drawLine({
-      start: { x: MARGIN + 60, y: lineY },
-      end: { x: PAGE_W - MARGIN - 60, y: lineY },
-      thickness: 1,
-      color: COL_LINE,
-    });
-
-    /* -------------------------------------------------------------- */
-    /*  Title: CERTIFICATE OF PRESENTATION                             */
-    /* -------------------------------------------------------------- */
-
-    const titleText = "CERTIFICATE OF PRESENTATION";
-    const titleSize = 32;
-    const titleW = fontBold.widthOfTextAtSize(titleText, titleSize);
-    const titleY = lineY - 36;
-
-    page.drawText(titleText, {
-      x: centerX(PAGE_W, titleW),
-      y: titleY,
-      size: titleSize,
-      font: fontBold,
-      color: COL_GOLD,
-    });
+      for (const atom of line.atoms) {
+        page.drawText(atom.text, {
+          x: curX,
+          y: curY,
+          size: SIZE_BODY,
+          font: atom.isBold ? fontBold : fontRegular,
+          color: COL_TEXT,
+        });
+        curX += atom.width + (atom.text === " " ? spaceToAdd : 0);
+      }
+      curY -= GAP_LINE;
+    }
 
     /* -------------------------------------------------------------- */
-    /*  "This is to certify that"                                       */
+    /*  3. SIGNATURE SECTION (Lower 25%)                               */
     /* -------------------------------------------------------------- */
+    
+    // Position signatures with clear separation globally anchored lower
+    const sigY   = MARGIN + 60; // Slightly lower anchored to increase paragraph gap
+    const sigW   = 120;
+    const colW   = (PAGE_W - MARGIN * 2) / 3;
+    const sigLabels = ["Convener", "Principal", "Director"];
 
-    const certifyText = "This is to certify that";
-    const certifySize = 14;
-    const certifyW = fontItalic.widthOfTextAtSize(certifyText, certifySize);
-    const certifyY = titleY - 42;
+    for (let i = 0; i < 3; i++) {
+      const cx  = MARGIN + colW * i + colW / 2;
+      const lx  = cx - sigW / 2;
 
-    page.drawText(certifyText, {
-      x: centerX(PAGE_W, certifyW),
-      y: certifyY,
-      size: certifySize,
-      font: fontItalic,
-      color: COL_SUB,
-    });
-
-    /* -------------------------------------------------------------- */
-    /*  Author name (visual focus – largest body text)                  */
-    /* -------------------------------------------------------------- */
-
-    const nameText = authorName || "Participant";
-    const nameSize = 30;
-    const nameW = fontBold.widthOfTextAtSize(nameText, nameSize);
-    const nameY = certifyY - 38;
-
-    page.drawText(nameText, {
-      x: centerX(PAGE_W, nameW),
-      y: nameY,
-      size: nameSize,
-      font: fontBold,
-      color: COL_TEXT,
-    });
-
-    // Decorative underline below author name
-    const underW = Math.min(nameW + 60, PAGE_W - 200);
-    page.drawLine({
-      start: { x: centerX(PAGE_W, underW), y: nameY - 10 },
-      end: { x: centerX(PAGE_W, underW) + underW, y: nameY - 10 },
-      thickness: 0.75,
-      color: COL_LINE,
-    });
-
-    /* -------------------------------------------------------------- */
-    /*  "has presented a research paper entitled"                       */
-    /* -------------------------------------------------------------- */
-
-    const desc1Text = "has presented a research paper entitled";
-    const descSize = 14;
-    const desc1W = fontRegular.widthOfTextAtSize(desc1Text, descSize);
-    const desc1Y = nameY - 34;
-
-    page.drawText(desc1Text, {
-      x: centerX(PAGE_W, desc1W),
-      y: desc1Y,
-      size: descSize,
-      font: fontRegular,
-      color: COL_SUB,
-    });
-
-    /* -------------------------------------------------------------- */
-    /*  Paper title (italic, in quotes)                                 */
-    /* -------------------------------------------------------------- */
-
-    let nextY = desc1Y - 26;
-
-    if (paperTitle) {
-      const ptTitleSize = 14;
-      const maxWidth = PAGE_W - MARGIN * 2 - 120;
-
-      // Add quotes around paper title
-      const quotedTitle = `\u201C${paperTitle}\u201D`;
-      const quotedW = fontItalic.widthOfTextAtSize(quotedTitle, ptTitleSize);
-
-      // Truncate very long titles visually
-      const displayTitle =
-        quotedW > maxWidth
-          ? `\u201C${paperTitle.substring(0, 65)}\u2026\u201D`
-          : quotedTitle;
-
-      const displayW = fontItalic.widthOfTextAtSize(displayTitle, ptTitleSize);
-
-      page.drawText(displayTitle, {
-        x: centerX(PAGE_W, displayW),
-        y: nextY,
-        size: ptTitleSize,
-        font: fontItalic,
+      page.drawLine({
+        start: { x: lx, y: sigY + 18 },
+        end:   { x: lx + sigW, y: sigY + 18 },
+        thickness: 0.5,
         color: COL_TEXT,
       });
 
-      nextY -= 26;
+      const lbl  = sigLabels[i];
+      const lblW = fontRegular.widthOfTextAtSize(lbl, SIZE_SIG);
+      page.drawText(lbl, {
+        x: cx - lblW / 2,
+        y: sigY + 3,
+        size: SIZE_SIG,
+        font: fontRegular,
+        color: COL_SUB,
+      });
     }
 
     /* -------------------------------------------------------------- */
-    /*  "at the" + Conference title                                     */
+    /*  4. FOOTER (Bottom Margin Anchored)                             */
     /* -------------------------------------------------------------- */
-
-    const atTheText = "at the";
-    const atTheW = fontRegular.widthOfTextAtSize(atTheText, descSize);
-    page.drawText(atTheText, {
-      x: centerX(PAGE_W, atTheW),
-      y: nextY,
-      size: descSize,
-      font: fontRegular,
-      color: COL_SUB,
-    });
-
-    nextY -= 26;
-
-    const confText = conferenceTitle || "Conference";
-    const confSize = 18;
-    const confW = fontBold.widthOfTextAtSize(confText, confSize);
-
-    page.drawText(confText, {
-      x: centerX(PAGE_W, confW),
-      y: nextY,
-      size: confSize,
-      font: fontBold,
-      color: COL_PRIMARY,
-    });
-
-    nextY -= 22;
-
-    /* -------------------------------------------------------------- */
-    /*  "organized under the Academic Conference Program."              */
-    /* -------------------------------------------------------------- */
-
-    const orgText = "organized under the Academic Conference Program.";
-    const orgW = fontRegular.widthOfTextAtSize(orgText, 11);
-    page.drawText(orgText, {
-      x: centerX(PAGE_W, orgW),
-      y: nextY,
-      size: 11,
-      font: fontRegular,
-      color: COL_SUB,
-    });
-
-    nextY -= 22;
-
-    /* -------------------------------------------------------------- */
-    /*  Recognition line                                                */
-    /* -------------------------------------------------------------- */
-
-    const recogText = "This certificate is awarded in recognition of the author\u2019s valuable";
-    const recogW = fontItalic.widthOfTextAtSize(recogText, 10);
-    page.drawText(recogText, {
-      x: centerX(PAGE_W, recogW),
-      y: nextY,
-      size: 10,
-      font: fontItalic,
-      color: COL_SUB,
-    });
-
-    const recog2Text = "contribution to academic research and scholarly discussion.";
-    const recog2W = fontItalic.widthOfTextAtSize(recog2Text, 10);
-    page.drawText(recog2Text, {
-      x: centerX(PAGE_W, recog2W),
-      y: nextY - 14,
-      size: 10,
-      font: fontItalic,
-      color: COL_SUB,
-    });
-
-    /* -------------------------------------------------------------- */
-    /*  Bottom decorative line                                         */
-    /* -------------------------------------------------------------- */
-
-    const bottomLineY = MARGIN + 110;
-    page.drawLine({
-      start: { x: MARGIN + 60, y: bottomLineY },
-      end: { x: PAGE_W - MARGIN - 60, y: bottomLineY },
-      thickness: 0.5,
-      color: COL_LINE,
-    });
-
-    /* -------------------------------------------------------------- */
-    /*  Signature section (wider spacing)                               */
-    /* -------------------------------------------------------------- */
-
-    const sigY = MARGIN + 68;
-    const sigLineW = 170;
-
-    // Left signature
-    const leftSigX = MARGIN + 70;
-    page.drawLine({
-      start: { x: leftSigX, y: sigY + 20 },
-      end: { x: leftSigX + sigLineW, y: sigY + 20 },
-      thickness: 0.75,
-      color: COL_TEXT,
-    });
-
-    const leftLabel = "Conference Chair";
-    const leftLabelW = fontRegular.widthOfTextAtSize(leftLabel, 10);
-    page.drawText(leftLabel, {
-      x: leftSigX + (sigLineW - leftLabelW) / 2,
-      y: sigY + 4,
-      size: 10,
-      font: fontRegular,
-      color: COL_SUB,
-    });
-
-    // Right signature
-    const rightSigX = PAGE_W - MARGIN - 70 - sigLineW;
-    page.drawLine({
-      start: { x: rightSigX, y: sigY + 20 },
-      end: { x: rightSigX + sigLineW, y: sigY + 20 },
-      thickness: 0.75,
-      color: COL_TEXT,
-    });
-
-    const rightLabel = "Organizing Committee";
-    const rightLabelW = fontRegular.widthOfTextAtSize(rightLabel, 10);
-    page.drawText(rightLabel, {
-      x: rightSigX + (sigLineW - rightLabelW) / 2,
-      y: sigY + 4,
-      size: 10,
-      font: fontRegular,
-      color: COL_SUB,
-    });
-
-    /* -------------------------------------------------------------- */
-    /*  Date + AcadFlow branding                                       */
-    /* -------------------------------------------------------------- */
-
-    const dateText = `Issued on: ${formatDate(new Date())}`;
-    const dateSize = 10;
-    const dateW = fontRegular.widthOfTextAtSize(dateText, dateSize);
-
-    page.drawText(dateText, {
-      x: centerX(PAGE_W, dateW),
-      y: sigY - 14,
-      size: dateSize,
-      font: fontRegular,
-      color: COL_SUB,
-    });
-
-    // "Powered by AcadFlow" branding
-    const brandText = "Powered by AcadFlow";
-    const brandSize = 8;
-    const brandW = fontRegular.widthOfTextAtSize(brandText, brandSize);
-    page.drawText(brandText, {
-      x: centerX(PAGE_W, brandW),
-      y: sigY - 28,
-      size: brandSize,
-      font: fontRegular,
-      color: COL_SUB,
-    });
-
-    /* -------------------------------------------------------------- */
-    /*  Verification code + QR code                                    */
-    /* -------------------------------------------------------------- */
+    
+    /* ---- Fixed footer baseline ---- */
+    const FOOTER_BASE = MARGIN + 12;
 
     const verificationCode = generateVerificationCode();
 
-    // Verification text (bottom-left area)
+    // Left — verification
     const vcText = `Verification: ${verificationCode}`;
-    const vcSize = 7;
-
     page.drawText(vcText, {
-      x: MARGIN + 14,
-      y: MARGIN + 14,
-      size: vcSize,
+      x: MARGIN + 12,
+      y: FOOTER_BASE,
+      size: SIZE_FOOT,
       font: fontRegular,
       color: COL_SUB,
     });
 
-    // QR code (bottom-right corner)
+    // Center — branding
+    const brandText = "Powered by AcadFlow";
+    const brandW    = fontRegular.widthOfTextAtSize(brandText, SIZE_FOOT);
+    page.drawText(brandText, {
+      x: centerX(PAGE_W, brandW),
+      y: FOOTER_BASE,
+      size: SIZE_FOOT,
+      font: fontRegular,
+      color: COL_SUB,
+    });
+
+    const dateStr  = `Issued: ${formatDate(new Date())}`;
+    const dateW    = fontRegular.widthOfTextAtSize(dateStr, SIZE_FOOT);
+    page.drawText(dateStr, {
+      x: centerX(PAGE_W, dateW),
+      y: FOOTER_BASE + 14,
+      size: SIZE_FOOT,
+      font: fontRegular,
+      color: COL_SUB,
+    });
+
+    // Right — QR Code
     const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/verify/${verificationCode}`;
     const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
       width: 200,
       margin: 1,
       color: { dark: "#1E1E24", light: "#FAF8F0" },
     });
-
-    // Decode base64 data URL and embed into PDF
     const qrBase64 = qrDataUrl.split(",")[1];
-    const qrBytes = Uint8Array.from(atob(qrBase64), (ch) => ch.charCodeAt(0));
-    const qrImage = await pdfDoc.embedPng(qrBytes);
+    const qrBytes  = Uint8Array.from(atob(qrBase64), (ch) => ch.charCodeAt(0));
+    const qrImage  = await pdfDoc.embedPng(qrBytes);
 
-    const qrSize = 52;
-    const qrX = PAGE_W - MARGIN - qrSize - 14;
-    const qrY = MARGIN + 14;
+    const QR_DIM   = 40;
+    const qrX      = PAGE_W - MARGIN - QR_DIM - 12;
+    const qrY      = FOOTER_BASE - 4;
 
-    page.drawImage(qrImage, {
-      x: qrX,
-      y: qrY,
-      width: qrSize,
-      height: qrSize,
-    });
-
-    // "Scan to verify" label below QR
-    const scanLabel = "Scan to verify";
-    const scanLabelSize = 5.5;
-    const scanLabelW = fontRegular.widthOfTextAtSize(scanLabel, scanLabelSize);
-    page.drawText(scanLabel, {
-      x: qrX + (qrSize - scanLabelW) / 2,
-      y: qrY - 8,
-      size: scanLabelSize,
-      font: fontRegular,
-      color: COL_SUB,
-    });
+    page.drawImage(qrImage, { x: qrX, y: qrY, width: QR_DIM, height: QR_DIM });
 
     /* -------------------------------------------------------------- */
     /*  Save & upload                                                  */
