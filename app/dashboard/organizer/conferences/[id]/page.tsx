@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/popover";
 
 import ShareConference from "@/components/shared/ShareConference";
+import SignatureManager from "@/components/signature/SignatureManager";
 
 import {
   ArrowLeft,
@@ -37,6 +38,7 @@ import {
   Phone,
   Pencil,
   Share2,
+  PenLine,
 } from "lucide-react";
 
 const supabase = createClient();
@@ -656,7 +658,23 @@ export default function ConferenceDetails() {
       </Card>
 
       {/* ============================================================ */}
-      {/*  7. LINKS & RESOURCES                                         */}
+      {/*  7. CERTIFICATE SIGNATURES                                    */}
+      {/* ============================================================ */}
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50">
+            <PenLine className="h-4 w-4 text-indigo-600" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Certificate Signatures</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Configure 2–3 signatures to appear on generated certificates</p>
+          </div>
+        </div>
+        <SignatureManager conferenceId={id} />
+      </Card>
+
+      {/* ============================================================ */}
+      {/*  8. LINKS & RESOURCES                                         */}
       {/* ============================================================ */}
       {hasLinks && (
         <Card className="p-6">

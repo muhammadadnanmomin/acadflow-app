@@ -151,6 +151,15 @@ export async function POST(req: Request) {
     let organizationLogoUrl: string | null = null;
     let conferenceDates = "";
 
+    // Typed signature record
+    interface SignatureRecord {
+      name?: string;
+      role: string;
+      image_url: string;
+      type?: string;
+    }
+    let conferenceSignatures: SignatureRecord[] = [];
+
     if (conferenceId) {
       const { data: conference } = await supabaseAdmin
         .from("conferences")
@@ -160,6 +169,7 @@ export async function POST(req: Request) {
           conference_logo_url,
           start_date,
           end_date,
+          signatures,
           organizations (
             name,
             logo_url
@@ -173,6 +183,7 @@ export async function POST(req: Request) {
         const org = conference.organizations as any;
         organizationName = org?.name || "";
         organizationLogoUrl = org?.logo_url || null;
+        conferenceSignatures = (conference.signatures as SignatureRecord[]) ?? [];
 
         if (conference.start_date) {
           const start = formatDate(new Date(conference.start_date));
@@ -426,33 +437,124 @@ export async function POST(req: Request) {
     /* -------------------------------------------------------------- */
     /*  3. SIGNATURE SECTION (Lower 25%)                               */
     /* -------------------------------------------------------------- */
-    
-    // Position signatures with clear separation globally anchored lower
-    const sigY   = MARGIN + 60; // Slightly lower anchored to increase paragraph gap
-    const sigW   = 120;
-    const colW   = (PAGE_W - MARGIN * 2) / 3;
-    const sigLabels = ["Convener", "Principal", "Director"];
 
-    for (let i = 0; i < 3; i++) {
-      const cx  = MARGIN + colW * i + colW / 2;
-      const lx  = cx - sigW / 2;
+    const sigY = MARGIN + 60;
+    const sigW = 120;
 
-      page.drawLine({
-        start: { x: lx, y: sigY + 18 },
-        end:   { x: lx + sigW, y: sigY + 18 },
-        thickness: 0.5,
-        color: COL_TEXT,
-      });
+    if (conferenceSignatures.length >= 2) {
+      /* ---- Dynamic signatures from DB ---- */
+      const count = Math.min(conferenceSignatures.length, 3);
 
-      const lbl  = sigLabels[i];
-      const lblW = fontRegular.widthOfTextAtSize(lbl, SIZE_SIG);
-      page.drawText(lbl, {
-        x: cx - lblW / 2,
-        y: sigY + 3,
-        size: SIZE_SIG,
-        font: fontRegular,
-        color: COL_SUB,
-      });
+      // Compute evenly-spaced centre X positions
+      // 2 sigs → 25% and 75%
+      // 3 sigs → left/center/right thirds
+      const xCentres: number[] = [];
+      if (count === 2) {
+        xCentres.push(MARGIN + (PAGE_W - MARGIN * 2) * 0.25);
+        xCentres.push(MARGIN + (PAGE_W - MARGIN * 2) * 0.75);
+      } else {
+        const colW = (PAGE_W - MARGIN * 2) / 3;
+        for (let i = 0; i < 3; i++) {
+          xCentres.push(MARGIN + colW * i + colW / 2);
+        }
+      }
+
+      for (let i = 0; i < count; i++) {
+        const sig = conferenceSignatures[i];
+        const cx = xCentres[i];
+        const lx = cx - sigW / 2;
+
+        // ---- 1. Signature Image (Highest) ----
+        const IMG_W = 100;
+        const IMG_H = 38;
+        const lineY = sigY + 32;
+
+        try {
+          const imgRes = await fetch(sig.image_url);
+          if (imgRes.ok) {
+            const imgBuf = await imgRes.arrayBuffer();
+            const imgBytes = new Uint8Array(imgBuf);
+            let sigImage;
+            try   { sigImage = await pdfDoc.embedPng(imgBytes); }
+            catch { sigImage = await pdfDoc.embedJpg(imgBytes); }
+
+            const scaled = sigImage.scaleToFit(IMG_W, IMG_H);
+            page.drawImage(sigImage, {
+              x: cx - scaled.width / 2,
+              y: lineY + 5, // ~5px padding above line
+              width: scaled.width,
+              height: scaled.height,
+            });
+          }
+        } catch (sigImgErr) {
+          console.warn(`Could not embed signature image [${i}]:`, sigImgErr);
+        }
+
+        // ---- 2. Horizontal Line (Below Image) ----
+        page.drawLine({
+          start: { x: lx, y: lineY },
+          end:   { x: lx + sigW, y: lineY },
+          thickness: 0.5,
+          color: COL_TEXT,
+        });
+
+        // ---- 3 & 4. Name and Role (Below Line) ----
+        let currentY = lineY - 18; // ~10-12px gap from line to name baseline
+
+        if (sig.name) {
+          const nameSize = SIZE_SIG + 1;
+          const nameW = fontBold.widthOfTextAtSize(sig.name, nameSize);
+          page.drawText(sig.name, {
+            x: cx - nameW / 2,
+            y: currentY,
+            size: nameSize,
+            font: fontBold,
+            color: COL_TEXT,
+          });
+          currentY -= 16; // ~8-10px gap from name to role baseline
+        }
+
+        const roleSize = SIZE_SIG - 1;
+        const roleW = fontRegular.widthOfTextAtSize(sig.role, roleSize);
+        page.drawText(sig.role, {
+          x: cx - roleW / 2,
+          y: currentY,
+          size: roleSize,
+          font: fontRegular,
+          color: COL_SUB,
+        });
+      }
+    } else {
+      /* ---- Fallback: fewer than 2 signatures → static placeholder lines ---- */
+      const colW = (PAGE_W - MARGIN * 2) / 3;
+      const sigLabels = ["Convener", "Principal", "Director"];
+
+      for (let i = 0; i < 3; i++) {
+        const cx = MARGIN + colW * i + colW / 2;
+        const lx = cx - sigW / 2;
+        const lineY = sigY + 32;
+
+        page.drawLine({
+          start: { x: lx, y: lineY },
+          end:   { x: lx + sigW, y: lineY },
+          thickness: 0.5,
+          color: COL_TEXT,
+        });
+
+        const lbl  = sigLabels[i];
+        const roleSize = SIZE_SIG - 1;
+        const lblW = fontRegular.widthOfTextAtSize(lbl, roleSize);
+        
+        let currentY = lineY - 18; // Fallback directly below line
+        
+        page.drawText(lbl, {
+          x: cx - lblW / 2,
+          y: currentY,
+          size: roleSize,
+          font: fontRegular,
+          color: COL_SUB,
+        });
+      }
     }
 
     /* -------------------------------------------------------------- */
