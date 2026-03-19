@@ -5,7 +5,6 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 import { useOrganization } from "@/lib/organizations/useOrganization";
-import { getMyConferenceIds } from "@/lib/conference/getMyConferenceIds";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -157,8 +156,13 @@ export default function OrganizerPayments() {
     if (!profile) return;
     setLoading(true);
 
-    /* ================= FETCH ORGANIZER CONFERENCES ================= */
-    const confIds = await getMyConferenceIds(profile.id);
+    /* ================= OWNER-ONLY: FETCH ONLY OWNED CONFERENCES ================= */
+    const { data: ownedConfs } = await supabase
+      .from("conferences")
+      .select("id")
+      .eq("organizer_id", profile.id);
+
+    const confIds = ownedConfs?.map((c) => c.id) || [];
 
     if (confIds.length === 0) {
       setPayments([]);
@@ -458,8 +462,6 @@ export default function OrganizerPayments() {
   /*  Render                                                           */
   /* ---------------------------------------------------------------- */
 
-  const netEarnings = feeBreakdown.conferenceFees;
-
   return (
     <div className="space-y-6 max-w-6xl">
 
@@ -472,7 +474,7 @@ export default function OrganizerPayments() {
             Earnings &amp; Payments
           </h1>
           <p className="text-gray-500 mt-1">
-            Track collections, earnings, and manage payouts
+            Track collections, earnings, and payouts for conferences you own
           </p>
         </div>
 
@@ -612,7 +614,7 @@ export default function OrganizerPayments() {
             <Separator />
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-gray-900">Net Collections</span>
-              <span className="text-lg font-bold text-emerald-600">₹{formatINR(netEarnings)}</span>
+              <span className="text-lg font-bold text-emerald-600">₹{formatINR(feeBreakdown.conferenceFees)}</span>
             </div>
           </div>
         </Card>
