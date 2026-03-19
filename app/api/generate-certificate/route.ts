@@ -100,6 +100,164 @@ function wrapAtoms(atoms: TextAtom[], maxWidth: number) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Multi-org helpers                                                  */
+/* ------------------------------------------------------------------ */
+
+interface ConferenceOrg {
+  name: string;
+  logo_url: string | null;
+}
+
+/**
+ * Fetch all unique organizations linked to a conference via:
+ *   conference_organizers → organization_members → organizations
+ *
+ * Returns max 4 deduplicated records (by org name).
+ */
+async function getConferenceOrganizations(
+  conferenceId: string
+): Promise<ConferenceOrg[]> {
+  /* Step 1 — get all organizer user_ids */
+  const { data: organizerRows, error: orgErr } = await supabaseAdmin
+    .from("conference_organizers")
+    .select("user_id")
+    .eq("conference_id", conferenceId);
+
+  if (orgErr || !organizerRows || organizerRows.length === 0) return [];
+
+  const userIds = [...new Set(organizerRows.map((r: { user_id: string }) => r.user_id))];
+
+  /* Step 2 — get organization_ids for those users */
+  const { data: memberRows, error: memErr } = await supabaseAdmin
+    .from("organization_members")
+    .select("organization_id")
+    .in("user_id", userIds);
+
+  if (memErr || !memberRows || memberRows.length === 0) return [];
+
+  const orgIds = [...new Set(memberRows.map((r: { organization_id: string }) => r.organization_id))];
+
+  /* Step 3 — fetch organizations (name + logo_url) */
+  const { data: orgs, error: orgsErr } = await supabaseAdmin
+    .from("organizations")
+    .select("name, logo_url")
+    .in("id", orgIds);
+
+  if (orgsErr || !orgs || orgs.length === 0) return [];
+
+  /* Deduplicate by name and cap at 4 */
+  const seen = new Set<string>();
+  const unique: ConferenceOrg[] = [];
+  for (const org of orgs) {
+    const key = (org.name ?? "").toLowerCase().trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    unique.push({ name: org.name ?? "", logo_url: org.logo_url ?? null });
+    if (unique.length === 4) break;
+  }
+  return unique;
+}
+
+async function renderOrganizationLogos(
+  pdfDoc: any,
+  page: any,
+  fontBold: any,
+  orgs: ConferenceOrg[],
+  startY: number
+): Promise<{ endY: number; sectionHeight: number }> {
+  if (orgs.length === 0) return { endY: startY, sectionHeight: 0 };
+
+  const LOGO_MAX   = 50;   // max logo dimension (width & height)
+  const NAME_SIZE  = 11;
+  const NAME_GAP   = 6;    // gap: logo bottom → name baseline
+  const BOTTOM_PAD = 0;    // removed arbitrary padding below names to let exact spacing control the gap
+
+  // Equal spacing between logos in a single row
+  const SLOT_WIDTH = orgs.length === 4 ? 140 : 160; // Slightly tighter spacing
+  const COL_W      = SLOT_WIDTH - 15;
+
+  const startX = (PAGE_W / 2) - ((orgs.length - 1) * SLOT_WIDTH) / 2;
+  const xCentresRow1 = orgs.map((_, i) => startX + i * SLOT_WIDTH);
+
+  /* ---- Pre-fetch and embed all logos ---- */
+  interface LogoData { image: any | null; width: number; height: number; }
+  const logoData: LogoData[] = [];
+  for (const org of orgs) {
+    if (!org.logo_url) { logoData.push({ image: null, width: 0, height: 0 }); continue; }
+    try {
+      const res = await fetch(org.logo_url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buf = new Uint8Array(await res.arrayBuffer());
+      let img: any;
+      try   { img = await pdfDoc.embedPng(buf); }
+      catch { img = await pdfDoc.embedJpg(buf); }
+      const dim = img.scaleToFit(LOGO_MAX, LOGO_MAX);
+      logoData.push({ image: img, width: dim.width, height: dim.height });
+    } catch {
+      logoData.push({ image: null, width: 0, height: 0 });
+    }
+  }
+
+  /* ---- Dynamic heights ---- */
+  const maxLogoH = Math.max(...logoData.map((l) => l.height), 0);
+  const rowH     = maxLogoH + NAME_GAP + NAME_SIZE * 2; // allow 2 name lines
+  const sectionHeight = rowH + BOTTOM_PAD;
+
+  const rowTopY = startY;
+  const logoBaseY = rowTopY - maxLogoH;
+
+  /* ---- Slot renderer ---- */
+  const drawOrgSlot = async (
+    org: ConferenceOrg,
+    logo: LogoData,
+    cx: number
+  ) => {
+    if (logo.image) {
+      page.drawImage(logo.image, {
+        x: cx - logo.width / 2,
+        y: logoBaseY, // All logos share the SAME baseline
+        width: logo.width,
+        height: logo.height,
+      });
+    }
+
+    /* Name — wrap to COL_W, max 2 lines */
+    const nameBaseY = logoBaseY - NAME_GAP - NAME_SIZE + 2; 
+    const words = org.name.split(" ");
+    let line1 = "", line2 = "";
+    for (const word of words) {
+      const cand1 = line1 ? `${line1} ${word}` : word;
+      if (fontBold.widthOfTextAtSize(cand1, NAME_SIZE) <= COL_W) {
+        line1 = cand1;
+      } else if (!line2) {
+        line2 = word;
+      } else {
+        const cand2 = `${line2} ${word}`;
+        if (fontBold.widthOfTextAtSize(cand2, NAME_SIZE) <= COL_W) line2 = cand2;
+        // silently drop beyond 2 lines
+      }
+    }
+    for (const [idx, lineText] of [line1, line2].entries()) {
+      if (!lineText) continue;
+      const lw = fontBold.widthOfTextAtSize(lineText, NAME_SIZE);
+      page.drawText(lineText, {
+        x: cx - lw / 2,
+        y: nameBaseY - idx * (NAME_SIZE + 2), // slightly tighter line height
+        size: NAME_SIZE,
+        font: fontBold,
+        color: COL_TEXT,
+      });
+    }
+  };
+
+  for (let i = 0; i < orgs.length; i++) {
+    await drawOrgSlot(orgs[i], logoData[i], xCentresRow1[i]);
+  }
+
+  return { endY: startY - sectionHeight, sectionHeight };
+}
+
+/* ------------------------------------------------------------------ */
 /*  POST handler                                                       */
 /* ------------------------------------------------------------------ */
 
@@ -146,9 +304,7 @@ export async function POST(req: Request) {
     /*  Fetch conference + organization details                        */
     /* -------------------------------------------------------------- */
 
-    let organizationName = "";
     let resolvedConferenceTitle = conferenceTitle || "International Academic Conference";
-    let organizationLogoUrl: string | null = null;
     let conferenceDates = "";
 
     // Typed signature record
@@ -160,6 +316,7 @@ export async function POST(req: Request) {
     }
     let conferenceSignatures: SignatureRecord[] = [];
 
+    /* Conference details (title, dates, signatures) */
     if (conferenceId) {
       const { data: conference } = await supabaseAdmin
         .from("conferences")
@@ -169,20 +326,13 @@ export async function POST(req: Request) {
           conference_logo_url,
           start_date,
           end_date,
-          signatures,
-          organizations (
-            name,
-            logo_url
-          )
+          signatures
         `)
         .eq("id", conferenceId)
         .single();
 
       if (conference) {
         resolvedConferenceTitle = conference.title || resolvedConferenceTitle;
-        const org = conference.organizations as any;
-        organizationName = org?.name || "";
-        organizationLogoUrl = org?.logo_url || null;
         conferenceSignatures = (conference.signatures as SignatureRecord[]) ?? [];
 
         if (conference.start_date) {
@@ -194,6 +344,11 @@ export async function POST(req: Request) {
         }
       }
     }
+
+    /* Multi-org fetch via conference_organizers → organization_members → organizations */
+    const conferenceOrgs: ConferenceOrg[] = conferenceId
+      ? await getConferenceOrganizations(conferenceId)
+      : [];
 
     /* Fetch author affiliation */
     let authorAffiliation = "";
@@ -294,67 +449,50 @@ export async function POST(req: Request) {
     /* ---- Math: Calculate the height of the CORE BLOCK ---- */
     // Compute total block height to vertically center the entire flow.
     let totalBlockHeight = 0;
-    const logoGap  = 12; // Increased
-    const orgGap   = 16; // Increased
-    const confGap  = 22; // Conf -> Anchor
-    
-    // Add additional sizing for our inserted graphical anchor structure
-    const anchorHeight = 4;
-    const anchorGap = 20; // Anchor -> CERTIFICATE
-    const titleGap = 26; // CERTIFICATE -> Paragraph (Reduced)
+    const namesToTitleGap = 12; // name → title: 12px
+    const titleToDividerGap = 10; // title → divider: 10px
+    const dividerToCertificateGap = 15; // divider → CERTIFICATE
+    const titleGap = 20; // CERTIFICATE → Paragraph
 
-    if (organizationLogoUrl) totalBlockHeight += 44 + logoGap;
-    if (organizationName) totalBlockHeight += SIZE_ORG + orgGap;
-    totalBlockHeight += SIZE_CONF + confGap;
-    totalBlockHeight += anchorHeight + anchorGap;
+    const ORG_ROW_H     = 50 + 6 + 11 * 2;   // maxLogo(50) + nameGap(6) + 2 lines(11*2)
+    const ORG_BOTTOM    = 0;
+    const orgSectionH   = conferenceOrgs.length > 0 ? ORG_ROW_H + ORG_BOTTOM : 0;
+
+    if (orgSectionH > 0) {
+      totalBlockHeight += orgSectionH;
+      totalBlockHeight += namesToTitleGap;
+    } else {
+      totalBlockHeight += 10;
+    }
+    
+    totalBlockHeight += SIZE_CONF + titleToDividerGap + 1 + dividerToCertificateGap; // 1 is divider thickness
     totalBlockHeight += SIZE_TITLE + titleGap;
     
     // Paragraph height: (N-1)*GAP_LINE + SIZE_BODY
     totalBlockHeight += ((bodyLines.length > 0 ? bodyLines.length - 1 : 0) * GAP_LINE) + SIZE_BODY;
 
-    // Center the whole unified block in available space, then bias upward by ~65px
-    let curY = (PAGE_H / 2) + (totalBlockHeight / 2) + 65;
+    // Center the whole unified block in available space, then bias upward significantly
+    // to bring header much closer to top border (-20 to -30px requested up)
+    let curY = (PAGE_H / 2) + (totalBlockHeight / 2) + 65; 
 
     /* -------------------------------------------------------------- */
     /*  1. HEADER SECTION (Unified Flow)                               */
     /* -------------------------------------------------------------- */
 
-    if (organizationLogoUrl) {
-      try {
-        const logoRes = await fetch(organizationLogoUrl);
-        if (logoRes.ok) {
-          const logoArrayBuf = await logoRes.arrayBuffer();
-          const logoBytes    = new Uint8Array(logoArrayBuf);
-          let logoImage;
-          try   { logoImage = await pdfDoc.embedPng(logoBytes); }
-          catch { logoImage = await pdfDoc.embedJpg(logoBytes); }
-          const logoDim = logoImage.scaleToFit(44, 44);
-          
-          curY -= logoDim.height;
-          page.drawImage(logoImage, {
-            x: centerX(PAGE_W, logoDim.width),
-            y: curY,
-            width: logoDim.width,
-            height: logoDim.height,
-          });
-          curY -= logoGap;
-        }
-      } catch (logoErr) {
-        console.warn("Could not embed organization logo:", logoErr);
-      }
-    }
-
-    if (organizationName) {
-      curY -= SIZE_ORG;
-      const orgW = fontBold.widthOfTextAtSize(organizationName, SIZE_ORG);
-      page.drawText(organizationName, {
-        x: centerX(PAGE_W, orgW),
-        y: curY,
-        size: SIZE_ORG,
-        font: fontBold,
-        color: COL_TEXT,
-      });
-      curY -= orgGap;
+    /* ---- Multi-organization section ---- */
+    if (conferenceOrgs.length > 0) {
+      const { endY } = await renderOrganizationLogos(
+        pdfDoc,
+        page,
+        fontBold,
+        conferenceOrgs,
+        curY
+      );
+      curY = endY;
+      
+      curY -= namesToTitleGap;
+    } else {
+      curY -= 10;
     }
 
     {
@@ -367,20 +505,21 @@ export async function POST(req: Request) {
         font: fontRegular,
         color: COL_SUB,
       });
-      curY -= confGap;
+      curY -= titleToDividerGap;
     }
-    
-    // Introduce Header Anchor divider (Decorative line)
-    curY -= anchorHeight;
-    const anchorWidth = 60; // short, centered elegant rule
-    const ax = centerX(PAGE_W, anchorWidth);
-    page.drawLine({
-      start: { x: ax, y: curY + 2 },
-      end:   { x: ax + anchorWidth, y: curY + 2 },
-      thickness: 1.5,
-      color: COL_GOLD,
-    });
-    curY -= anchorGap;
+
+    // Subtle divider under Conference Title
+    {
+      const anchorWidth = 40; 
+      const ax = centerX(PAGE_W, anchorWidth);
+      page.drawLine({
+        start: { x: ax, y: curY },
+        end:   { x: ax + anchorWidth, y: curY },
+        thickness: 1.0,
+        color: COL_GOLD,
+      });
+      curY -= dividerToCertificateGap;
+    }
 
     /* -------------------------------------------------------------- */
     /*  2. TITLE & CERTIFYING PARAGRAPH                                */
