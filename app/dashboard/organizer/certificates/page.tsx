@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
+import { getMyConferenceIds } from "@/lib/conference/getMyConferenceIds";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -124,6 +125,14 @@ export default function OrganizerCertificates() {
     if (!profile) return;
     setLoading(true);
 
+    const myIds = await getMyConferenceIds(profile.id);
+
+    if (myIds.length === 0) {
+      setRows([]);
+      setLoading(false);
+      return;
+    }
+
     const { data: papers, error } = await supabase
       .from("paper_submissions")
       .select(`
@@ -134,11 +143,10 @@ export default function OrganizerCertificates() {
         presented_at,
         conferences!inner (
           id,
-          title,
-          organizer_id
+          title
         )
       `)
-      .eq("conferences.organizer_id", profile.id)
+      .in("conference_id", myIds)
       .eq("status", "accepted")
       .order("created_at", { ascending: false });
 

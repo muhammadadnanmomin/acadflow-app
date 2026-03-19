@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 import { useOrganization } from "@/lib/organizations/useOrganization";
+import { getMyConferenceIds } from "@/lib/conference/getMyConferenceIds";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -157,12 +158,7 @@ export default function OrganizerPayments() {
     setLoading(true);
 
     /* ================= FETCH ORGANIZER CONFERENCES ================= */
-    const { data: myConferences } = await supabase
-      .from("conferences")
-      .select("id")
-      .eq("organizer_id", profile.id);
-
-    const confIds = myConferences?.map((c) => c.id) || [];
+    const confIds = await getMyConferenceIds(profile.id);
 
     if (confIds.length === 0) {
       setPayments([]);

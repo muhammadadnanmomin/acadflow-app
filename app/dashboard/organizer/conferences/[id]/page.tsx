@@ -17,6 +17,8 @@ import {
 
 import ShareConference from "@/components/shared/ShareConference";
 import SignatureManager from "@/components/signature/SignatureManager";
+import CoOrganizerManager from "@/components/conference/CoOrganizerManager";
+import { getMyConferenceIds } from "@/lib/conference/getMyConferenceIds";
 
 import {
   ArrowLeft,
@@ -105,11 +107,17 @@ export default function ConferenceDetails() {
   async function loadConference() {
     if (!profile || !id) return;
 
+    // Check multi-organizer access
+    const myIds = await getMyConferenceIds(profile.id);
+    if (!myIds.includes(id)) {
+      setPageLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("conferences")
       .select("*")
       .eq("id", id)
-      .eq("organizer_id", profile.id) // security
       .single();
 
     if (!error) {
@@ -671,6 +679,22 @@ export default function ConferenceDetails() {
           </div>
         </div>
         <SignatureManager conferenceId={id} />
+      </Card>
+
+      {/* ============================================================ */}
+      {/*  8. CO-ORGANIZERS                                            */}
+      {/* ============================================================ */}
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50">
+            <Users className="h-4 w-4 text-indigo-600" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Co-Organizers</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Manage who can collaborate on this conference</p>
+          </div>
+        </div>
+        <CoOrganizerManager conferenceId={id} />
       </Card>
 
       {/* ============================================================ */}

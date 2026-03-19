@@ -121,7 +121,7 @@ export async function sendPaymentConfirmationEmail(
 
       <p style="margin:24px 0 0;font-size:13px;color:#9ca3af;text-align:center;">
         You can download your receipt anytime from the
-        <a href="https://acadflow.com/dashboard/organizer/payments" style="color:#4f46e5;text-decoration:none;">Payments</a> page.
+        <a href="https://acadflow.in/dashboard/organizer/payments" style="color:#4f46e5;text-decoration:none;">Payments</a> page.
       </p>
     </div>
 

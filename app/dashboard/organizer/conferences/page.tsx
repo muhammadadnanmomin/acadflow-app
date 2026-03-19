@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 import { useOrganization } from "@/lib/organizations/useOrganization";
 import { usePlan } from "@/lib/plans/usePlan";
+import { getMyConferenceIds } from "@/lib/conference/getMyConferenceIds";
 import UpgradeModal from "@/components/upgrade/UpgradeModal";
 
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,8 @@ import {
   ExternalLink,
   Sparkles,
   Lock,
+  Crown,
+  UserCheck,
 } from "lucide-react";
 
 const supabase = createClient();
@@ -89,23 +92,63 @@ export default function OrganizerConferences() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [shareDialogConf, setShareDialogConf] = useState<{ id: string; title: string } | null>(null);
+  const [ownerConferenceIds, setOwnerConferenceIds] = useState<Set<string>>(new Set());
+  const [conferenceRoles, setConferenceRoles] = useState<Record<string, "owner" | "organizer">>({});
+  const [roleFilter, setRoleFilter] = useState<"all" | "owned" | "co-organized">("all");
 
   /* Load conferences */
   async function loadConferences() {
-    if (!profile || !organization) return;
+    if (!profile) return;
 
     setLoading(true);
+
+    const myIds = await getMyConferenceIds(profile.id, organization?.id);
+
+    if (myIds.length === 0) {
+      setConferences([]);
+      setLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from("conferences")
       .select("*")
-      .or(
-        `organizer_id.eq.${profile.id},organization_id.eq.${organization.id}`
-      )
+      .in("id", myIds)
       .order("created_at", { ascending: false });
 
     if (!error) {
       setConferences(data || []);
+
+      // Build role map for each conference
+      const ownedSet = new Set<string>();
+      const roles: Record<string, "owner" | "organizer"> = {};
+
+      (data || []).forEach((c: any) => {
+        if (c.organizer_id === profile.id) {
+          ownedSet.add(c.id);
+          roles[c.id] = "owner";
+        }
+      });
+
+      // Batch-fetch co-organizer roles (for conferences where user is NOT the owner)
+      const nonOwnedIds = (data || []).filter((c: any) => c.organizer_id !== profile.id).map((c: any) => c.id);
+
+      if (nonOwnedIds.length > 0) {
+        const { data: coOrgRows } = await supabase
+          .from("conference_organizers")
+          .select("conference_id, role")
+          .eq("user_id", profile.id)
+          .in("conference_id", nonOwnedIds);
+
+        (coOrgRows || []).forEach((row: any) => {
+          if (!roles[row.conference_id]) {
+            roles[row.conference_id] = row.role === "owner" ? "owner" : "organizer";
+          }
+        });
+      }
+
+      setOwnerConferenceIds(ownedSet);
+      setConferenceRoles(roles);
     }
 
     setLoading(false);
@@ -175,15 +218,28 @@ export default function OrganizerConferences() {
   const today = new Date().toISOString().split("T")[0];
 
   const filtered = useMemo(() => {
-    if (!searchQuery.trim()) return conferences;
-    const q = searchQuery.toLowerCase();
-    return conferences.filter(
-      (c) =>
-        c.title?.toLowerCase().includes(q) ||
-        c.short_name?.toLowerCase().includes(q) ||
-        c.venue?.toLowerCase().includes(q)
-    );
-  }, [conferences, searchQuery]);
+    let list = conferences;
+
+    // Role filter
+    if (roleFilter === "owned") {
+      list = list.filter((c) => ownerConferenceIds.has(c.id));
+    } else if (roleFilter === "co-organized") {
+      list = list.filter((c) => !ownerConferenceIds.has(c.id));
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (c) =>
+          c.title?.toLowerCase().includes(q) ||
+          c.short_name?.toLowerCase().includes(q) ||
+          c.venue?.toLowerCase().includes(q)
+      );
+    }
+
+    return list;
+  }, [conferences, searchQuery, roleFilter, ownerConferenceIds]);
 
   /* ---------------------------------------------------------------- */
   /*  Render                                                           */
@@ -244,16 +300,50 @@ export default function OrganizerConferences() {
       )}
 
       {/* ============================================================ */}
-      {/*  Search Bar                                                   */}
+      {/*  Search Bar + Filter Tabs                                      */}
       {/* ============================================================ */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          placeholder="Search by title, short name, or venue…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search by title, short name, or venue…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Role filter tabs */}
+        <div className="flex items-center gap-1 rounded-lg border bg-gray-50 p-1 w-fit">
+          {[
+            { key: "all" as const, label: "All" },
+            { key: "owned" as const, label: "Owned", icon: <Crown className="h-3 w-3" /> },
+            { key: "co-organized" as const, label: "Co-Organized", icon: <UserCheck className="h-3 w-3" /> },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setRoleFilter(tab.key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${roleFilter === tab.key
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+                }`}
+            >
+              {tab.icon}
+              {tab.label}
+              {tab.key !== "all" && (
+                <span className={`text-[10px] rounded-full px-1.5 py-0.5 ${roleFilter === tab.key
+                    ? "bg-gray-100 text-gray-700"
+                    : "bg-gray-200/60 text-gray-400"
+                  }`}>
+                  {tab.key === "owned"
+                    ? conferences.filter((c) => ownerConferenceIds.has(c.id)).length
+                    : conferences.filter((c) => !ownerConferenceIds.has(c.id)).length
+                  }
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ============================================================ */}
@@ -346,6 +436,22 @@ export default function OrganizerConferences() {
                       {c.short_name && (
                         <Badge variant="secondary" className="text-xs shrink-0">
                           {c.short_name}
+                        </Badge>
+                      )}
+
+                      {/* Role badge */}
+                      {ownerConferenceIds.has(c.id) ? (
+                        <Badge className="text-[10px] shrink-0 bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100 gap-1">
+                          <Crown className="h-2.5 w-2.5" />
+                          Owner
+                        </Badge>
+                      ) : (
+                        <Badge
+                          className="text-[10px] shrink-0 bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 gap-1"
+                          title="You are a co-organizer of this conference"
+                        >
+                          <UserCheck className="h-2.5 w-2.5" />
+                          Co-Organizer
                         </Badge>
                       )}
 
@@ -447,26 +553,29 @@ export default function OrganizerConferences() {
 
                 {/* ---- Right: Action Buttons ---- */}
                 <div className="flex flex-wrap gap-2 shrink-0 sm:pt-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      togglePublish(c.id, !c.is_published)
-                    }
-                    className="gap-1.5"
-                  >
-                    {c.is_published ? (
-                      <>
-                        <EyeOff className="h-3.5 w-3.5" />
-                        Unpublish
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="h-3.5 w-3.5" />
-                        Publish
-                      </>
-                    )}
-                  </Button>
+                  {/* Publish/Unpublish — owner only */}
+                  {ownerConferenceIds.has(c.id) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        togglePublish(c.id, !c.is_published)
+                      }
+                      className="gap-1.5"
+                    >
+                      {c.is_published ? (
+                        <>
+                          <EyeOff className="h-3.5 w-3.5" />
+                          Unpublish
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-3.5 w-3.5" />
+                          Publish
+                        </>
+                      )}
+                    </Button>
+                  )}
 
                   <Link
                     href={`/dashboard/organizer/conferences/${c.id}/edit`}
@@ -477,14 +586,16 @@ export default function OrganizerConferences() {
                     </Button>
                   </Link>
 
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => deleteConference(c.id)}
-                    className="gap-1.5"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {ownerConferenceIds.has(c.id) && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => deleteConference(c.id)}
+                      className="gap-1.5"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
 
               </div>

@@ -228,7 +228,7 @@ export function generateReceipt(data: ReceiptData): void {
     );
     y += 5;
     doc.text(
-        "AcadFlow — Academic Conference Management Platform  •  acadflow.com",
+        "AcadFlow — Academic Conference Management Platform  •  acadflow.in",
         pageWidth / 2,
         y,
         { align: "center" }

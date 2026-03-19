@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 import { useOrganization } from "@/lib/organizations/useOrganization";
+import { getMyConferenceIds } from "@/lib/conference/getMyConferenceIds";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -71,18 +72,19 @@ export default function SchedulePage() {
         if (!profile) return;
 
         async function loadConferences() {
-            const orgIds = organization ? [organization.id] : [];
-            let query = supabase
-                .from("conferences")
-                .select("id, title")
-                .order("created_at", { ascending: false });
+            const myIds = await getMyConferenceIds(profile!.id, organization?.id);
 
-            query = query.or(`organizer_id.eq.${profile!.id}`);
-            if (orgIds.length > 0) {
-                query = query.or(`organization_id.in.(${orgIds.join(",")})`);
+            if (myIds.length === 0) {
+                setConferences([]);
+                setLoading(false);
+                return;
             }
 
-            const { data } = await query;
+            const { data } = await supabase
+                .from("conferences")
+                .select("id, title")
+                .in("id", myIds)
+                .order("created_at", { ascending: false });
             setConferences(data || []);
             if (data?.length && !selectedConferenceId) {
                 setSelectedConferenceId(data[0].id);

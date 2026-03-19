@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 import { useOrganization } from "@/lib/organizations/useOrganization";
 import { useOrgRole } from "@/lib/organizations/useOrgRole";
+import { getMyConferenceIds } from "@/lib/conference/getMyConferenceIds";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -110,18 +111,16 @@ export default function OrganizerReviewers() {
     setLoading(true);
 
     try {
-      if (!organization) return;
+      const myIds = await getMyConferenceIds(profile.id, organization?.id);
 
-      const { data: confs, error: confError } = await supabase
-        .from("conferences")
-        .select("id, title")
-        .or(
-          `organizer_id.eq.${profile.id},organization_id.eq.${organization.id}`
-        );
+      const confs = myIds.length > 0
+        ? (await supabase
+            .from("conferences")
+            .select("id, title")
+            .in("id", myIds)).data || []
+        : [];
 
-      if (confError) throw confError;
-
-      setConferences(confs || []);
+      setConferences(confs);
 
       const conferenceIds = (confs || []).map(c => c.id);
 

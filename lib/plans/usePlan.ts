@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 import { useOrganization } from "@/lib/organizations/useOrganization";
+import { getMyConferenceIds } from "@/lib/conference/getMyConferenceIds";
 import {
     type PlanType,
     PLAN_LIMITS,
@@ -88,14 +89,8 @@ export function usePlan(conferenceId?: string): PlanInfo {
             const subLimit: number | null = PLAN_LIMITS[planType]?.submissions ?? 150;
 
             /* ---- Conference count ---- */
-            const { count: confCount } = await supabase
-                .from("conferences")
-                .select("*", { count: "exact", head: true })
-                .or(
-                    `organizer_id.eq.${profile!.id},organization_id.eq.${organization.id}`
-                );
-
-            const conferencesUsed = confCount || 0;
+            const myIds = await getMyConferenceIds(profile!.id, organization?.id);
+            const conferencesUsed = myIds.length;
 
             /* ---- Submission count ---- */
             let submissionsUsed = 0;
@@ -109,19 +104,11 @@ export function usePlan(conferenceId?: string): PlanInfo {
                 submissionsUsed = count || 0;
             } else {
                 // Total across all org conferences (for dashboard display)
-                const { data: conferences } = await supabase
-                    .from("conferences")
-                    .select("id")
-                    .or(
-                        `organizer_id.eq.${profile!.id},organization_id.eq.${organization.id}`
-                    );
-
-                if (conferences && conferences.length > 0) {
-                    const ids = conferences.map((c: any) => c.id);
+                if (myIds.length > 0) {
                     const { count } = await supabase
                         .from("paper_submissions")
                         .select("*", { count: "exact", head: true })
-                        .in("conference_id", ids);
+                        .in("conference_id", myIds);
                     submissionsUsed = count || 0;
                 }
             }

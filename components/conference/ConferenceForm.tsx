@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
+import { getMyConferenceIds } from "@/lib/conference/getMyConferenceIds";
 import { usePlan } from "@/lib/plans/usePlan";
 import UpgradeModal from "@/components/upgrade/UpgradeModal";
 import { useOrganization } from "@/lib/organizations/useOrganization";
@@ -271,11 +272,22 @@ export default function ConferenceForm({
     async function loadConference() {
         if (!profile || !conferenceId) return;
 
+        // Check multi-organizer access
+        const myIds = await getMyConferenceIds(profile.id);
+        if (!myIds.includes(conferenceId!)) {
+            toast({
+                variant: "destructive",
+                title: "Not found",
+                description: "Conference not found or you do not have access.",
+            });
+            router.push("/dashboard/organizer/conferences");
+            return;
+        }
+
         const { data, error } = await supabase
             .from("conferences")
             .select("*")
             .eq("id", conferenceId)
-            .eq("organizer_id", profile.id)
             .single();
 
         if (error || !data) {
@@ -757,6 +769,13 @@ export default function ConferenceForm({
                     return;
                 }
 
+                // Auto-insert creator as owner in conference_organizers
+                await supabase.from("conference_organizers").insert({
+                    conference_id: inserted.id,
+                    user_id: profile.id,
+                    role: "owner",
+                });
+
                 /* --- Upsert category fees --- */
                 if (paymentRequired) {
                     const feeRows = FEE_CATEGORIES.map((cat) => {
@@ -816,8 +835,7 @@ export default function ConferenceForm({
                 const { error } = await supabase
                     .from("conferences")
                     .update(payload)
-                    .eq("id", conferenceId!)
-                    .eq("organizer_id", profile.id);
+                    .eq("id", conferenceId!);
 
                 if (error) {
                     toast({

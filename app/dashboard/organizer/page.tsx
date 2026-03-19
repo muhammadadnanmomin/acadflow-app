@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 import { useOrganization } from "@/lib/organizations/useOrganization";
 import { usePlan } from "@/lib/plans/usePlan";
+import { getMyConferenceIds } from "@/lib/conference/getMyConferenceIds";
 import { formatLimit, PLAN_LABELS, type PlanType } from "@/lib/config/pricing";
 import UpgradeModal from "@/components/upgrade/UpgradeModal";
 
@@ -90,21 +91,18 @@ export default function OrganizerDashboard() {
       const today = new Date().toISOString().split("T")[0];
 
       /* ---- Conferences ---- */
-      const orFilter = organization
-        ? `organizer_id.eq.${profile.id},organization_id.eq.${organization.id}`
-        : `organizer_id.eq.${profile.id}`;
+      const myIds = await getMyConferenceIds(profile.id, organization?.id);
+
+      if (myIds.length === 0) {
+        setLoading(false);
+        return;
+      }
 
       const { data: conferences, error } = await supabase
         .from("conferences")
         .select("*")
-        .or(orFilter)
+        .in("id", myIds)
         .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error(error);
-        setLoading(false);
-        return;
-      }
 
       const allConfs = conferences || [];
       const conferenceIds = allConfs.map((c) => c.id);

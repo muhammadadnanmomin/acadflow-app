@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
+import { getMyConferenceIds } from "@/lib/conference/getMyConferenceIds";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -101,12 +102,7 @@ export default function OrganizerSubmissionsSummary() {
     setLoading(true);
 
     try {
-      const { data: conferences } = await supabase
-        .from("conferences")
-        .select("id")
-        .eq("organizer_id", profile.id);
-
-      const ids = conferences?.map(c => c.id) || [];
+      const ids = await getMyConferenceIds(profile.id);
 
       const reviewerMap = await loadReviewers(ids);
       setReviewersByConference(reviewerMap);

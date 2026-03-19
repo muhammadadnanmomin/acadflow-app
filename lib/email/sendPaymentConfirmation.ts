@@ -124,7 +124,7 @@ export async function sendPaymentConfirmation(
 
       <p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;">
         A receipt for this payment can be downloaded from your
-        <a href="https://acadflow.com/dashboard/participant/payments" style="color:#4f46e5;text-decoration:none;font-weight:500;">AcadFlow Dashboard</a>.
+        <a href="https://acadflow.in/dashboard/participant/payments" style="color:#4f46e5;text-decoration:none;font-weight:500;">AcadFlow Dashboard</a>.
       </p>
     </div>
 
