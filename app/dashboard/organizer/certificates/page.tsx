@@ -11,11 +11,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import {
   Award,
   Download,
   FileText,
+  FileType2,
   User,
   Calendar,
   CheckCircle,
@@ -29,6 +36,7 @@ import {
   Mic,
   Users,
   ShieldCheck,
+  ChevronDown,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -111,6 +119,7 @@ export default function OrganizerCertificates() {
   const [rows, setRows] = useState<AuthorCertRow[]>([]);
   const [bulkGenerating, setBulkGenerating] = useState(false);
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
+  const [downloadingDocxKeys, setDownloadingDocxKeys] = useState<Set<string>>(new Set());
 
   /* Filters */
   const [searchQuery, setSearchQuery] = useState("");
@@ -324,6 +333,53 @@ export default function OrganizerCertificates() {
     }
 
     setBulkGenerating(false);
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Download DOCX for a specific author certificate                  */
+  /* ---------------------------------------------------------------- */
+
+  async function handleDownloadDocx(row: AuthorCertRow) {
+    const key = `${row.paperId}_${row.authorId}`;
+    setDownloadingDocxKeys((prev) => new Set(prev).add(key));
+    try {
+      const res = await fetch("/api/generate-certificate?format=docx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paperId: row.paperId,
+          authorId: row.authorId,
+          authorName: row.authorName,
+          conferenceId: row.conferenceId,
+          conferenceTitle: row.conferenceTitle,
+          paperTitle: row.paperTitle || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to generate DOCX");
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${(row.conferenceTitle || "certificate").replace(/\s+/g, "_")}_${row.authorName.replace(/\s+/g, "_")}_certificate.docx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error("DOCX download error:", err);
+      alert(err.message || "Could not download DOCX. Please try again.");
+    } finally {
+      setDownloadingDocxKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
   }
 
   /* ---------------------------------------------------------------- */
@@ -640,12 +696,42 @@ export default function OrganizerCertificates() {
                                         Preview
                                       </a>
                                     </Button>
-                                    <Button size="sm" variant="outline" asChild>
-                                      <a href={a.certificateUrl} download>
-                                        <Download className="h-4 w-4 mr-1" />
-                                        Download
-                                      </a>
-                                    </Button>
+                                    {/* PDF + DOCX split dropdown */}
+                                    <div className="flex rounded-md shadow-sm">
+                                      <Button size="sm" variant="outline" className="rounded-r-none border-r border-border" asChild>
+                                        <a href={a.certificateUrl} download>
+                                          <FileText className="h-4 w-4 mr-1" />
+                                          PDF
+                                        </a>
+                                      </Button>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button size="sm" variant="outline" className="rounded-l-none px-2" aria-label="More download options">
+                                            <ChevronDown className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="min-w-[160px]">
+                                          <DropdownMenuItem asChild>
+                                            <a href={a.certificateUrl} download className="flex items-center gap-2 cursor-pointer">
+                                              <FileText className="h-4 w-4 text-red-500" />
+                                              Download PDF
+                                            </a>
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => handleDownloadDocx(a)}
+                                            disabled={downloadingDocxKeys.has(`${a.paperId}_${a.authorId}`)}
+                                            className="flex items-center gap-2 cursor-pointer"
+                                          >
+                                            {downloadingDocxKeys.has(`${a.paperId}_${a.authorId}`) ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <FileType2 className="h-4 w-4 text-blue-500" />
+                                            )}
+                                            {downloadingDocxKeys.has(`${a.paperId}_${a.authorId}`) ? "Generating…" : "Download DOCX"}
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
                                     {a.verificationCode && (
                                       <Button size="sm" variant="outline" asChild>
                                         <a
@@ -713,11 +799,42 @@ export default function OrganizerCertificates() {
                                     <Eye className="h-4 w-4 mr-1" /> Preview
                                   </a>
                                 </Button>
-                                <Button size="sm" variant="outline" asChild>
-                                  <a href={a.certificateUrl} download>
-                                    <Download className="h-4 w-4 mr-1" /> Download
-                                  </a>
-                                </Button>
+                                {/* PDF + DOCX split dropdown */}
+                                <div className="flex rounded-md shadow-sm">
+                                  <Button size="sm" variant="outline" className="rounded-r-none border-r border-border" asChild>
+                                    <a href={a.certificateUrl} download>
+                                      <FileText className="h-4 w-4 mr-1" />
+                                      PDF
+                                    </a>
+                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button size="sm" variant="outline" className="rounded-l-none px-2" aria-label="More download options">
+                                        <ChevronDown className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="min-w-[160px]">
+                                      <DropdownMenuItem asChild>
+                                        <a href={a.certificateUrl} download className="flex items-center gap-2 cursor-pointer">
+                                          <FileText className="h-4 w-4 text-red-500" />
+                                          Download PDF
+                                        </a>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleDownloadDocx(a)}
+                                        disabled={downloadingDocxKeys.has(`${a.paperId}_${a.authorId}`)}
+                                        className="flex items-center gap-2 cursor-pointer"
+                                      >
+                                        {downloadingDocxKeys.has(`${a.paperId}_${a.authorId}`) ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <FileType2 className="h-4 w-4 text-blue-500" />
+                                        )}
+                                        {downloadingDocxKeys.has(`${a.paperId}_${a.authorId}`) ? "Generating…" : "Download DOCX"}
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
                                 {a.verificationCode && (
                                   <Button size="sm" variant="outline" asChild>
                                     <a

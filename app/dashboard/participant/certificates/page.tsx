@@ -3,17 +3,17 @@
 import { useEffect, useState, useMemo } from "react";
 
 import { createClient } from "@/lib/supabase/client";
-import { useProfile } from "@/lib/auth/useProfile";
+import { useProfile }   from "@/lib/auth/useProfile";
 
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Card }     from "@/components/ui/card";
+import { Button }   from "@/components/ui/button";
+import { Badge }    from "@/components/ui/badge";
+import { Input }    from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import {
   Award,
-  Download,
+  FileText,
   Calendar,
   CheckCircle,
   Clock,
@@ -44,20 +44,16 @@ function formatDate(date: string | null | undefined): string {
 export default function ParticipantCertificatesPage() {
   const { profile } = useProfile();
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]           = useState(true);
   const [certificates, setCertificates] = useState<any[]>([]);
 
-  /* Filters */
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  /* Load certificates */
   async function loadData() {
     if (!profile) return;
-
     setLoading(true);
 
-    // Fetch certificates where the author email matches the current user email
     const { data, error } = await supabase
       .from("certificates")
       .select(`
@@ -108,21 +104,17 @@ export default function ParticipantCertificatesPage() {
     return formatDate(certificates[0]?.issued_at);
   }, [certificates]);
 
-  /* Client-side filtering */
   const filteredCertificates = useMemo(() => {
     return certificates.filter((c) => {
-      const conf = c.conferences;
+      const conf    = c.conferences;
       const hasFile = !!c.file_url;
 
-      /* Status filter */
-      if (statusFilter === "available" && !hasFile) return false;
-      if (statusFilter === "not_available" && hasFile) return false;
+      if (statusFilter === "available"     && !hasFile) return false;
+      if (statusFilter === "not_available" &&  hasFile) return false;
 
-      /* Search by conference title */
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const titleMatch = conf?.title?.toLowerCase().includes(q);
-        if (!titleMatch) return false;
+        if (!conf?.title?.toLowerCase().includes(q)) return false;
       }
 
       return true;
@@ -136,9 +128,7 @@ export default function ParticipantCertificatesPage() {
   return (
     <div className="space-y-6 max-w-6xl">
 
-      {/* ============================================================ */}
-      {/*  Header                                                       */}
-      {/* ============================================================ */}
+      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="bg-indigo-50 p-2.5 rounded-lg">
           <Award className="h-6 w-6 text-indigo-600" />
@@ -151,9 +141,7 @@ export default function ParticipantCertificatesPage() {
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/*  Summary Stats                                                */}
-      {/* ============================================================ */}
+      {/* Summary Stats */}
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard
           title="Total Certificates"
@@ -171,9 +159,7 @@ export default function ParticipantCertificatesPage() {
         />
       </div>
 
-      {/* ============================================================ */}
-      {/*  Filters                                                      */}
-      {/* ============================================================ */}
+      {/* Filters */}
       {!loading && certificates.length > 0 && (
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-700">
@@ -182,7 +168,6 @@ export default function ParticipantCertificatesPage() {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
-            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
@@ -193,7 +178,6 @@ export default function ParticipantCertificatesPage() {
               />
             </div>
 
-            {/* Status */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -207,9 +191,7 @@ export default function ParticipantCertificatesPage() {
         </Card>
       )}
 
-      {/* ============================================================ */}
-      {/*  Loading Skeleton                                             */}
-      {/* ============================================================ */}
+      {/* Loading Skeleton */}
       {loading && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -232,9 +214,7 @@ export default function ParticipantCertificatesPage() {
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/*  Empty State                                                  */}
-      {/* ============================================================ */}
+      {/* Empty State */}
       {!loading && certificates.length === 0 && (
         <Card className="p-12 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-50">
@@ -250,16 +230,14 @@ export default function ParticipantCertificatesPage() {
         </Card>
       )}
 
-      {/* No results from filter */}
+      {/* No filter results */}
       {!loading && certificates.length > 0 && filteredCertificates.length === 0 && (
         <p className="text-sm text-gray-500 py-8 text-center">
           No certificates match the current filters.
         </p>
       )}
 
-      {/* ============================================================ */}
-      {/*  Certificate Cards                                            */}
-      {/* ============================================================ */}
+      {/* Certificate Cards */}
       {!loading && filteredCertificates.length > 0 && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredCertificates.map((c) => (
@@ -307,12 +285,12 @@ function StatCard({
 /* ------------------------------------------------------------------ */
 
 function CertificateCard({ certificate: c }: { certificate: any }) {
-  const conf = c.conferences;
+  const conf    = c.conferences;
   const hasFile = !!c.file_url;
 
   return (
     <Card className="p-5 space-y-4 hover:shadow-md transition-shadow">
-      {/* Top row — icon, title, badge */}
+      {/* Top row */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2 min-w-0">
           <Award className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
@@ -334,46 +312,40 @@ function CertificateCard({ certificate: c }: { certificate: any }) {
         )}
       </div>
 
-      {/* Meta row — conference dates */}
+      {/* Conference dates */}
       <div className="flex items-center gap-2 text-sm text-gray-500">
         <Calendar className="h-4 w-4 shrink-0" />
         {formatDate(conf?.start_date)} → {formatDate(conf?.end_date)}
       </div>
 
       {/* Paper title */}
-      {(c as any).paper_submissions?.title && (
+      {c.paper_submissions?.title && (
         <p className="text-sm text-gray-600">
           <span className="text-gray-400">Paper:</span>{" "}
-          <span className="font-medium">{(c as any).paper_submissions.title}</span>
+          <span className="font-medium">{c.paper_submissions.title}</span>
         </p>
       )}
 
       {/* Issued date */}
       <p className="text-sm text-gray-500">
         Certificate issued on:{" "}
-        <span className="text-gray-700 font-medium">
-          {formatDate(c.issued_at)}
-        </span>
+        <span className="text-gray-700 font-medium">{formatDate(c.issued_at)}</span>
       </p>
 
-      {/* Action row */}
+      {/* Action row — participants can only download PDF */}
       <div className="flex justify-end gap-2 pt-2 border-t">
         {hasFile ? (
           <>
             <Button size="sm" variant="outline" asChild>
-              <a
-                href={c.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={c.file_url} target="_blank" rel="noopener noreferrer">
                 <Eye className="h-4 w-4 mr-1" />
                 Preview
               </a>
             </Button>
             <Button size="sm" asChild>
               <a href={c.file_url} download>
-                <Download className="h-4 w-4 mr-1" />
-                Download
+                <FileText className="h-4 w-4 mr-1" />
+                Download PDF
               </a>
             </Button>
           </>
