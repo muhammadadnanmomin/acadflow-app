@@ -518,7 +518,14 @@ export default function ConferenceExplorer({ conferences }: Props) {
                                         {org && (
                                             <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
                                                 <Building2 className="h-3 w-3" />
-                                                Hosted by {org.name}
+                                                Hosted by{" "}
+                                                <a
+                                                    href={`/org/${org.slug}`}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="text-indigo-500 hover:text-indigo-700 hover:underline transition-colors"
+                                                >
+                                                    {org.name}
+                                                </a>
                                             </p>
                                         )}
                                     </div>

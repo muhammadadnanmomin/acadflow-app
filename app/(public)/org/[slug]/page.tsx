@@ -94,92 +94,97 @@ export default async function OrganizationProfilePage({
     return (
         <div className="mx-auto max-w-6xl px-4 py-10 space-y-8">
             {/* ───── Organization Profile Card ───── */}
-            <Card className="p-6 md:p-8">
-                <div className="flex flex-col md:flex-row gap-6">
-                    {/* Logo / Avatar */}
-                    {org.logo_url ? (
-                        <img
-                            src={org.logo_url}
-                            alt={org.name}
-                            className="h-24 w-24 rounded-xl object-cover border shrink-0"
-                        />
-                    ) : (
-                        <div className="h-24 w-24 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                            <span className="text-4xl font-bold text-primary">
-                                {org.name.charAt(0).toUpperCase()}
-                            </span>
-                        </div>
-                    )}
+            <Card className="overflow-hidden">
+                {/* Accent strip */}
+                <div className="h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-400" />
 
-                    {/* Info */}
-                    <div className="flex-1 space-y-3">
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-                                {org.name}
-                            </h1>
-
-                            {org.country && (
-                                <div className="flex items-center gap-1.5 mt-1 text-gray-500 text-sm">
-                                    <MapPin className="h-4 w-4" />
-                                    {org.country}
-                                </div>
-                            )}
-                        </div>
-
-                        {org.description && (
-                            <p className="text-gray-600 leading-relaxed max-w-2xl">
-                                {org.description}
-                            </p>
+                <div className="p-6 md:p-8">
+                    <div className="flex flex-col md:flex-row gap-6">
+                        {/* Logo / Avatar */}
+                        {org.logo_url ? (
+                            <img
+                                src={org.logo_url}
+                                alt={org.name}
+                                className="h-24 w-24 rounded-xl object-cover border shrink-0"
+                            />
+                        ) : (
+                            <div className="h-24 w-24 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+                                <span className="text-4xl font-bold text-indigo-600">
+                                    {org.name.charAt(0).toUpperCase()}
+                                </span>
+                            </div>
                         )}
 
-                        {/* Links */}
-                        <div className="flex flex-wrap gap-3 pt-1">
-                            {org.website && (
-                                <Button variant="outline" size="sm" asChild>
-                                    <a
-                                        href={org.website}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        <Globe className="h-4 w-4" />
-                                        Visit Website
-                                    </a>
-                                </Button>
+                        {/* Info */}
+                        <div className="flex-1 space-y-3">
+                            <div>
+                                <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+                                    {org.name}
+                                </h1>
+
+                                {org.country && (
+                                    <div className="flex items-center gap-1.5 mt-1 text-gray-500 text-sm">
+                                        <MapPin className="h-4 w-4" />
+                                        {org.country}
+                                    </div>
+                                )}
+                            </div>
+
+                            {org.description && (
+                                <p className="text-gray-600 leading-relaxed max-w-2xl">
+                                    {org.description}
+                                </p>
                             )}
 
-                            {org.linkedin_url && (
-                                <Button variant="outline" size="sm" asChild>
-                                    <a
-                                        href={org.linkedin_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        <Linkedin className="h-4 w-4" />
-                                        LinkedIn
-                                    </a>
-                                </Button>
-                            )}
-                        </div>
-                    </div>
+                            {/* Links */}
+                            <div className="flex flex-wrap gap-3 pt-1">
+                                {org.website && (
+                                    <Button variant="outline" size="sm" asChild>
+                                        <a
+                                            href={org.website}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            <Globe className="h-4 w-4" />
+                                            Visit Website
+                                        </a>
+                                    </Button>
+                                )}
 
-                    {/* Stats */}
-                    <div className="flex md:flex-col gap-4 md:gap-3 md:items-end md:text-right shrink-0">
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <Building2 className="h-4 w-4" />
-                            <span>
-                                Since{" "}
-                                {new Date(org.created_at).toLocaleDateString("en-IN", {
-                                    month: "short",
-                                    year: "numeric",
-                                })}
-                            </span>
+                                {org.linkedin_url && (
+                                    <Button variant="outline" size="sm" asChild>
+                                        <a
+                                            href={org.linkedin_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            <Linkedin className="h-4 w-4" />
+                                            LinkedIn
+                                        </a>
+                                    </Button>
+                                )}
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <Users className="h-4 w-4" />
-                            <span>
-                                {conferences?.length || 0} conference
-                                {(conferences?.length || 0) !== 1 && "s"}
-                            </span>
+
+                        {/* Stats */}
+                        <div className="flex md:flex-col gap-4 md:gap-3 md:items-end md:text-right shrink-0">
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <Building2 className="h-4 w-4" />
+                                <span>
+                                    Since{" "}
+                                    {new Date(org.created_at).toLocaleDateString("en-IN", {
+                                        month: "short",
+                                        year: "numeric",
+                                    })}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <Users className="h-4 w-4" />
+                                <span>
+                                    {conferences?.length || 0} conference
+                                    {(conferences?.length || 0) !== 1 && "s"}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -218,7 +223,7 @@ export default async function OrganizationProfilePage({
                                 <Link
                                     key={c.id}
                                     href={`/conferences/${c.id}`}
-                                    className="group rounded-xl border bg-white shadow-sm transition hover:shadow-lg flex flex-col overflow-hidden"
+                                    className="group rounded-xl border bg-white shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 flex flex-col overflow-hidden"
                                 >
                                     <div className="p-5 flex flex-col flex-1">
                                         {/* Badges */}
