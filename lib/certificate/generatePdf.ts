@@ -1,11 +1,11 @@
 /* ================================================================
    AcadFlow — PDF Certificate Generator
-   Extracted from app/api/generate-certificate/route.ts
+   Supports multiple certificate types (participation, best_paper).
    ================================================================ */
 
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import QRCode from "qrcode";
-import { CertificateData } from "./types";
+import { CertificateData, CertificateType } from "./types";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -24,6 +24,7 @@ const COL_GOLD    = rgb(0.72, 0.53, 0.04);  // gold accent
 const COL_TEXT    = rgb(0.12, 0.12, 0.14);  // main text
 const COL_SUB     = rgb(0.4,  0.4,  0.45);  // secondary text
 const COL_BG      = rgb(0.98, 0.97, 0.94);  // warm background
+const COL_CRIMSON = rgb(0.55, 0.0, 0.0);    // best paper emphasis
 
 /* ------------------------------------------------------------------ */
 /*  Internal helpers                                                   */
@@ -99,6 +100,85 @@ function wrapAtoms(atoms: TextAtom[], maxWidth: number) {
 
   return lines;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Body-text segment builders per certificate type                    */
+/* ------------------------------------------------------------------ */
+
+function buildParticipationSegments(data: CertificateData): TextSegment[] {
+  const segments: TextSegment[] = [
+    { text: "This is to certify that " },
+    { text: data.authorName || "Participant", isBold: true },
+  ];
+  if (data.authorAffiliation) {
+    segments.push({ text: " from " });
+    segments.push({ text: data.authorAffiliation, isBold: true });
+  }
+  segments.push({ text: " has presented a paper " });
+  if (data.paperTitle) {
+    segments.push({ text: `entitled \u201C` });
+    segments.push({ text: data.paperTitle, isBold: true });
+    segments.push({ text: `\u201D ` });
+  }
+  segments.push({ text: "at the " });
+  segments.push({ text: data.conferenceTitle });
+  if (data.conferenceDates) {
+    segments.push({ text: ` held during ${data.conferenceDates}.` });
+  } else {
+    segments.push({ text: "." });
+  }
+  return segments;
+}
+
+function buildBestPaperSegments(data: CertificateData): TextSegment[] {
+  const segments: TextSegment[] = [
+    { text: "This is to certify that the paper" },
+  ];
+  if (data.paperTitle) {
+    segments.push({ text: ` entitled \u201C` });
+    segments.push({ text: data.paperTitle, isBold: true });
+    segments.push({ text: `\u201D` });
+  }
+  segments.push({ text: " by " });
+  segments.push({ text: data.authorName || "Participant", isBold: true });
+  if (data.authorAffiliation) {
+    segments.push({ text: " from " });
+    segments.push({ text: data.authorAffiliation, isBold: true });
+  }
+  segments.push({ text: ` has been selected as the ` });
+  segments.push({ text: "Best Paper", isBold: true });
+  segments.push({ text: ` at the ${data.conferenceTitle}` });
+  if (data.conferenceDates) {
+    segments.push({ text: ` held during ${data.conferenceDates}` });
+  }
+  segments.push({ text: " for its outstanding contribution to the field." });
+  return segments;
+}
+
+const SEGMENT_BUILDERS: Record<CertificateType, (data: CertificateData) => TextSegment[]> = {
+  participation: buildParticipationSegments,
+  best_paper: buildBestPaperSegments,
+};
+
+/* ------------------------------------------------------------------ */
+/*  Title config per type                                              */
+/* ------------------------------------------------------------------ */
+
+interface TitleConfig {
+  text: string;
+  color: typeof COL_PRIMARY;
+  size: number;
+}
+
+const TITLE_CONFIG: Record<CertificateType, TitleConfig> = {
+  participation: { text: "CERTIFICATE", color: COL_PRIMARY, size: 40 },
+  best_paper: { text: "BEST PAPER AWARD", color: COL_CRIMSON, size: 34 },
+};
+
+const DEFAULT_AWARD_TEXT: Partial<Record<CertificateType, string>> = {
+  best_paper:
+    "This paper has been selected as the Best Paper for its outstanding contribution.",
+};
 
 /* ------------------------------------------------------------------ */
 /*  Multi-org logo renderer                                            */
@@ -195,12 +275,9 @@ async function renderOrganizationLogos(
 /*  Main export                                                        */
 /* ------------------------------------------------------------------ */
 
-/**
- * Generates a PDF certificate and returns the raw bytes.
- * Upload + DB record are handled by the API route, not here.
- */
 export async function generateCertificatePdf(data: CertificateData): Promise<Uint8Array> {
   const {
+    certificateType = "participation",
     authorName,
     authorAffiliation,
     paperTitle,
@@ -210,6 +287,7 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
     issuedAt,
     conferenceOrgs,
     conferenceSignatures,
+    awardText,
   } = data;
 
   const pdfDoc = await PDFDocument.create();
@@ -222,47 +300,27 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
   page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: COL_BG });
 
   /* Border */
+  const borderColor = certificateType === "best_paper" ? COL_CRIMSON : COL_GOLD;
   page.drawRectangle({
     x: MARGIN, y: MARGIN,
     width: PAGE_W - MARGIN * 2, height: PAGE_H - MARGIN * 2,
-    borderColor: COL_GOLD,
-    borderWidth: 1.5,
+    borderColor,
+    borderWidth: certificateType === "best_paper" ? 2.0 : 1.5,
   });
 
   /* ---- Formatting constants ---- */
-  const SIZE_ORG  = 18;
-  const SIZE_CONF = 12;
-  const SIZE_TITLE = 40;
+  const titleConfig = TITLE_CONFIG[certificateType] ?? TITLE_CONFIG.participation;
+  const SIZE_CONF  = 12;
   const SIZE_BODY  = 15;
   const SIZE_SIG   = 10;
   const SIZE_FOOT  = 9;
+  const SIZE_AWARD = 11;
   const BODY_MAX_W = 440;
   const GAP_LINE   = 20;
 
   /* ---- Prepare body text segments ---- */
-  const nameText   = authorName || "Participant";
-  const segments: TextSegment[] = [
-    { text: "This is to certify that " },
-    { text: nameText, isBold: true },
-  ];
-  if (authorAffiliation) {
-    segments.push({ text: " from " });
-    segments.push({ text: authorAffiliation, isBold: true });
-  }
-  segments.push({ text: " has presented a paper " });
-  if (paperTitle) {
-    segments.push({ text: `entitled \u201C` });
-    segments.push({ text: paperTitle, isBold: true });
-    segments.push({ text: `\u201D ` });
-  }
-  segments.push({ text: "at the " });
-  segments.push({ text: conferenceTitle, isBold: false });
-  if (conferenceDates) {
-    segments.push({ text: ` held during ${conferenceDates}.` });
-  } else {
-    segments.push({ text: "." });
-  }
-
+  const segmentBuilder = SEGMENT_BUILDERS[certificateType] ?? SEGMENT_BUILDERS.participation;
+  const segments = segmentBuilder(data);
   const atoms     = createAtoms(segments, fontRegular, fontBold, SIZE_BODY);
   const bodyLines = wrapAtoms(atoms, BODY_MAX_W);
 
@@ -273,6 +331,7 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
   const titleGap              = 20;
   const ORG_ROW_H             = 50 + 6 + 11 * 2;
   const orgSectionH           = conferenceOrgs.length > 0 ? ORG_ROW_H : 0;
+  const awardTextH            = certificateType === "best_paper" ? SIZE_AWARD + 16 : 0;
 
   let totalBlockHeight = 0;
   if (orgSectionH > 0) {
@@ -281,7 +340,7 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
     totalBlockHeight += 10;
   }
   totalBlockHeight += SIZE_CONF + titleToDividerGap + 1 + dividerToCertGap;
-  totalBlockHeight += SIZE_TITLE + titleGap;
+  totalBlockHeight += titleConfig.size + titleGap + awardTextH;
   totalBlockHeight += ((bodyLines.length > 0 ? bodyLines.length - 1 : 0) * GAP_LINE) + SIZE_BODY;
 
   let curY = PAGE_H / 2 + totalBlockHeight / 2 + 65;
@@ -303,14 +362,23 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
   /* ---- Divider ---- */
   const anchorWidth = 40;
   const ax = centerX(PAGE_W, anchorWidth);
-  page.drawLine({ start: { x: ax, y: curY }, end: { x: ax + anchorWidth, y: curY }, thickness: 1.0, color: COL_GOLD });
+  page.drawLine({ start: { x: ax, y: curY }, end: { x: ax + anchorWidth, y: curY }, thickness: 1.0, color: borderColor });
   curY -= dividerToCertGap;
 
-  /* ---- "CERTIFICATE" title ---- */
-  curY -= SIZE_TITLE;
-  const titleW = fontBold.widthOfTextAtSize("CERTIFICATE", SIZE_TITLE);
-  page.drawText("CERTIFICATE", { x: centerX(PAGE_W, titleW), y: curY, size: SIZE_TITLE, font: fontBold, color: COL_PRIMARY });
+  /* ---- Title ---- */
+  curY -= titleConfig.size;
+  const titleW = fontBold.widthOfTextAtSize(titleConfig.text, titleConfig.size);
+  page.drawText(titleConfig.text, { x: centerX(PAGE_W, titleW), y: curY, size: titleConfig.size, font: fontBold, color: titleConfig.color });
   curY -= titleGap;
+
+  /* ---- Award highlight text (best paper only) ---- */
+  if (certificateType === "best_paper") {
+    const aText = awardText || DEFAULT_AWARD_TEXT.best_paper || "";
+    const aTextW = fontRegular.widthOfTextAtSize(aText, SIZE_AWARD);
+    curY -= SIZE_AWARD;
+    page.drawText(aText, { x: centerX(PAGE_W, aTextW), y: curY, size: SIZE_AWARD, font: fontRegular, color: COL_CRIMSON });
+    curY -= 16;
+  }
 
   /* ---- Body paragraph (pseudo-justified) ---- */
   curY -= SIZE_BODY;

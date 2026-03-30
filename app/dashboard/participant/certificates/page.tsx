@@ -20,6 +20,7 @@ import {
   Search,
   Filter,
   Eye,
+  Trophy,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -61,6 +62,7 @@ export default function ParticipantCertificatesPage() {
         file_url,
         issued_at,
         verification_code,
+        certificate_type,
         paper_authors!inner (
           id,
           name,
@@ -299,17 +301,25 @@ function CertificateCard({ certificate: c }: { certificate: any }) {
           </span>
         </div>
 
-        {hasFile ? (
-          <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100 gap-1 shrink-0">
-            <CheckCircle className="h-3 w-3" />
-            Available
-          </Badge>
-        ) : (
-          <Badge variant="secondary" className="gap-1 shrink-0">
-            <Clock className="h-3 w-3" />
-            Not Available
-          </Badge>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {c.certificate_type === "best_paper" && (
+            <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-100 gap-1">
+              <Trophy className="h-3 w-3" />
+              Best Paper
+            </Badge>
+          )}
+          {hasFile ? (
+            <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100 gap-1 shrink-0">
+              <CheckCircle className="h-3 w-3" />
+              Available
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1 shrink-0">
+              <Clock className="h-3 w-3" />
+              Not Available
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Conference dates */}

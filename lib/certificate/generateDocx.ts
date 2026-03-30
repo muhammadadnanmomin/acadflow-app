@@ -1,23 +1,17 @@
 /* ================================================================
    AcadFlow — DOCX Certificate Generator (Template-Based)
 
-   Primary path: loads /public/templates/certificate.docx and injects
-   dynamic values via docxtemplater ({{placeholder}} syntax).
+   Primary path: loads the appropriate template via templateResolver
+   and injects dynamic values via docxtemplater ({{placeholder}} syntax).
 
    Fallback path: if the template file is not found, the legacy
    `docx`-package layout is used so the API never breaks in dev.
    ================================================================ */
 
 import fs from "fs/promises";
-import path from "path";
-import { CertificateData } from "./types";
+import { CertificateData, CertificateType } from "./types";
 import { generateDocxFromTemplate } from "./generateDocxFromTemplate";
-
-/* ------------------------------------------------------------------ */
-/*  Template path (resolved at runtime in Node.js)                    */
-/* ------------------------------------------------------------------ */
-
-const TEMPLATE_PATH = path.join(process.cwd(), "public", "templates", "certificate.docx");
+import { getTemplatePath } from "./templateResolver";
 
 /* ------------------------------------------------------------------ */
 /*  Date formatter                                                     */
@@ -31,21 +25,55 @@ function fmtDate(date: Date): string {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/*  Body text builders (per certificate type)                          */
+/* ------------------------------------------------------------------ */
+
+function buildParticipationBody(data: CertificateData): string {
+  const { authorName, authorAffiliation, paperTitle, conferenceTitle, conferenceDates } = data;
+  let body = `This is to certify that ${authorName || "Participant"}`;
+  if (authorAffiliation) body += ` from ${authorAffiliation}`;
+  body += " has presented a paper";
+  if (paperTitle) body += ` entitled \u201C${paperTitle}\u201D`;
+  body += ` at the ${conferenceTitle}`;
+  if (conferenceDates) body += ` held during ${conferenceDates}.`;
+  else body += ".";
+  return body;
+}
+
+function buildBestPaperBody(data: CertificateData): string {
+  const { authorName, authorAffiliation, paperTitle, conferenceTitle, conferenceDates } = data;
+  let body = `This is to certify that the paper`;
+  if (paperTitle) body += ` entitled \u201C${paperTitle}\u201D`;
+  body += ` by ${authorName || "Participant"}`;
+  if (authorAffiliation) body += ` from ${authorAffiliation}`;
+  body += ` has been selected as the Best Paper at the ${conferenceTitle}`;
+  if (conferenceDates) body += ` held during ${conferenceDates}`;
+  body += ` for its outstanding contribution to the field.`;
+  return body;
+}
+
+const BODY_BUILDERS: Record<CertificateType, (data: CertificateData) => string> = {
+  participation: buildParticipationBody,
+  best_paper: buildBestPaperBody,
+};
+
+/* ------------------------------------------------------------------ */
+/*  Default award text                                                 */
+/* ------------------------------------------------------------------ */
+
+const DEFAULT_AWARD_TEXT: Partial<Record<CertificateType, string>> = {
+  best_paper:
+    "This paper has been selected as the Best Paper for its outstanding contribution.",
+};
+
 /* ================================================================== */
 /*  PRIMARY — template-driven DOCX                                    */
 /* ================================================================== */
 
-/**
- * Generates a DOCX certificate from a Word template file.
- * Reads /public/templates/certificate.docx, fills in all {{placeholders}},
- * and returns the resulting buffer.
- *
- * Falls back to generateCertificateDocxFallback() if the template
- * file is missing (useful during local development before the template
- * is placed).
- */
 export async function generateCertificateDocx(data: CertificateData): Promise<Buffer> {
   const {
+    certificateType = "participation",
     authorName,
     authorAffiliation,
     conferenceTitle,
@@ -54,17 +82,19 @@ export async function generateCertificateDocx(data: CertificateData): Promise<Bu
     verificationCode,
     issuedAt,
     conferenceOrgs,
+    awardText,
   } = data;
 
   /* ---- Try loading the template ---- */
+  const templatePath = getTemplatePath(certificateType);
   let templateBuffer: Buffer;
   try {
-    templateBuffer = await fs.readFile(TEMPLATE_PATH);
+    templateBuffer = await fs.readFile(templatePath);
   } catch (err: any) {
     if (err.code === "ENOENT") {
       console.warn(
-        "[generateCertificateDocx] Template not found — using fallback.\n" +
-          `  Expected: ${TEMPLATE_PATH}\n` +
+        `[generateCertificateDocx] Template not found — using fallback.\n` +
+          `  Expected: ${templatePath}\n` +
           "  Place your Word template there and restart the dev server."
       );
       return generateCertificateDocxFallback(data);
@@ -72,14 +102,9 @@ export async function generateCertificateDocx(data: CertificateData): Promise<Bu
     throw err;
   }
 
-  /* ---- Build the body sentence (matches PDF wording exactly) ---- */
-  let bodyText = `This is to certify that ${authorName || "Participant"}`;
-  if (authorAffiliation) bodyText += ` from ${authorAffiliation}`;
-  bodyText += " has presented a paper";
-  if (paperTitle) bodyText += ` entitled \u201C${paperTitle}\u201D`;
-  bodyText += ` at the ${conferenceTitle}`;
-  if (conferenceDates) bodyText += ` held during ${conferenceDates}.`;
-  else bodyText += ".";
+  /* ---- Build the body sentence ---- */
+  const bodyBuilder = BODY_BUILDERS[certificateType] ?? BODY_BUILDERS.participation;
+  const bodyText = bodyBuilder(data);
 
   /* ---- Build org names string ---- */
   const organizationNames =
@@ -89,15 +114,16 @@ export async function generateCertificateDocx(data: CertificateData): Promise<Bu
 
   /* ---- Variables map (one entry per {{placeholder}} in template) ---- */
   const variables: Record<string, string> = {
-    authorName:          authorName || "Participant",
-    authorAffiliation:   authorAffiliation || "",
+    authorName:        authorName || "Participant",
+    authorAffiliation: authorAffiliation || "",
     conferenceTitle,
-    conferenceDates:     conferenceDates || "",
-    paperTitle:          paperTitle || "",
+    conferenceDates:   conferenceDates || "",
+    paperTitle:        paperTitle || "",
     verificationCode,
-    issuedDate:          fmtDate(issuedAt),
+    issuedDate:        fmtDate(issuedAt),
     organizationNames,
     bodyText,
+    awardText:         awardText || DEFAULT_AWARD_TEXT[certificateType] || "",
   };
 
   /* ---- Fill template and return ---- */
@@ -130,6 +156,7 @@ const BLUE_DARK = "29407A";
 const GOLD      = "B87C09";
 const TEXT_MAIN = "1F1F24";
 const TEXT_SUB  = "666670";
+const CRIMSON   = "8B0000";
 
 function spacer(points = 6): Paragraph {
   return new Paragraph({
@@ -152,14 +179,40 @@ function goldRule(): Paragraph {
   });
 }
 
+/* ---- Heading config per type ---- */
+
+interface HeadingConfig {
+  line1: string;
+  line2: string;
+  line2Color: string;
+}
+
+const HEADING_CONFIG: Record<CertificateType, HeadingConfig> = {
+  participation: {
+    line1: "CERTIFICATE",
+    line2: "OF PARTICIPATION",
+    line2Color: GOLD,
+  },
+  best_paper: {
+    line1: "BEST PAPER",
+    line2: "AWARD",
+    line2Color: CRIMSON,
+  },
+};
+
 /** @internal Exported for tests / debugging only — prefer generateCertificateDocx() */
 export async function generateCertificateDocxFallback(data: CertificateData): Promise<Buffer> {
   const {
+    certificateType = "participation",
     conferenceTitle,
     verificationCode,
     issuedAt,
     conferenceSignatures,
+    awardText,
   } = data;
+
+  const heading = HEADING_CONFIG[certificateType] ?? HEADING_CONFIG.participation;
+  const bodyBuilder = BODY_BUILDERS[certificateType] ?? BODY_BUILDERS.participation;
 
   const doc = new Document({
     sections: [
@@ -217,7 +270,7 @@ export async function generateCertificateDocxFallback(data: CertificateData): Pr
 
           goldRule(),
 
-          /* CERTIFICATE heading */
+          /* Heading line 1 */
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: {
@@ -226,7 +279,7 @@ export async function generateCertificateDocxFallback(data: CertificateData): Pr
             },
             children: [
               new TextRun({
-                text: "CERTIFICATE",
+                text: heading.line1,
                 bold: true,
                 color: BLUE_DARK,
                 size: 72,
@@ -235,14 +288,14 @@ export async function generateCertificateDocxFallback(data: CertificateData): Pr
             ],
           }),
 
-          /* OF PARTICIPATION */
+          /* Heading line 2 */
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { before: 0, after: convertInchesToTwip(14 / 72) },
             children: [
               new TextRun({
-                text: "OF PARTICIPATION",
-                color: GOLD,
+                text: heading.line2,
+                color: heading.line2Color,
                 size: 28,
                 bold: true,
                 characterSpacing: 80,
@@ -251,34 +304,36 @@ export async function generateCertificateDocxFallback(data: CertificateData): Pr
           }),
 
           goldRule(),
+
+          /* Award text (best paper only) */
+          ...(certificateType === "best_paper"
+            ? [
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  spacing: {
+                    before: convertInchesToTwip(4 / 72),
+                    after: convertInchesToTwip(8 / 72),
+                  },
+                  children: [
+                    new TextRun({
+                      text:
+                        awardText ||
+                        DEFAULT_AWARD_TEXT.best_paper ||
+                        "",
+                      italics: true,
+                      size: 22,
+                      color: CRIMSON,
+                    }),
+                  ],
+                }),
+              ]
+            : []),
+
           spacer(12),
 
           /* Body paragraph */
           (() => {
-            const runs: TextRun[] = [];
-            const add = (text: string, bold = false) =>
-              runs.push(new TextRun({ text, bold, color: TEXT_MAIN, size: 26 }));
-
-            add("This is to certify that ");
-            add(data.authorName || "Participant", true);
-            if (data.authorAffiliation) {
-              add(" from ");
-              add(data.authorAffiliation, true);
-            }
-            add(" has presented a paper ");
-            if (data.paperTitle) {
-              add("entitled \u201C");
-              add(data.paperTitle, true);
-              add("\u201D ");
-            }
-            add("at the ");
-            add(data.conferenceTitle);
-            if (data.conferenceDates) {
-              add(` held during ${data.conferenceDates}.`);
-            } else {
-              add(".");
-            }
-
+            const bodyText = bodyBuilder(data);
             return new Paragraph({
               alignment: AlignmentType.CENTER,
               spacing: {
@@ -286,7 +341,9 @@ export async function generateCertificateDocxFallback(data: CertificateData): Pr
                 after: convertInchesToTwip(18 / 72),
                 line: 360,
               },
-              children: runs,
+              children: [
+                new TextRun({ text: bodyText, color: TEXT_MAIN, size: 26 }),
+              ],
             });
           })(),
 

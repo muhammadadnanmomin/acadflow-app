@@ -3,13 +3,15 @@
    POST /api/generate-certificate
    POST /api/generate-certificate?format=docx   → organizer only, streams .docx
    POST /api/generate-certificate?format=pdf    → returns JSON URL (default)
+
+   Supports certificateType: "participation" (default) | "best_paper"
    ================================================================ */
 
 import { NextResponse }            from "next/server";
 import { supabaseAdmin }           from "@/lib/supabase/admin";
 import crypto                      from "crypto";
 
-import { CertificateData, CertificateFormat } from "@/lib/certificate/types";
+import { CertificateData, CertificateFormat, CertificateType } from "@/lib/certificate/types";
 import { generateCertificatePdf }             from "@/lib/certificate/generatePdf";
 import { generateCertificateDocx }            from "@/lib/certificate/generateDocx";
 
@@ -24,6 +26,8 @@ function generateVerificationCode(): string {
 function formatDate(date: Date) {
   return date.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
 }
+
+const VALID_CERTIFICATE_TYPES: CertificateType[] = ["participation", "best_paper"];
 
 /* ------------------------------------------------------------------ */
 /*  DB helpers (shared between PDF and DOCX paths)                    */
@@ -83,10 +87,33 @@ export async function POST(req: Request) {
       conferenceId,
       conferenceTitle,
       paperTitle,
+      certificateType: rawCertType,
     } = await req.json();
 
     if (!paperId || !authorId) {
       return NextResponse.json({ error: "Missing paperId or authorId" }, { status: 400 });
+    }
+
+    /* --- Validate certificate type --- */
+    const certificateType: CertificateType =
+      rawCertType && VALID_CERTIFICATE_TYPES.includes(rawCertType)
+        ? rawCertType
+        : "participation";
+
+    /* --- Best paper guard: verify paper is marked as best_paper --- */
+    if (certificateType === "best_paper") {
+      const { data: paperCheck } = await supabaseAdmin
+        .from("paper_submissions")
+        .select("award_type")
+        .eq("id", paperId)
+        .single();
+
+      if (!paperCheck || paperCheck.award_type !== "best_paper") {
+        return NextResponse.json(
+          { error: "This paper is not marked as a Best Paper award recipient." },
+          { status: 403 }
+        );
+      }
     }
 
     /* ----------------------------------------------------------------
@@ -95,12 +122,12 @@ export async function POST(req: Request) {
     ---------------------------------------------------------------- */
 
     if (format === "pdf") {
-      /* Duplicate check — return cached cert if one exists */
       const { data: existing } = await supabaseAdmin
         .from("certificates")
         .select("id,file_url,verification_code")
         .eq("paper_id", paperId)
         .eq("author_id", authorId)
+        .eq("certificate_type", certificateType === "participation" ? "presentation" : certificateType)
         .maybeSingle();
 
       if (existing) {
@@ -166,6 +193,7 @@ export async function POST(req: Request) {
     const issuedAt         = new Date();
 
     const certData: CertificateData = {
+      certificateType,
       authorName:           authorName || "Participant",
       authorAffiliation,
       paperTitle:           paperTitle || "",
@@ -183,7 +211,6 @@ export async function POST(req: Request) {
 
     if (format === "docx") {
       const docxBuffer = await generateCertificateDocx(certData);
-      // Pass underlying ArrayBuffer — satisfies Web API BodyInit in strict TS 5
       const docxBody   = docxBuffer.buffer.slice(
         docxBuffer.byteOffset,
         docxBuffer.byteOffset + docxBuffer.byteLength
@@ -194,12 +221,14 @@ export async function POST(req: Request) {
         .toLowerCase()
         .slice(0, 40);
 
+      const typeLabel = certificateType === "best_paper" ? "best_paper" : "certificate";
+
       return new Response(docxBody, {
         status: 200,
         headers: {
           "Content-Type":
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          "Content-Disposition": `attachment; filename="${safeName}_certificate.docx"`,
+          "Content-Disposition": `attachment; filename="${safeName}_${typeLabel}.docx"`,
           "Content-Length": String(docxBuffer.byteLength),
         },
       });
@@ -214,9 +243,10 @@ export async function POST(req: Request) {
     // SHA-256 hash for tamper-detection
     const pdfHash = crypto.createHash("sha256").update(pdfBytes).digest("hex");
 
+    const typeSlug = certificateType === "best_paper" ? "best_paper" : "presentation";
     const storagePath = conferenceId
-      ? `${conferenceId}/${paperId}/${authorId}.pdf`
-      : `${paperId}/${authorId}.pdf`;
+      ? `${conferenceId}/${paperId}/${authorId}_${typeSlug}.pdf`
+      : `${paperId}/${authorId}_${typeSlug}.pdf`;
 
     const { error: uploadError } = await supabaseAdmin.storage
       .from("certificates")
@@ -234,7 +264,7 @@ export async function POST(req: Request) {
         paper_id:         paperId,
         author_id:        authorId,
         conference_id:    conferenceId || null,
-        certificate_type: "presentation",
+        certificate_type: typeSlug,
         file_url:         storageData.publicUrl,
         verification_code: verificationCode,
         pdf_hash:         pdfHash,

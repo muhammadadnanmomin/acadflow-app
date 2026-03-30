@@ -37,6 +37,8 @@ import {
   Users,
   ShieldCheck,
   ChevronDown,
+  Star,
+  Trophy,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -60,6 +62,7 @@ interface AuthorCertRow {
   certificateId: string | null;
   verificationCode: string | null;
   issuedAt: string | null;
+  awardType: string;
 }
 
 interface PaperGroup {
@@ -69,6 +72,7 @@ interface PaperGroup {
   presented: boolean | null;
   conferenceId: string;
   conferenceTitle: string;
+  awardType: string;
   authors: AuthorCertRow[];
 }
 
@@ -97,6 +101,7 @@ function groupByPaper(rows: AuthorCertRow[]): PaperGroup[] {
         presented: r.presented,
         conferenceId: r.conferenceId,
         conferenceTitle: r.conferenceTitle,
+        awardType: r.awardType,
         authors: [],
       });
     }
@@ -150,6 +155,7 @@ export default function OrganizerCertificates() {
         payment_status,
         presented,
         presented_at,
+        award_type,
         conferences!inner (
           id,
           title
@@ -217,6 +223,7 @@ export default function OrganizerCertificates() {
           certificateId: null,
           verificationCode: null,
           issuedAt: null,
+          awardType: p.award_type || "none",
         });
         continue;
       }
@@ -240,6 +247,7 @@ export default function OrganizerCertificates() {
           certificateId: cert?.id || null,
           verificationCode: cert?.verification_code || null,
           issuedAt: cert?.issued_at || null,
+          awardType: p.award_type || "none",
         });
       }
     }
@@ -402,6 +410,79 @@ export default function OrganizerCertificates() {
     }
 
     await loadData();
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Toggle Best Paper                                                */
+  /* ---------------------------------------------------------------- */
+
+  async function toggleBestPaper(paperId: string, currentAwardType: string) {
+    const newAward = currentAwardType === "best_paper" ? "none" : "best_paper";
+    const { error } = await supabase
+      .from("paper_submissions")
+      .update({ award_type: newAward })
+      .eq("id", paperId);
+
+    if (error) {
+      console.error("Failed to toggle best paper:", error);
+      alert("Failed to update best paper status");
+      return;
+    }
+
+    await loadData();
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Download Best Paper Certificate (DOCX or PDF)                    */
+  /* ---------------------------------------------------------------- */
+
+  async function handleDownloadBestPaper(row: AuthorCertRow, format: "pdf" | "docx") {
+    const key = `bp_${format}_${row.paperId}_${row.authorId}`;
+    setDownloadingDocxKeys((prev) => new Set(prev).add(key));
+    try {
+      const res = await fetch(`/api/generate-certificate?format=${format}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paperId: row.paperId,
+          authorId: row.authorId,
+          authorName: row.authorName,
+          conferenceId: row.conferenceId,
+          conferenceTitle: row.conferenceTitle,
+          paperTitle: row.paperTitle || undefined,
+          certificateType: "best_paper",
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to generate Best Paper ${format.toUpperCase()}`);
+      }
+
+      if (format === "docx") {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `${(row.conferenceTitle || "best_paper").replace(/\s+/g, "_")}_${row.authorName.replace(/\s+/g, "_")}_best_paper.docx`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      } else {
+        const data = await res.json();
+        if (data.url) window.open(data.url, "_blank");
+      }
+    } catch (err: any) {
+      console.error("Best paper download error:", err);
+      alert(err.message || "Could not generate Best Paper certificate.");
+    } finally {
+      setDownloadingDocxKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
   }
 
   /* ---------------------------------------------------------------- */
@@ -617,7 +698,13 @@ export default function OrganizerCertificates() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    {group.awardType === "best_paper" && (
+                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-100 text-xs gap-1">
+                        <Trophy className="h-3 w-3" />
+                        Best Paper
+                      </Badge>
+                    )}
                     {allIssued ? (
                       <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100 text-xs gap-1">
                         <CheckCircle className="h-3 w-3" />
@@ -634,6 +721,16 @@ export default function OrganizerCertificates() {
                         Presented
                       </Badge>
                     ) : null}
+
+                    <Button
+                      size="sm"
+                      variant={group.awardType === "best_paper" ? "default" : "outline"}
+                      className={group.awardType === "best_paper" ? "bg-yellow-500 hover:bg-yellow-600 text-white" : ""}
+                      onClick={() => toggleBestPaper(group.paperId, group.awardType)}
+                    >
+                      <Star className={`h-4 w-4 mr-1 ${group.awardType === "best_paper" ? "fill-current" : ""}`} />
+                      {group.awardType === "best_paper" ? "Best Paper ✓" : "Mark Best Paper"}
+                    </Button>
 
                     {!group.presented && group.paymentStatus === "paid" && (
                       <Button
@@ -710,11 +807,11 @@ export default function OrganizerCertificates() {
                                             <ChevronDown className="h-4 w-4" />
                                           </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="min-w-[160px]">
+                                        <DropdownMenuContent align="end" className="min-w-[200px]">
                                           <DropdownMenuItem asChild>
                                             <a href={a.certificateUrl} download className="flex items-center gap-2 cursor-pointer">
                                               <FileText className="h-4 w-4 text-red-500" />
-                                              Download PDF
+                                              Participation PDF
                                             </a>
                                           </DropdownMenuItem>
                                           <DropdownMenuItem
@@ -727,8 +824,37 @@ export default function OrganizerCertificates() {
                                             ) : (
                                               <FileType2 className="h-4 w-4 text-blue-500" />
                                             )}
-                                            {downloadingDocxKeys.has(`${a.paperId}_${a.authorId}`) ? "Generating…" : "Download DOCX"}
+                                            {downloadingDocxKeys.has(`${a.paperId}_${a.authorId}`) ? "Generating…" : "Participation DOCX"}
                                           </DropdownMenuItem>
+                                          {a.awardType === "best_paper" && (
+                                            <>
+                                              <div className="border-t my-1" />
+                                              <DropdownMenuItem
+                                                onClick={() => handleDownloadBestPaper(a, "pdf")}
+                                                disabled={downloadingDocxKeys.has(`bp_pdf_${a.paperId}_${a.authorId}`)}
+                                                className="flex items-center gap-2 cursor-pointer"
+                                              >
+                                                {downloadingDocxKeys.has(`bp_pdf_${a.paperId}_${a.authorId}`) ? (
+                                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                  <Trophy className="h-4 w-4 text-yellow-600" />
+                                                )}
+                                                Best Paper PDF
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem
+                                                onClick={() => handleDownloadBestPaper(a, "docx")}
+                                                disabled={downloadingDocxKeys.has(`bp_docx_${a.paperId}_${a.authorId}`)}
+                                                className="flex items-center gap-2 cursor-pointer"
+                                              >
+                                                {downloadingDocxKeys.has(`bp_docx_${a.paperId}_${a.authorId}`) ? (
+                                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                  <Trophy className="h-4 w-4 text-yellow-600" />
+                                                )}
+                                                Best Paper DOCX
+                                              </DropdownMenuItem>
+                                            </>
+                                          )}
                                         </DropdownMenuContent>
                                       </DropdownMenu>
                                     </div>
@@ -813,11 +939,11 @@ export default function OrganizerCertificates() {
                                         <ChevronDown className="h-4 w-4" />
                                       </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="min-w-[160px]">
+                                    <DropdownMenuContent align="end" className="min-w-[200px]">
                                       <DropdownMenuItem asChild>
                                         <a href={a.certificateUrl} download className="flex items-center gap-2 cursor-pointer">
                                           <FileText className="h-4 w-4 text-red-500" />
-                                          Download PDF
+                                          Participation PDF
                                         </a>
                                       </DropdownMenuItem>
                                       <DropdownMenuItem
@@ -830,8 +956,37 @@ export default function OrganizerCertificates() {
                                         ) : (
                                           <FileType2 className="h-4 w-4 text-blue-500" />
                                         )}
-                                        {downloadingDocxKeys.has(`${a.paperId}_${a.authorId}`) ? "Generating…" : "Download DOCX"}
+                                        {downloadingDocxKeys.has(`${a.paperId}_${a.authorId}`) ? "Generating…" : "Participation DOCX"}
                                       </DropdownMenuItem>
+                                      {a.awardType === "best_paper" && (
+                                        <>
+                                          <div className="border-t my-1" />
+                                          <DropdownMenuItem
+                                            onClick={() => handleDownloadBestPaper(a, "pdf")}
+                                            disabled={downloadingDocxKeys.has(`bp_pdf_${a.paperId}_${a.authorId}`)}
+                                            className="flex items-center gap-2 cursor-pointer"
+                                          >
+                                            {downloadingDocxKeys.has(`bp_pdf_${a.paperId}_${a.authorId}`) ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <Trophy className="h-4 w-4 text-yellow-600" />
+                                            )}
+                                            Best Paper PDF
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => handleDownloadBestPaper(a, "docx")}
+                                            disabled={downloadingDocxKeys.has(`bp_docx_${a.paperId}_${a.authorId}`)}
+                                            className="flex items-center gap-2 cursor-pointer"
+                                          >
+                                            {downloadingDocxKeys.has(`bp_docx_${a.paperId}_${a.authorId}`) ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <Trophy className="h-4 w-4 text-yellow-600" />
+                                            )}
+                                            Best Paper DOCX
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 </div>
