@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
 
 const steps = [
   {
@@ -8,6 +8,7 @@ const steps = [
     description:
       "Fill in your conference details, set submission deadlines, and open registrations. The guided setup takes less than 5 minutes — no technical skills needed.",
     time: "Under 5 minutes",
+    guideSection: "organizer",
   },
   {
     step: "02",
@@ -15,6 +16,7 @@ const steps = [
     description:
       "Share your conference link. Authors submit papers through a clean portal. Every submission appears on your dashboard instantly — with status, track, and file details.",
     time: "Open until your deadline",
+    guideSection: "author",
   },
   {
     step: "03",
@@ -22,6 +24,7 @@ const steps = [
     description:
       "Assign reviewers with one click. They evaluate papers using structured forms and submit scores. You see every review aggregated in one place — ready for decisions.",
     time: "Set your own timeline",
+    guideSection: "reviewer",
   },
   {
     step: "04",
@@ -29,6 +32,7 @@ const steps = [
     description:
       "Accept or reject papers and notify authors instantly. Accepted participants register and pay online — every payment tracked automatically. No manual follow-ups.",
     time: "Instant notifications",
+    guideSection: "organizer",
   },
   {
     step: "05",
@@ -36,6 +40,7 @@ const steps = [
     description:
       "One click generates certificates for every participant — participation, presentation, and best paper. QR-verified and ready to download. Your conference is complete.",
     time: "Done in seconds",
+    guideSection: "organizer",
   },
 ];
 
@@ -63,6 +68,16 @@ export function HowItWorksSection() {
             Create your event, collect submissions, run reviews, collect payments,
             and generate certificates — all from one dashboard.{" "}
             <strong className="text-gray-900">No spreadsheets. No back-and-forth emails.</strong>
+          </p>
+
+          <p className="mt-3 text-sm text-gray-500">
+            New to AcadFlow?{" "}
+            <Link
+              href="/user-guide"
+              className="font-medium text-indigo-600 transition hover:text-indigo-700 hover:underline"
+            >
+              View the full guide →
+            </Link>
           </p>
 
         </div>
@@ -102,6 +117,16 @@ export function HowItWorksSection() {
                     {step.description}
                   </p>
 
+                  {step.guideSection && (
+                    <Link
+                      href={`/user-guide#${step.guideSection}`}
+                      className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 opacity-0 transition-all duration-300 group-hover:opacity-100 hover:text-indigo-700"
+                    >
+                      Learn more
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
+
                 </div>
 
               </div>
@@ -111,8 +136,8 @@ export function HowItWorksSection() {
 
         </div>
 
-        {/* CTA */}
-        <div className="mt-16 text-center">
+        {/* CTAs */}
+        <div className="mt-16 flex flex-col items-center gap-4">
           <Link
             href="/signup"
             className="group inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-700 hover:-translate-y-0.5"
@@ -120,6 +145,18 @@ export function HowItWorksSection() {
             Run Your First Conference Free
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
+
+          <Link
+            href="/user-guide"
+            className="group inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-medium text-gray-700 transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+          >
+            <BookOpen className="h-4 w-4 text-gray-400 transition-colors group-hover:text-indigo-500" />
+            Explore Full User Guide
+          </Link>
+
+          <p className="mt-1 text-xs text-gray-400">
+            Not sure where to start? Follow our step-by-step guide.
+          </p>
         </div>
 
       </div>
