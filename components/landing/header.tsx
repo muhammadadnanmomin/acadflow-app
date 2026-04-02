@@ -64,17 +64,17 @@ export function Header() {
           </Link>
 
           <Link
-            href="/#benefits"
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
-          >
-            Benefits
-          </Link>
-
-          <Link
             href="/#pricing"
             className="text-sm font-medium text-gray-600 hover:text-gray-900"
           >
-            Plans & Access
+            Plans
+          </Link>
+
+          <Link
+            href="/#comparison"
+            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+          >
+            Why AcadFlow
           </Link>
 
         </nav>
@@ -158,19 +158,19 @@ export function Header() {
             </Link>
 
             <Link
-              href="#benefits"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-gray-600"
-            >
-              Benefits
-            </Link>
-
-            <Link
               href="#pricing"
               onClick={() => setMobileMenuOpen(false)}
               className="text-sm font-medium text-gray-600"
             >
               Pricing
+            </Link>
+
+            <Link
+              href="#comparison"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-medium text-gray-600"
+            >
+              Why AcadFlow
             </Link>
 
             <div className="flex flex-col gap-2 pt-4">

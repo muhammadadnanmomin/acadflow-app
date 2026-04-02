@@ -1,7 +1,10 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
-import { EARLY_ADOPTER_SLOT_PRICE } from "@/lib/config/pricing";
+import { Check, ArrowRight } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 /* ------------------------------------------------------------------ */
 /*  Plan data                                                          */
@@ -10,49 +13,46 @@ import { EARLY_ADOPTER_SLOT_PRICE } from "@/lib/config/pricing";
 const plans = [
   {
     name: "Free",
-    description:
-      "Everything you need to run your first academic conference on AcadFlow.",
+    description: "Run your entire conference — free.",
     price: "₹0",
     period: "forever",
-    badge: "Great for small conferences",
-    valueHighlight: null,
+    badge: "Start here",
+    valueHighlight: "Start and run your conference from submission to certificate — free",
     features: [
       "1 conference",
-      "Up to 150 paper submissions",
-      "Paper submission portal",
-      "Peer review workflow",
+      "Up to 150 submissions",
+      "Paper submission & review system",
       "Reviewer assignment",
       "Participant management",
       "Email notifications",
       "Certificate generation",
-      "Conference schedule management",
+      "Schedule management",
+      "Payment collection enabled",
     ],
-    cta: "Start Free",
+    cta: "Run Your First Conference Free",
     link: "/dashboard/onboarding/organization",
     popular: false,
   },
   {
-    name: "Early Adopter",
-    description:
-      "The complete conference management workflow for growing academic events.",
-    price: `₹${EARLY_ADOPTER_SLOT_PRICE.toLocaleString("en-IN")}`,
+    name: "Pro",
+    description: "For conferences scaling beyond 150 submissions.",
+    price: "₹2,999",
     period: "per conference",
     badge: null,
-    valueHighlight: "Perfect for conferences with 150+ submissions.",
+    valueHighlight: "Scale your conference without losing control of submissions, reviews, and payments",
     features: [
       "Unlimited submissions",
-      "Full conference management workflow",
-      "Advanced reviewer management",
+      "Full conference workflow",
       "Bulk email communication",
-      "Submission reports and analytics",
+      "Analytics dashboard",
       "Priority support",
     ],
-    cta: "Start Conference",
-    link: "/dashboard/organizer/billing",
+    cta: "Start Your Conference",
+    link: "/dashboard/organizer",
     popular: true,
   },
   {
-    name: "Enterprise",
+    name: "Institutional",
     description:
       "For universities and institutions managing multiple conferences.",
     price: "Custom",
@@ -63,11 +63,10 @@ const plans = [
       "Unlimited conferences",
       "Unlimited submissions",
       "Institutional branding",
-      "Advanced analytics dashboard",
-      "Dedicated onboarding support",
-      "Priority support",
+      "AI-powered features",
+      "Dedicated onboarding & support",
     ],
-    cta: "Contact Sales",
+    cta: "Contact",
     link: "/contact",
     popular: false,
   },
@@ -78,30 +77,65 @@ const plans = [
 /* ------------------------------------------------------------------ */
 
 export function PricingSection() {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const handlePlanClick = async (plan: (typeof plans)[number]) => {
+    // Enterprise → always go to contact page
+    if (plan.name === "Enterprise") {
+      router.push("/contact");
+      return;
+    }
+
+    // Check if user is logged in
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      router.push("/signup");
+      return;
+    }
+
+    // Check if user has an organization
+    const { data } = await supabase
+      .from("organization_members")
+      .select("organization_id")
+      .eq("user_id", session.user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (!data) {
+      router.push("/dashboard/onboarding/organization");
+    } else {
+      router.push("/dashboard/organizer");
+    }
+  };
   return (
     <section
       id="pricing"
-      className="bg-slate-50 px-4 py-20 sm:px-6 sm:py-28 lg:px-8"
+      className="bg-gray-50 px-4 py-20 sm:px-6 sm:py-28 lg:px-8"
     >
       <div className="mx-auto max-w-6xl">
 
         {/* Header */}
         <div className="mx-auto max-w-3xl text-center">
 
-          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-600">
-            Simple &amp; Transparent Pricing
+          <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">
+            Simple, Honest Pricing
           </p>
 
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-            Pricing Built for
-            <span className="block text-indigo-600 mt-1">
-              Academic Conferences
-            </span>
+            Start for Free.{" "}
+            <span className="text-indigo-600">Pay Only When You Scale.</span>
           </h2>
 
-          <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
-            Manage submissions, peer reviews, schedules, and certificates in one
-            modern platform designed for academic conferences.
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-600">
+            Run your conference without upfront cost. Upgrade only when you
+            need more scale.{" "}
+            <strong className="text-gray-900">No subscriptions, no hidden fees.</strong>
+          </p>
+
+          <p className="mx-auto mt-3 max-w-xl text-sm text-gray-500">
+            We only charge a small 4% fee on payments collected through the platform.
           </p>
 
         </div>
@@ -112,46 +146,46 @@ export function PricingSection() {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative rounded-xl border bg-white p-8 shadow-sm transition hover:shadow-lg ${plan.popular
-                ? "border-indigo-600 shadow-md scale-[1.04]"
+              className={`relative flex flex-col rounded-2xl border bg-white p-8 shadow-sm transition hover:shadow-lg ${plan.popular
+                ? "border-indigo-600 shadow-md ring-1 ring-indigo-600 scale-[1.03]"
                 : "border-gray-200"
                 }`}
             >
 
               {/* MOST POPULAR badge */}
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-4 py-1 text-xs font-semibold text-white shadow">
-                  MOST POPULAR
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-5 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-md">
+                  Most Popular
                 </div>
               )}
 
               <div className="text-center">
 
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-xl font-bold text-gray-900">
                   {plan.name}
                 </h3>
 
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-2 text-sm leading-relaxed text-gray-600">
                   {plan.description}
                 </p>
 
-                {/* In-card badge (Free plan) */}
+                {/* In-card badge */}
                 {plan.badge && (
-                  <div className="mt-3 inline-block rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-xs font-medium text-emerald-700">
+                  <div className="mt-3 inline-block rounded-full border border-emerald-200 bg-emerald-50 px-3 py-0.5 text-xs font-medium text-emerald-700">
                     {plan.badge}
                   </div>
                 )}
 
                 <div className="mt-6">
-                  <span className="text-4xl font-bold text-gray-900">
+                  <span className="text-4xl font-extrabold text-gray-900">
                     {plan.price}
                   </span>
-                  <span className="text-gray-500">
-                    {" "} / {plan.period}
+                  <span className="text-sm text-gray-500">
+                    {" "}/ {plan.period}
                   </span>
                 </div>
 
-                {/* Value highlight (Early Adopter) */}
+                {/* Value highlight */}
                 {plan.valueHighlight && (
                   <p className="mt-2 text-xs font-medium text-indigo-600">
                     {plan.valueHighlight}
@@ -160,25 +194,29 @@ export function PricingSection() {
 
               </div>
 
-              <ul className="mt-8 space-y-4">
+              <ul className="mt-8 flex-1 space-y-3.5">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-3">
                     <Check className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
-                    <span className="text-gray-600 leading-relaxed">
+                    <span className="text-sm leading-relaxed text-gray-600">
                       {feature}
                     </span>
                   </li>
                 ))}
               </ul>
 
-              <Link href={plan.link}>
-                <Button
-                  className="mt-8 w-full"
-                  variant={plan.popular ? "default" : "outline"}
-                >
-                  {plan.cta}
-                </Button>
-              </Link>
+              <Button
+                onClick={() => handlePlanClick(plan)}
+                className={`mt-8 w-full ${plan.popular
+                  ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                  : ""
+                  }`}
+                variant={plan.popular ? "default" : "outline"}
+                size="lg"
+              >
+                {plan.cta}
+                {plan.popular && <ArrowRight className="ml-2 h-4 w-4" />}
+              </Button>
 
             </div>
           ))}
@@ -186,15 +224,15 @@ export function PricingSection() {
         </div>
 
         {/* Bottom notes */}
-        <div className="mt-12 space-y-2 text-center text-sm text-gray-500">
-          <p>
-            ⏳ Early adopter pricing may increase as the platform grows.
+        <div className="mt-14 space-y-2.5 text-center">
+          <p className="text-sm text-gray-500">
+            Pro pricing may increase as the platform grows. Lock in your rate today.
           </p>
-          <p>
-            🎓 Universities and institutions can request custom plans at{" "}
-            <span className="font-medium text-indigo-600">
-              acadflow.platform@gmail.com
-            </span>
+          <p className="text-sm text-gray-500">
+            Running multiple conferences per year?{" "}
+            <Link href="/contact" className="font-medium text-indigo-600 hover:text-indigo-700">
+              Get custom institutional pricing →
+            </Link>
           </p>
         </div>
 

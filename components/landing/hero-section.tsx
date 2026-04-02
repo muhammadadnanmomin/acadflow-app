@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { ArrowRight, Clock, FileText, Shield } from "lucide-react";
 
 export function HeroSection() {
   const router = useRouter();
@@ -27,10 +28,13 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-slate-50 px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-32">
+    <section id="hero" className="relative overflow-hidden bg-white px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28 lg:px-8 lg:pt-28 lg:pb-32">
 
-      {/* Background Glow */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_rgba(79,70,229,0.08),transparent_60%)]" />
+      {/* Subtle background gradient */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(99,102,241,0.12),transparent)]" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+      </div>
 
       <div className="mx-auto max-w-7xl">
 
@@ -38,114 +42,108 @@ export function HeroSection() {
         <div className="mx-auto max-w-3xl text-center">
 
           {/* Badge */}
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1.5 text-sm text-indigo-700">
-            🎓 The Conference Management Platform for Academia
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50/80 px-4 py-1.5 text-sm font-medium text-indigo-700 shadow-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-600" />
+            </span>
+            Built for academic conference organizers
           </div>
 
           {/* Heading */}
-          <h1 className="text-balance text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-            Run Academic Conferences
-            <span className="block text-indigo-600">
-              Without the Admin Chaos
+          <h1 className="text-balance text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+            Run Your Entire Conference —{" "}
+            <span className="relative">
+              <span className="relative z-10 bg-gradient-to-r from-indigo-600 to-indigo-500 bg-clip-text text-transparent">
+                Without Spreadsheets, Emails, or Chaos
+              </span>
             </span>
           </h1>
 
           {/* Subtitle */}
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-600 sm:text-xl">
-            AcadFlow automates paper submissions, peer reviews, scheduling,
-            and certificate generation — so organizers spend less time
-            on admin and more time on research that matters.
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-600 sm:text-xl sm:leading-8">
+            Collect registration fees, manage paper submissions, run peer reviews,
+            and generate certificates —{" "}
+            <strong className="text-gray-900">all in one place</strong>.
+            No more juggling Google Forms, Excel sheets, and email threads.
           </p>
 
-          {/* Trust line */}
-          <p className="mt-3 text-sm text-gray-500">
-            Used by university departments, research labs, and independent organizers.
-          </p>
-
-          {/* CTA */}
-          {/* CTA */}
-          <div className="flex flex-wrap gap-4 justify-center mt-8">
+          {/* CTAs */}
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
 
             {/* Primary CTA */}
             <button
               onClick={handleGetStarted}
-              className="px-7 py-3 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition"
+              className="group inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-600/30 hover:-translate-y-0.5"
             >
-              Get Started Free
+              Run Your First Conference Free
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
 
             {/* Secondary CTA */}
             <Link
               href="/conferences"
-              className="px-7 py-3 rounded-lg border font-medium hover:bg-gray-50 transition"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-8 py-3.5 text-base font-medium text-gray-700 transition-all hover:border-gray-400 hover:bg-gray-50"
             >
-              Browse Conferences
+              Browse Active Conferences
             </Link>
 
           </div>
 
-          {/* Organizer hint */}
-          <p className="mt-4 text-sm text-gray-500">
-            Planning a conference?{" "}
-            <button onClick={handleOrganizerSetup} className="text-indigo-600 hover:underline">
+          {/* Organizer link */}
+          <p className="mt-5 text-sm text-gray-500">
+            Already organizing a conference?{" "}
+            <button
+              onClick={handleOrganizerSetup}
+              className="font-medium text-indigo-600 transition hover:text-indigo-700 hover:underline"
+            >
               Set up your organizer workspace →
             </button>
           </p>
 
-          {/* Micro trust indicators */}
-          <div className="mt-6 flex flex-wrap justify-center gap-6 text-sm text-gray-500">
-            <span>✔ Free to start — no credit card required</span>
-            <span>✔ Built for academic workflows</span>
-            <span>✔ Live in under 5 minutes</span>
+          {/* Trust indicators */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+            <span className="inline-flex items-center gap-1.5">
+              <Shield className="h-4 w-4 text-emerald-500" />
+              No credit card required
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-indigo-500" />
+              Live in under 5 minutes
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <FileText className="h-4 w-4 text-amber-500" />
+              Free for up to 150 submissions
+            </span>
           </div>
 
         </div>
 
+        {/* Stats Bar */}
+        {/* <div className="mx-auto mt-20 max-w-4xl">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
 
-        {/* Demo Video Section */}
-        <section className="mt-20 sm:mt-24 lg:mt-28">
-
-          <div className="relative mx-auto max-w-5xl">
-
-            {/* soft glow background */}
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.15),transparent_70%)] blur-2xl" />
-
-            {/* label */}
-            <div className="text-center mb-6">
-              <span className="inline-block rounded-full bg-indigo-50 text-indigo-700 px-4 py-1 text-sm font-medium border border-indigo-200">
-                🎥 Product Demo
-              </span>
-            </div>
-
-            {/* video card */}
-            <div className="group relative overflow-hidden rounded-2xl border bg-black shadow-2xl transition duration-300 hover:shadow-indigo-200">
-
-              <div className="aspect-video">
-
-                <iframe
-                  className="w-full h-full"
-                  src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
-                  title="AcadFlow Demo Video"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-
+            {[
+              { number: "50+", label: "Conferences Managed" },
+              { number: "5,000+", label: "Papers Submitted" },
+              { number: "98%", label: "Organizer Satisfaction" },
+              { number: "< 5min", label: "Setup Time" },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="group rounded-xl border border-gray-100 bg-gray-50/50 p-5 text-center transition hover:border-indigo-100 hover:bg-indigo-50/30"
+              >
+                <div className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                  {stat.number}
+                </div>
+                <div className="mt-1 text-xs font-medium text-gray-500 sm:text-sm">
+                  {stat.label}
+                </div>
               </div>
-
-              {/* subtle overlay on hover */}
-              <div className="pointer-events-none absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition" />
-
-            </div>
-
-            {/* caption */}
-            <p className="text-center text-gray-500 mt-5 text-sm sm:text-base">
-              Watch how a conference goes from setup to certificates in minutes.
-            </p>
+            ))}
 
           </div>
-
-        </section>
-
+        </div> */}
 
       </div>
     </section>

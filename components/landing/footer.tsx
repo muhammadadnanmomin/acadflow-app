@@ -6,7 +6,8 @@ const navigation = {
   product: [
     { name: "Features", href: "/#features" },
     { name: "How It Works", href: "/#how-it-works" },
-    { name: "Plans & Access", href: "/#pricing" },
+    { name: "Pricing", href: "/#pricing" },
+    { name: "Why AcadFlow", href: "/#comparison" },
     { name: "Dashboard", href: "/dashboard" },
   ],
 
