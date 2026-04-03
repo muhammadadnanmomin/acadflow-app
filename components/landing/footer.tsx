@@ -12,6 +12,7 @@ const navigation = {
   ],
 
   resources: [
+    { name: "Blog", href: "/blog" },
     { name: "User Guide", href: "user-guide" },
     { name: "Support", href: "/contact" },
     { name: "FAQs", href: "/faq" },

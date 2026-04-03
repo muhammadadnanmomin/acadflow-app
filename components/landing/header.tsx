@@ -77,6 +77,13 @@ export function Header() {
             Why AcadFlow
           </Link>
 
+          <Link
+            href="/blog"
+            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+          >
+            Blog
+          </Link>
+
         </nav>
 
         {/* Desktop Actions */}
@@ -171,6 +178,14 @@ export function Header() {
               className="text-sm font-medium text-gray-600"
             >
               Why AcadFlow
+            </Link>
+
+            <Link
+              href="/blog"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-medium text-gray-600"
+            >
+              Blog
             </Link>
 
             <div className="flex flex-col gap-2 pt-4">
