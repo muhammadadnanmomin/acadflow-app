@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -129,6 +130,7 @@ interface Props {
 type SortOption = "upcoming" | "deadline" | "lowest_fee" | "recent";
 
 export default function ConferenceExplorer({ conferences }: Props) {
+    const router = useRouter();
     const today = new Date().toISOString().split("T")[0];
 
     /* ---- State ---- */
@@ -519,13 +521,25 @@ export default function ConferenceExplorer({ conferences }: Props) {
                                             <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
                                                 <Building2 className="h-3 w-3" />
                                                 Hosted by{" "}
-                                                <a
-                                                    href={`/org/${org.slug}`}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="text-indigo-500 hover:text-indigo-700 hover:underline transition-colors"
+                                                <span
+                                                    role="link"
+                                                    tabIndex={0}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        router.push(`/org/${org.slug}`);
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter" || e.key === " ") {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            router.push(`/org/${org.slug}`);
+                                                        }
+                                                    }}
+                                                    className="text-indigo-500 hover:text-indigo-700 hover:underline transition-colors cursor-pointer"
                                                 >
                                                     {org.name}
-                                                </a>
+                                                </span>
                                             </p>
                                         )}
                                     </div>

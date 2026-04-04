@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Menu, X, GraduationCap } from "lucide-react";
@@ -16,6 +16,9 @@ export function Header() {
 
   const { profile, loading } = useProfile();
   const router = useRouter();
+  const pathname = usePathname();
+  const isBlogActive = pathname === "/blog" || pathname.startsWith("/blog/");
+  const isConferencesActive = pathname === "/conferences" || pathname.startsWith("/conferences/");
 
   async function logout() {
     const supabase = createClient();
@@ -79,9 +82,24 @@ export function Header() {
 
           <Link
             href="/blog"
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+            className={`text-sm font-medium transition-colors ${
+              isBlogActive
+                ? "text-indigo-600 border-b-2 border-indigo-600 pb-0.5"
+                : "text-gray-600 hover:text-indigo-600"
+            }`}
           >
             Blog
+          </Link>
+
+          <Link
+            href="/conferences"
+            className={`text-sm font-medium transition-colors ${
+              isConferencesActive
+                ? "text-indigo-600 border-b-2 border-indigo-600 pb-0.5"
+                : "text-gray-600 hover:text-indigo-600"
+            }`}
+          >
+            Conferences
           </Link>
 
         </nav>
@@ -183,9 +201,25 @@ export function Header() {
             <Link
               href="/blog"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-gray-600"
+              className={`text-sm font-medium transition-colors ${
+                isBlogActive
+                  ? "text-indigo-600 font-semibold"
+                  : "text-gray-600 hover:text-indigo-600"
+              }`}
             >
               Blog
+            </Link>
+
+            <Link
+              href="/conferences"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`text-sm font-medium transition-colors ${
+                isConferencesActive
+                  ? "text-indigo-600 font-semibold"
+                  : "text-gray-600 hover:text-indigo-600"
+              }`}
+            >
+              Conferences
             </Link>
 
             <div className="flex flex-col gap-2 pt-4">

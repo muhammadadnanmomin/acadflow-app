@@ -8,6 +8,7 @@ const navigation = {
     { name: "How It Works", href: "/#how-it-works" },
     { name: "Pricing", href: "/#pricing" },
     { name: "Why AcadFlow", href: "/#comparison" },
+    { name: "Conferences", href: "/conferences" },
     { name: "Dashboard", href: "/dashboard" },
   ],
 
