@@ -112,21 +112,18 @@ const styles = StyleSheet.create({
         marginLeft: 6,
     },
     sessionHeader: {
-        flexDirection: "row" as const,
-        justifyContent: "space-between" as const,
-        alignItems: "flex-start" as const,
+        flexDirection: "column" as const,
         marginBottom: 6,
     },
     sessionTitle: {
         fontSize: 11,
         fontFamily: "Helvetica-Bold",
         color: COLORS.dark,
-        flex: 1,
-        marginRight: 8,
+        marginBottom: 2,
     },
     badgeRow: {
         flexDirection: "row" as const,
-        gap: 4,
+        marginTop: 4,
     },
     badge: {
         fontSize: 7,
@@ -155,7 +152,8 @@ const styles = StyleSheet.create({
     sessionTime: {
         fontSize: 9,
         color: COLORS.muted,
-        marginBottom: 4,
+        marginTop: 4,
+        marginBottom: 6,
     },
     sessionDetail: {
         fontSize: 9,
@@ -280,7 +278,7 @@ function SessionCard({ session }: { session: ScheduleExport["days"][0]["tracks"]
     const hasPresentations = session.presentations && session.presentations.length > 0;
 
     return (
-        <View style={styles.sessionCard} wrap={false}>
+        <View style={styles.sessionCard}>
             {/* Header: Title + Badges */}
             <View style={styles.sessionHeader}>
                 <Text style={styles.sessionTitle}>{session.title}</Text>
@@ -295,9 +293,12 @@ function SessionCard({ session }: { session: ScheduleExport["days"][0]["tracks"]
             </View>
 
             {/* Time */}
-            <Text style={styles.sessionTime}>
-                🕐  {formatTime(session.start_time)} – {formatTime(session.end_time)}
-            </Text>
+            <View>
+                <Text style={styles.sessionTime}>
+                    <Text style={styles.detailLabel}>Time: </Text>
+                    {formatTime(session.start_time)} – {formatTime(session.end_time)}
+                </Text>
+            </View>
 
             {/* Venue / Room (offline/hybrid) */}
             {session.venue && (

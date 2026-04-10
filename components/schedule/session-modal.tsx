@@ -71,6 +71,24 @@ const TIMEZONES = [
     "UTC",
 ];
 
+/**
+ * Convert a datetime-local input value (no TZ) to a UTC ISO string.
+ * e.g. "2026-04-10T11:05" → "2026-04-10T05:35:00.000Z" (for IST +5:30)
+ */
+function localToUTC(datetimeLocal: string): string {
+    return new Date(datetimeLocal).toISOString();
+}
+
+/**
+ * Convert a UTC ISO string to a datetime-local input value (local time).
+ * e.g. "2026-04-10T05:35:00.000Z" → "2026-04-10T11:05" (for IST +5:30)
+ */
+function utcToLocalInput(iso: string): string {
+    const d = new Date(iso);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function SessionModal({
     open,
     onClose,
@@ -130,8 +148,8 @@ export function SessionModal({
                 title: editSession.title,
                 session_type: editSession.session_type,
                 mode: editSession.mode,
-                start_time: editSession.start_time.slice(0, 16),
-                end_time: editSession.end_time.slice(0, 16),
+                start_time: utcToLocalInput(editSession.start_time),
+                end_time: utcToLocalInput(editSession.end_time),
                 venue: editSession.venue || "",
                 room: editSession.room || "",
                 platform: editSession.platform || "",
@@ -205,6 +223,13 @@ export function SessionModal({
 
         setLoading(true);
         try {
+            // Convert local datetime-local values to UTC for DB storage
+            const utcForm: SessionFormData = {
+                ...form,
+                start_time: localToUTC(form.start_time),
+                end_time: localToUTC(form.end_time),
+            };
+
             const conflictResults = await handleCheckConflicts();
             if (conflictResults.length > 0) {
                 setLoading(false);
@@ -213,10 +238,10 @@ export function SessionModal({
             }
 
             if (isEdit) {
-                await updateSession(editSession.id, form);
+                await updateSession(editSession.id, utcForm);
                 toast.success("Session updated");
             } else {
-                await createSession(conferenceId, form);
+                await createSession(conferenceId, utcForm);
                 toast.success("Session created");
             }
 
