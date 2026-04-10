@@ -8,8 +8,9 @@ import type { Session, Track } from "@/lib/schedule/types";
 interface TrackViewProps {
     sessions: Session[];
     tracks: Track[];
-    onSessionClick: (session: Session) => void;
-    onSlotClick: (trackId: string, hour: number) => void;
+    onSessionClick?: (session: Session) => void;
+    onSlotClick?: (trackId: string, hour: number) => void;
+    readonly?: boolean;
 }
 
 // Generate time slots from 8:00 to 20:00
@@ -63,6 +64,7 @@ export function TrackView({
     tracks,
     onSessionClick,
     onSlotClick,
+    readonly = false,
 }: TrackViewProps) {
     const timeSlots = useMemo(() => generateTimeSlots(8, 20), []);
     const totalHeight = timeSlots.length * SLOT_HEIGHT;
@@ -137,8 +139,9 @@ export function TrackView({
                                 key={track.id}
                                 className="flex-1 min-w-[160px] relative border-r last:border-r-0"
                                 onClick={(e) => {
+                                    if (readonly) return;
                                     // Only fire if clicking empty space
-                                    if (e.target === e.currentTarget) {
+                                    if (e.target === e.currentTarget && onSlotClick) {
                                         const rect = e.currentTarget.getBoundingClientRect();
                                         const y = e.clientY - rect.top;
                                         const hour = Math.floor(y / SLOT_HEIGHT) + 8;
@@ -160,15 +163,21 @@ export function TrackView({
                                     const pos = getSessionPosition(session, 8);
 
                                     return (
-                                        <button
+                                        <div
                                             key={session.id}
+                                            role={readonly ? undefined : "button"}
+                                            tabIndex={readonly ? undefined : 0}
                                             onClick={(e) => {
+                                                if (readonly) return;
                                                 e.stopPropagation();
-                                                onSessionClick(session);
+                                                onSessionClick?.(session);
                                             }}
-                                            className="absolute left-1 right-1 rounded-md px-2 py-1 text-left transition-all
-                        hover:shadow-lg hover:scale-[1.02] cursor-pointer overflow-hidden
-                        border border-white/30"
+                                            className={`absolute left-1 right-1 rounded-md px-2 py-1 text-left transition-all
+                        overflow-hidden border border-white/30 ${
+                            readonly
+                                ? "cursor-default"
+                                : "hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+                        }`}
                                             style={{
                                                 top: pos.top,
                                                 height: pos.height,
@@ -193,7 +202,7 @@ export function TrackView({
                                                         session.session_type}
                                                 </Badge>
                                             )}
-                                        </button>
+                                        </div>
                                     );
                                 })}
                             </div>

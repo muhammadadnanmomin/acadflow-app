@@ -15,6 +15,7 @@ import {
   FileText,
   CreditCard,
   ExternalLink,
+  CalendarClock,
 } from "lucide-react";
 
 const supabase = createClient()
@@ -175,6 +176,20 @@ export default function ParticipantConferencesPage() {
                       </a>
                     </Button>
                   )}
+
+                  {/* View Schedule */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    asChild
+                  >
+                    <Link
+                      href={`/dashboard/participant/conference/${conf?.id}/schedule`}
+                    >
+                      <CalendarClock className="h-4 w-4 mr-1" />
+                      Schedule
+                    </Link>
+                  </Button>
 
                 </div>
 

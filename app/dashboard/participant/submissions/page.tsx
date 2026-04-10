@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { PhoneInput, defaultCountries } from "react-international-phone";
 import "react-international-phone/style.css";
@@ -35,6 +36,7 @@ import {
   ChevronUp,
   ArrowRight,
   PartyPopper,
+  CalendarClock,
 } from "lucide-react";
 
 export default function ParticipantSubmissionsPage() {
@@ -758,6 +760,11 @@ export default function ParticipantSubmissionsPage() {
                         <Download className="h-3.5 w-3.5 mr-1" /> Presentation Template
                       </Button>
                     )}
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/dashboard/participant/conference/${confId}/schedule`}>
+                        <CalendarClock className="h-3.5 w-3.5 mr-1" /> View Schedule
+                      </Link>
+                    </Button>
                   </div>
 
                   {/* ── PPT Template Payment Hint ── */}

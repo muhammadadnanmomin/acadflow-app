@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import {
     Video,
     Clock,
     User,
+    ExternalLink,
 } from "lucide-react";
 import type { Session, Track } from "@/lib/schedule/types";
 import { deleteSession } from "@/lib/schedule/actions";
@@ -18,8 +20,9 @@ import { toast } from "sonner";
 interface ListViewProps {
     sessions: Session[];
     tracks: Track[];
-    onEdit: (session: Session) => void;
-    onRefresh: () => void;
+    onEdit?: (session: Session) => void;
+    onRefresh?: () => void;
+    readonly?: boolean;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -54,6 +57,7 @@ export function ListView({
     tracks,
     onEdit,
     onRefresh,
+    readonly = false,
 }: ListViewProps) {
     // Group sessions by track
     const grouped = tracks.map((track) => ({
@@ -67,11 +71,12 @@ export function ListView({
     }));
 
     async function handleDelete(sessionId: string) {
+        if (readonly) return;
         if (!confirm("Delete this session? This cannot be undone.")) return;
         try {
             await deleteSession(sessionId);
             toast.success("Session deleted");
-            onRefresh();
+            onRefresh?.();
         } catch (err) {
             toast.error(
                 err instanceof Error ? err.message : "Failed to delete"
@@ -170,22 +175,45 @@ export function ListView({
                                             </div>
 
                                             <div className="flex gap-1 shrink-0">
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-7 w-7"
-                                                    onClick={() => onEdit(session)}
-                                                >
-                                                    <Pencil className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-7 w-7 text-red-500 hover:text-red-700"
-                                                    onClick={() => handleDelete(session.id)}
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
+                                                {/* Join Session link (readonly/participant mode) */}
+                                                {readonly && session.meeting_link && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="gap-1.5 text-xs"
+                                                        asChild
+                                                    >
+                                                        <Link
+                                                            href={session.meeting_link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                        >
+                                                            <ExternalLink className="h-3 w-3" />
+                                                            Join
+                                                        </Link>
+                                                    </Button>
+                                                )}
+                                                {/* Edit / Delete (organizer mode) */}
+                                                {!readonly && (
+                                                    <>
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            className="h-7 w-7"
+                                                            onClick={() => onEdit?.(session)}
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            className="h-7 w-7 text-red-500 hover:text-red-700"
+                                                            onClick={() => handleDelete(session.id)}
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </Card>
