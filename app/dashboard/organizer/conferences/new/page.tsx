@@ -155,7 +155,7 @@ export default function OrganizerConferences() {
             <p className="text-gray-500 mt-2 max-w-md mx-auto">
               You have used all {plan.conferenceLimit ?? 0} conference
               slot{(plan.conferenceLimit ?? 0) !== 1 ? "s" : ""} on your{" "}
-              {plan.planType === "free" ? "Free" : "Early Adopter"} plan.
+              {plan.planType === "free" ? "Free" : "Pro"} plan.
               Purchase another slot to create more conferences.
             </p>
           </div>

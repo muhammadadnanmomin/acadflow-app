@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendPaymentConfirmationEmail } from "@/lib/email/sendPaymentEmail";
-import { EARLY_ADOPTER_SLOT_PRICE } from "@/lib/config/pricing";
+import { PRO_SLOT_PRICE } from "@/lib/config/pricing";
 
 export async function POST(req: Request) {
     try {
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
         /* ---- Increment conference_slots and upgrade plan ---- */
         const currentSlots = org.conference_slots ?? 1;
         const newPlanType =
-            org.plan_type === "enterprise" ? "enterprise" : "early_adopter";
+            org.plan_type === "institutional" ? "institutional" : "pro";
 
         const { error } = await supabaseAdmin
             .from("organizations")
@@ -76,8 +76,8 @@ export async function POST(req: Request) {
             organization_id: organizationId,
             payment_id: paymentId,
             order_id: orderId,
-            amount: EARLY_ADOPTER_SLOT_PRICE,
-            description: "Conference Slot — Early Adopter Plan",
+            amount: PRO_SLOT_PRICE,
+            description: "Conference Slot — Pro Plan",
         });
 
         /* ---- Send confirmation email (non-blocking) ---- */
@@ -103,8 +103,8 @@ export async function POST(req: Request) {
                     name: profile.name || org.name || "Organizer",
                     paymentId,
                     orderId,
-                    amount: EARLY_ADOPTER_SLOT_PRICE,
-                    description: "Conference Slot — Early Adopter Plan",
+                    amount: PRO_SLOT_PRICE,
+                    description: "Conference Slot — Pro Plan",
                     paidAt: new Date().toISOString(),
                 }).catch(() => {});
             }

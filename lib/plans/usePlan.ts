@@ -11,6 +11,7 @@ import {
     canCreateConference,
     canSubmitPaper,
     formatLimit,
+    normalizePlanType,
 } from "@/lib/config/pricing";
 
 const supabase = createClient();
@@ -71,16 +72,16 @@ export function usePlan(conferenceId?: string): PlanInfo {
 
         async function load() {
             /* ---- Plan fields from org ---- */
-            const planType: PlanType = organization.plan_type || "free";
+            const planType: PlanType = normalizePlanType(organization.plan_type);
             const conferenceSlots: number = organization.conference_slots ?? 1;
 
             /* Resolve the effective conference limit for display */
             const planConf = PLAN_LIMITS[planType]?.conferences;
             let confLimit: number | null;
             if (planConf === null) {
-                confLimit = null; // unlimited (enterprise)
+                confLimit = null; // unlimited (institutional)
             } else if (planConf === "slot_based") {
-                confLimit = conferenceSlots; // early_adopter
+                confLimit = conferenceSlots; // pro
             } else {
                 confLimit = planConf; // free (fixed number)
             }

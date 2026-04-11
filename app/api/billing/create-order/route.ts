@@ -1,6 +1,6 @@
 import Razorpay from "razorpay";
 import { NextResponse } from "next/server";
-import { EARLY_ADOPTER_SLOT_PRICE } from "@/lib/config/pricing";
+import { PRO_SLOT_PRICE } from "@/lib/config/pricing";
 
 export async function POST(req: Request) {
     try {
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
         });
 
         const order = await razorpay.orders.create({
-            amount: EARLY_ADOPTER_SLOT_PRICE * 100, // Razorpay expects paise
+            amount: PRO_SLOT_PRICE * 100, // Razorpay expects paise
             currency: "INR",
             receipt: `acf_slot_${organizationId.slice(0, 8)}_${Date.now()}`,
             notes: {

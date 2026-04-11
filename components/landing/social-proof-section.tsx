@@ -38,13 +38,13 @@ const useCases = [
     type: "University-Level Conference",
     papers: "150–500 papers",
     description:
-      "Multi-track conferences with external reviewers. Use Early Adopter plan for unlimited submissions and analytics.",
+      "Multi-track conferences with external reviewers. Use Pro plan for unlimited submissions and analytics.",
   },
   {
     type: "National / International Conference",
     papers: "500+ papers",
     description:
-      "Large-scale events with multiple organizing committees. Enterprise plan with institutional branding and SLA support.",
+      "Large-scale events with multiple organizing committees. Institutional plan with institutional branding and SLA support.",
   },
 ];
 

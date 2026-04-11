@@ -6,8 +6,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/lib/auth/useProfile";
 import { useOrganization } from "@/lib/organizations/useOrganization";
 import {
-    EARLY_ADOPTER_SLOT_PRICE,
+    PRO_SLOT_PRICE,
     PLAN_LABELS,
+    normalizePlanType,
     type PlanType,
 } from "@/lib/config/pricing";
 import { generateReceipt, type ReceiptData } from "@/lib/billing/generateReceipt";
@@ -42,7 +43,7 @@ export default function BillingUpgradePage() {
     const [successData, setSuccessData] = useState<ReceiptData | null>(null);
 
     useEffect(() => {
-        if (organization?.plan_type === "enterprise") {
+        if (normalizePlanType(organization?.plan_type) === "institutional") {
             setAlreadyPaid(true);
         }
     }, [organization]);
@@ -104,7 +105,7 @@ export default function BillingUpgradePage() {
                 amount: order.amount,
                 currency: order.currency,
                 name: "AcadFlow",
-                description: "Conference Slot — Early Adopter",
+                description: "Conference Slot — Pro Plan",
                 order_id: order.id,
                 prefill: {
                     email: profile.email || "",
@@ -128,8 +129,8 @@ export default function BillingUpgradePage() {
                         const receipt: ReceiptData = {
                             paymentId: response.razorpay_payment_id,
                             orderId: order.id,
-                            amount: EARLY_ADOPTER_SLOT_PRICE,
-                            description: "Conference Slot — Early Adopter Plan",
+                            amount: PRO_SLOT_PRICE,
+                            description: "Conference Slot — Pro Plan",
                             payerName: profile.name || "Organizer",
                             payerEmail: profile.email || undefined,
                             paidAt: new Date().toISOString(),
@@ -176,7 +177,7 @@ export default function BillingUpgradePage() {
     /*  Already upgraded                                                 */
     /* ---------------------------------------------------------------- */
     if (alreadyPaid) {
-        const planLabel = PLAN_LABELS[(organization.plan_type as PlanType) || "enterprise"];
+        const planLabel = PLAN_LABELS[normalizePlanType(organization.plan_type)];
         return (
             <div className="max-w-lg mx-auto py-16 px-4 text-center space-y-4">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
@@ -232,13 +233,13 @@ export default function BillingUpgradePage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                     <div className="flex items-center gap-3">
                         <Badge className="bg-indigo-600 text-white hover:bg-indigo-700 text-sm px-3 py-1">
-                            Early Adopter
+                            Pro
                         </Badge>
                         <span className="text-sm text-gray-500">One-time per conference slot</span>
                     </div>
                     <div className="text-right">
                         <span className="text-4xl font-bold text-gray-900">
-                            ₹{EARLY_ADOPTER_SLOT_PRICE.toLocaleString("en-IN")}
+                            ₹{PRO_SLOT_PRICE.toLocaleString("en-IN")}
                         </span>
                         <span className="text-gray-500 ml-1">/ slot</span>
                     </div>
@@ -271,7 +272,7 @@ export default function BillingUpgradePage() {
                     ) : (
                         <>
                             <Sparkles className="h-5 w-5" />
-                            Pay ₹{EARLY_ADOPTER_SLOT_PRICE.toLocaleString("en-IN")} & Buy Slot
+                            Pay ₹{PRO_SLOT_PRICE.toLocaleString("en-IN")} & Buy Slot
                         </>
                     )}
                 </Button>

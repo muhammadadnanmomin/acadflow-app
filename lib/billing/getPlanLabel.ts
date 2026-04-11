@@ -5,8 +5,11 @@
 
 const PLAN_LABEL_MAP: Record<string, string> = {
     free: "Free",
-    early_adopter: "Early Adopter",
-    enterprise: "Enterprise",
+    pro: "Pro",
+    institutional: "Institutional",
+    // Legacy fallbacks (backward compatibility)
+    early_adopter: "Pro",
+    enterprise: "Institutional",
 };
 
 /**

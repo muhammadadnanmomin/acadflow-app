@@ -5,7 +5,7 @@
    ================================================================ */
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { type PlanType, PLAN_LIMITS, canCreateConference, canSubmitPaper } from "@/lib/config/pricing";
+import { type PlanType, PLAN_LIMITS, canCreateConference, canSubmitPaper, normalizePlanType } from "@/lib/config/pricing";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -39,10 +39,10 @@ export async function checkConferenceLimit(
         return { allowed: false, reason: "Organization not found" };
     }
 
-    const planType: PlanType = org.plan_type || "free";
+    const planType: PlanType = normalizePlanType(org.plan_type);
 
-    // Enterprise — always allowed
-    if (planType === "enterprise") {
+    // Institutional — always allowed
+    if (planType === "institutional") {
         return { allowed: true };
     }
 
@@ -110,7 +110,7 @@ export async function checkSubmissionLimit(
         return { allowed: false, reason: "Organization not found" };
     }
 
-    const planType: PlanType = org.plan_type || "free";
+    const planType: PlanType = normalizePlanType(org.plan_type);
 
     // Check if there is a submission limit for this plan
     const subLimit = PLAN_LIMITS[planType]?.submissions;

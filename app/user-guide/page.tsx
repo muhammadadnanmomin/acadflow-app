@@ -83,7 +83,7 @@ const roles: RoleDef[] = [
           {
             title: "Select Your Plan",
             description:
-              "Choose from Free (1 conference, 150 submissions), Early Adopter (slot-based ₹1,999/slot), or Enterprise (unlimited). You can start free and upgrade anytime.",
+              "Choose from Free (1 conference, 150 submissions), Pro (slot-based ₹2,999/slot), or Institutional (unlimited). You can start free and upgrade anytime.",
             icon: Star,
             link: { label: "View Pricing Plans", href: "/#pricing" },
           },

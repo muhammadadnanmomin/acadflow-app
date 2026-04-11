@@ -81,8 +81,8 @@ export function PricingSection() {
   const supabase = createClient();
 
   const handlePlanClick = async (plan: (typeof plans)[number]) => {
-    // Enterprise → always go to contact page
-    if (plan.name === "Enterprise") {
+    // Institutional → always go to contact page
+    if (plan.name === "Institutional") {
       router.push("/contact");
       return;
     }

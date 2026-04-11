@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useOrganization } from "@/lib/organizations/useOrganization";
 import { getPlanLabel } from "@/lib/billing/getPlanLabel";
+import { normalizePlanType } from "@/lib/config/pricing";
 
 import { cn } from "@/lib/utils";
 import {
@@ -256,12 +257,15 @@ export function DashboardSidebar({
           </Link>
 
           {/* Upgrade button for free plan */}
-          {!collapsed && (!organization.plan_type || organization.plan_type === "free" || organization.plan_type === "early_adopter") && organization.plan_type !== "enterprise" && (
+          {!collapsed && (() => {
+            const normalized = normalizePlanType(organization.plan_type);
+            return normalized !== "institutional";
+          })() && (
             <Link
               href="/dashboard/organizer/billing"
               className="mx-3 mt-1 inline-flex items-center justify-center rounded-md border border-indigo-300 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-50"
             >
-              {organization.plan_type === "early_adopter" ? "Buy Slot" : "Upgrade"}
+              {normalizePlanType(organization.plan_type) === "pro" ? "Buy Slot" : "Upgrade"}
             </Link>
           )}
 

@@ -3,14 +3,17 @@
    Single source of truth for plan prices and limits.
    ================================================================ */
 
-export type PlanType = "free" | "early_adopter" | "enterprise";
+export type PlanType = "free" | "pro" | "institutional";
 
-/** Price in INR for one conference slot (Early Adopter plan) */
-export const EARLY_ADOPTER_SLOT_PRICE = 1999;
+/** Price in INR for one conference slot (Pro plan) */
+export const PRO_SLOT_PRICE = 1999;
+
+/** @deprecated Use PRO_SLOT_PRICE instead. Kept for backward compatibility. */
+export const EARLY_ADOPTER_SLOT_PRICE = PRO_SLOT_PRICE;
 
 /**
  * Plan limits — null means unlimited.
- * early_adopter conferences are "slot_based" (driven by conference_slots column).
+ * pro conferences are "slot_based" (driven by conference_slots column).
  */
 export const PLAN_LIMITS: Record<
     PlanType,
@@ -20,9 +23,30 @@ export const PLAN_LIMITS: Record<
     }
 > = {
     free: { conferences: 1, submissions: 150 },
-    early_adopter: { conferences: "slot_based", submissions: null },
-    enterprise: { conferences: null, submissions: null },
+    pro: { conferences: "slot_based", submissions: null },
+    institutional: { conferences: null, submissions: null },
 };
+
+/* ------------------------------------------------------------------ */
+/*  Backward Compatibility                                              */
+/* ------------------------------------------------------------------ */
+
+/** Maps legacy plan names (stored in DB before migration) to current ones. */
+export const LEGACY_PLAN_MAP: Record<string, PlanType> = {
+    early_adopter: "pro",
+    enterprise: "institutional",
+};
+
+/**
+ * Normalize a plan type string, mapping legacy values to current ones.
+ * Safe to call with any string — unknown values fall back to "free".
+ */
+export function normalizePlanType(raw?: string | null): PlanType {
+    if (!raw) return "free";
+    if (raw in LEGACY_PLAN_MAP) return LEGACY_PLAN_MAP[raw];
+    if (raw === "free" || raw === "pro" || raw === "institutional") return raw;
+    return "free";
+}
 
 /* ------------------------------------------------------------------ */
 /*  Helper functions                                                    */
@@ -33,7 +57,7 @@ export const PLAN_LIMITS: Record<
  *
  * @param planType       — current plan
  * @param currentCount   — conferences already created
- * @param conferenceSlots — from organizations.conference_slots (used for early_adopter)
+ * @param conferenceSlots — from organizations.conference_slots (used for pro)
  */
 export function canCreateConference(
     planType: PlanType,
@@ -45,7 +69,7 @@ export function canCreateConference(
     // Unlimited
     if (limit === null || limit === undefined) return true;
 
-    // Slot-based (early_adopter): compare against conference_slots
+    // Slot-based (pro): compare against conference_slots
     if (limit === "slot_based") {
         const slots = conferenceSlots ?? 0;
         return currentCount < slots;
@@ -73,6 +97,6 @@ export function formatLimit(limit: number | null): string {
 /** Plan display labels */
 export const PLAN_LABELS: Record<PlanType, string> = {
     free: "Free",
-    early_adopter: "Early Adopter",
-    enterprise: "Enterprise",
+    pro: "Pro",
+    institutional: "Institutional",
 };

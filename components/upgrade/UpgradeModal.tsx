@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Sparkles, Loader2 } from "lucide-react";
-import { EARLY_ADOPTER_SLOT_PRICE } from "@/lib/config/pricing";
+import { PRO_SLOT_PRICE } from "@/lib/config/pricing";
 import { generateReceipt, type ReceiptData } from "@/lib/billing/generateReceipt";
 import PaymentSuccessModal from "@/components/payments/PaymentSuccessModal";
 import { toast } from "@/components/ui/use-toast";
@@ -105,7 +105,7 @@ export default function UpgradeModal({
                 amount: order.amount,
                 currency: order.currency,
                 name: "AcadFlow",
-                description: "Conference Slot — Early Adopter",
+                description: "Conference Slot — Pro Plan",
                 order_id: order.id,
                 handler: async (response: any) => {
                     /* 4. Verify payment */
@@ -125,8 +125,8 @@ export default function UpgradeModal({
                         const receipt: ReceiptData = {
                             paymentId: response.razorpay_payment_id,
                             orderId: order.id,
-                            amount: EARLY_ADOPTER_SLOT_PRICE,
-                            description: "Conference Slot — Early Adopter Plan",
+                            amount: PRO_SLOT_PRICE,
+                            description: "Conference Slot — Pro Plan",
                             payerName: payerName || "Organizer",
                             payerEmail: payerEmail || undefined,
                             paidAt: new Date().toISOString(),
@@ -210,11 +210,11 @@ export default function UpgradeModal({
                 <div className="rounded-lg border bg-indigo-50/50 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                         <Badge className="bg-indigo-600 text-white hover:bg-indigo-700">
-                            Early Adopter
+                            Pro
                         </Badge>
                         <div className="text-right">
                             <span className="text-2xl font-bold text-gray-900">
-                                ₹{EARLY_ADOPTER_SLOT_PRICE.toLocaleString("en-IN")}
+                                ₹{PRO_SLOT_PRICE.toLocaleString("en-IN")}
                             </span>
                             <span className="text-sm text-gray-500"> / slot</span>
                         </div>
@@ -247,7 +247,7 @@ export default function UpgradeModal({
                         ) : (
                             <>
                                 <Sparkles className="h-4 w-4 mr-2" />
-                                Buy Slot — ₹{EARLY_ADOPTER_SLOT_PRICE.toLocaleString("en-IN")}
+                                Buy Slot — ₹{PRO_SLOT_PRICE.toLocaleString("en-IN")}
                             </>
                         )}
                     </Button>

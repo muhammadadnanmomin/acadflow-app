@@ -130,7 +130,7 @@ async function handlePaymentCaptured(
     if (org) {
       const currentSlots = org.conference_slots ?? 1;
       const newPlanType =
-        org.plan_type === "enterprise" ? "enterprise" : "early_adopter";
+        org.plan_type === "institutional" ? "institutional" : "pro";
 
       await supabaseAdmin
         .from("organizations")
