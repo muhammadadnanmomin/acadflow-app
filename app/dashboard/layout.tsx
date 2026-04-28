@@ -9,6 +9,7 @@ import { DashboardHeader } from "@/components/dashboard/header";
 import { useProfile } from "@/lib/auth/useProfile";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
+import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
 
 export default function DashboardRootLayout({
   children,
@@ -88,6 +89,9 @@ export default function DashboardRootLayout({
         <main className="flex-1 p-6">{children}</main>
 
         <Toaster />
+
+        {/* ✅ Chatbot with authenticated role */}
+        <ChatbotWidget initialRole={dashboardRole} />
       </div>
     </div>
   );

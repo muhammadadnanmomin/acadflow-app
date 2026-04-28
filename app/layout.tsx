@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster";
 import Script from "next/script"; // ✅ added
+import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
 
 import "./globals.css";
 
@@ -58,6 +59,9 @@ export default function RootLayout({
 
         {/* ✅ REQUIRED FOR TOASTS */}
         <Toaster />
+
+        {/* ✅ AcadFlow AI Chatbot */}
+        <ChatbotWidget />
 
         {/* ✅ Razorpay Checkout Script */}
         <Script
