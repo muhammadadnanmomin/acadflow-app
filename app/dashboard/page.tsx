@@ -15,16 +15,17 @@ export default function DashboardRedirect() {
 
   const [isReviewer, setIsReviewer] = useState<boolean | null>(null);
 
-  // 🔹 detect reviewer assignments
+  // 🔹 detect reviewer role via conference_staff
   useEffect(() => {
     if (!profile) return;
 
     async function checkReviewer() {
       if (!profile) return;
       const { data } = await supabase
-        .from("paper_submissions")
+        .from("conference_staff")
         .select("id")
-        .eq("reviewer_id", profile.id)
+        .eq("user_id", profile.id)
+        .eq("role", "reviewer")
         .limit(1);
 
       setIsReviewer(data && data.length > 0);

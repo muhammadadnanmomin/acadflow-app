@@ -102,7 +102,11 @@ function InviteContent() {
         throw new Error(data.error || "Failed to accept invite");
       }
 
+
       setAcceptedAnimation(true);
+
+      // Store role preference so dashboard redirects correctly
+      localStorage.setItem("activeRole", "reviewer");
 
       toast({
         title: "Welcome 🎉",
