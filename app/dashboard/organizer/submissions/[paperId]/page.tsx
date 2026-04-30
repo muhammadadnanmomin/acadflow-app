@@ -35,6 +35,8 @@ import {
   MessageSquare,
 } from "lucide-react";
 
+import AIReviewCard from "@/components/dashboard/AIReviewCard";
+
 const supabase = createClient();
 
 export default function OrganizerPaperReviewPage() {
@@ -456,6 +458,9 @@ export default function OrganizerPaperReviewPage() {
           </div>
         )}
       </Card>
+
+      {/* ── AI Paper Reviewer ── */}
+      <AIReviewCard submissionId={paperId as string} />
 
       {/* ── Paper Metadata ── */}
       {(paper.presentation_type || paper.publication_type || paper.presentation_fee > 0) && (
