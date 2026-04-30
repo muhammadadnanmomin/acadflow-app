@@ -17,6 +17,7 @@ import {
   PenLine,
   Award,
   BarChart3,
+  Wand2,
 } from "lucide-react";
 
 /* ─── Types ────────────────────────────────────────────────── */
@@ -32,6 +33,10 @@ interface ReviewResult {
 
 interface AIReviewCardProps {
   submissionId: string;
+  /** Callback when reviewer clicks "Use AI Decision" — receives mapped decision string */
+  onUseDecision?: (decision: "accepted" | "rejected" | "revision_required", summary: string) => void;
+  /** When true, hides Regenerate button (e.g., after reviewer already submitted) */
+  readOnly?: boolean;
 }
 
 /* ─── Decision badge color map ─────────────────────────────── */
@@ -107,7 +112,7 @@ function BulletList({ items }: { items: string[] }) {
 /* ═══════════════════════════════════════════════════════════ */
 /*  MAIN COMPONENT                                            */
 /* ═══════════════════════════════════════════════════════════ */
-export default function AIReviewCard({ submissionId }: AIReviewCardProps) {
+export default function AIReviewCard({ submissionId, onUseDecision, readOnly }: AIReviewCardProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ReviewResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -282,16 +287,18 @@ export default function AIReviewCard({ submissionId }: AIReviewCardProps) {
             <Badge className="bg-purple-50 text-purple-600 text-[10px] tracking-wider uppercase border border-purple-200">
               AI Generated
             </Badge>
-            <Button
-              onClick={() => analyzeePaper(true)}
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs gap-1.5"
-              disabled={loading}
-            >
-              <RefreshCw className="h-3 w-3" />
-              Regenerate
-            </Button>
+            {!readOnly && (
+              <Button
+                onClick={() => analyzeePaper(true)}
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1.5"
+                disabled={loading}
+              >
+                <RefreshCw className="h-3 w-3" />
+                Regenerate
+              </Button>
+            )}
           </div>
         </div>
 
@@ -398,6 +405,32 @@ export default function AIReviewCard({ submissionId }: AIReviewCardProps) {
         >
           <BulletList items={result.grammar_issues} />
         </ReviewSection>
+
+        {/* Use AI Decision button (reviewer mode) */}
+        {onUseDecision && result.final_decision && !readOnly && (
+          <div
+            className="opacity-0"
+            style={{ animation: "fadeInUp 0.5s ease-out 550ms forwards" }}
+          >
+            <Button
+              onClick={() => {
+                const d = result.final_decision.toLowerCase();
+                const mapped: "accepted" | "rejected" | "revision_required" =
+                  d.includes("reject") ? "rejected"
+                  : d.includes("major") || d.includes("minor") || d.includes("revision") ? "revision_required"
+                  : "accepted";
+                const summary = `[AI-assisted] ${result.final_decision} (${result.confidence_score}% confidence)\n\nStrengths:\n${(result.strengths || []).map(s => `- ${s}`).join("\n")}\n\nWeaknesses:\n${(result.weaknesses || []).map(w => `- ${w}`).join("\n")}`;
+                onUseDecision(mapped, summary);
+              }}
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 border-purple-300 text-purple-700 hover:bg-purple-50"
+            >
+              <Wand2 className="h-3.5 w-3.5" />
+              Use AI Decision — Prefill "{result.final_decision}"
+            </Button>
+          </div>
+        )}
 
         {/* Footer meta */}
         <div

@@ -292,6 +292,7 @@ export async function POST(req: NextRequest) {
   try {
     // 1. Auth check — verify user is logged in
     let userId: string | null = null;
+    let userRole: string = "guest";
     try {
       const supabase = await createServerSupabaseClient();
       const {
@@ -305,19 +306,14 @@ export async function POST(req: NextRequest) {
       }
       userId = user.id;
 
-      // Verify organizer role
+      // Get user role
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
         .single();
 
-      if (!profile || !["organizer", "admin"].includes(profile.role)) {
-        return NextResponse.json(
-          { error: "Only organizers can use AI review" },
-          { status: 403 }
-        );
-      }
+      userRole = profile?.role ?? "guest";
     } catch {
       return NextResponse.json(
         { error: "Authentication failed" },
@@ -365,7 +361,7 @@ export async function POST(req: NextRequest) {
     // 5. Fetch paper submission
     const { data: paper, error: paperErr } = await supabaseServer
       .from("paper_submissions")
-      .select("id, file_url, title")
+      .select("id, file_url, title, reviewer_id")
       .eq("id", submissionId)
       .single();
 
@@ -373,6 +369,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Submission not found" },
         { status: 404 }
+      );
+    }
+
+    // 5b. Authorization — organizer/admin always allowed, reviewer only if assigned
+    const isOrganizerOrAdmin = ["organizer", "admin"].includes(userRole);
+    const isAssignedReviewer = userRole === "reviewer" && paper.reviewer_id === userId;
+
+    if (!isOrganizerOrAdmin && !isAssignedReviewer) {
+      return NextResponse.json(
+        { error: "You do not have permission to review this paper" },
+        { status: 403 }
       );
     }
 

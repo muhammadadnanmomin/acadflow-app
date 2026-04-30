@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
@@ -30,6 +30,10 @@ import {
   MessageSquare,
 } from "lucide-react";
 
+import AIReviewCard from "@/components/dashboard/AIReviewCard";
+
+const supabase = createClient();
+
 export default function ReviewerReviewPage() {
   const { paperId } = useParams();
   const router = useRouter();
@@ -48,8 +52,6 @@ export default function ReviewerReviewPage() {
   });
   const [confirmAction, setConfirmAction] = useState<"accepted" | "rejected" | "revision_required" | null>(null);
 
-  const supabase = createClient();
-
   const toggle = (key: string) =>
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -62,69 +64,66 @@ export default function ReviewerReviewPage() {
   }, [paperId]);
 
   /* Load paper + review history */
-  useEffect(() => {
-    async function loadPaper() {
-      if (!profile || !paperId) return;
+  const loadPaper = useCallback(async () => {
+    if (!profile?.id || !paperId) return;
 
-      setLoading(true);
+    setLoading(true);
 
-      const { data } = await supabase
-        .from("paper_submissions")
-        .select(`
-          id,
-          title,
-          file_url,
-          camera_ready_url,
-          status,
-          plagiarism_status,
-          review_comment,
-          reviewer_id,
-          reviewed_at,
-          created_at,
-          revision_number,
-          declaration_original,
-          declaration_no_plagiarism,
-          declaration_author_approval,
-          conferences ( title )
-        `)
-        .eq("id", paperId)
-        .eq("reviewer_id", profile.id)
-        .maybeSingle();
+    const { data } = await supabase
+      .from("paper_submissions")
+      .select(`
+        id,
+        title,
+        file_url,
+        camera_ready_url,
+        status,
+        plagiarism_status,
+        review_comment,
+        reviewer_id,
+        reviewed_at,
+        created_at,
+        revision_number,
+        declaration_original,
+        declaration_no_plagiarism,
+        declaration_author_approval,
+        conferences ( title )
+      `)
+      .eq("id", paperId)
+      .eq("reviewer_id", profile.id)
+      .maybeSingle();
 
-      if (!data) {
-        router.push("/dashboard/reviewer/papers");
-        return;
-      }
-
-      setPaper(data);
-
-      // Load review history from reviews table
-      const { data: reviews } = await supabase
-        .from("reviews")
-        .select("id, revision_number, decision, comments, created_at")
-        .eq("submission_id", paperId)
-        .eq("reviewer_id", profile.id)
-        .order("created_at", { ascending: true });
-
-      setReviewHistory(reviews || []);
-
-      // Only pre-fill comments from draft, not from old review_comment
-      // (draft is loaded via localStorage above)
-
-      // load authors
-      const { data: authorRows } = await supabase
-        .from("paper_authors")
-        .select("name, affiliation, author_order, is_primary")
-        .eq("submission_id", paperId)
-        .order("author_order", { ascending: true });
-
-      setAuthors(authorRows || []);
-
-      setLoading(false);
+    if (!data) {
+      router.push("/dashboard/reviewer/papers");
+      return;
     }
 
+    setPaper(data);
+
+    // Load review history from reviews table
+    const { data: reviews } = await supabase
+      .from("reviews")
+      .select("id, revision_number, decision, comments, created_at")
+      .eq("submission_id", paperId)
+      .eq("reviewer_id", profile.id)
+      .order("created_at", { ascending: true });
+
+    setReviewHistory(reviews || []);
+
+    // load authors
+    const { data: authorRows } = await supabase
+      .from("paper_authors")
+      .select("name, affiliation, author_order, is_primary")
+      .eq("submission_id", paperId)
+      .order("author_order", { ascending: true });
+
+    setAuthors(authorRows || []);
+
+    setLoading(false);
+  }, [profile?.id, paperId, router]);
+
+  useEffect(() => {
     loadPaper();
-  }, [profile, paperId]);
+  }, [loadPaper]);
 
   /* autosave draft */
   useEffect(() => {
@@ -376,6 +375,21 @@ export default function ReviewerReviewPage() {
           <p className="text-xs text-gray-400">Currently viewing revision v{paper.revision_number}</p>
         )}
       </Card>
+
+      {/* ── AI Paper Reviewer Assistant ── */}
+      <div className="space-y-2">
+        <p className="text-xs text-gray-500 italic px-1">
+          AI-generated insights to assist your review (use your judgment).
+        </p>
+        <AIReviewCard
+          submissionId={paperId as string}
+          readOnly={isFinalDecision}
+          onUseDecision={canReview ? (decision, summary) => {
+            setComments(summary);
+            setConfirmAction(decision);
+          } : undefined}
+        />
+      </div>
 
       {/* ── Review History ── */}
       {reviewHistory.length > 0 && (
