@@ -4,6 +4,7 @@ import { HeroSection } from "@/components/landing/hero-section";
 import { ProblemSection } from "@/components/landing/problem-section";
 import { SolutionSection } from "@/components/landing/solution-section";
 import { FeaturesSection } from "@/components/landing/features-section";
+import { AIDemoSection } from "@/components/landing/ai-demo-section";
 import { HowItWorksSection } from "@/components/landing/how-it-works";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { ComparisonSection } from "@/components/landing/comparison-section";
@@ -11,9 +12,9 @@ import { ComparisonSection } from "@/components/landing/comparison-section";
 
 
 export const metadata: Metadata = {
-  title: "AcadFlow — Manage Academic Conferences Without the Admin Chaos",
+  title: "AcadFlow — AI-Powered Academic Conference Management Platform",
   description:
-    "AcadFlow replaces Google Forms, Excel, Gmail, and manual certificate tools with one platform. Manage paper submissions, peer reviews, payments, and certificates in minutes. Free to start.",
+    "AcadFlow uses AI to automatically review research papers, manage submissions, peer reviews, payments, and certificates — all in one platform. Free to start.",
   keywords: [
     "academic conference management",
     "paper submission portal",
@@ -44,8 +45,11 @@ export default function Home() {
       {/* 3. Solution — Before → After transformation */}
       <SolutionSection />
 
-      {/* 4. Features — Grouped into 5 modules */}
+      {/* 4. Features — Grouped into 6 modules */}
       <FeaturesSection />
+
+      {/* 4.5 AI Demo — Prove the AI capability */}
+      <AIDemoSection />
 
       {/* 5. How It Works — 5 clear steps */}
       <HowItWorksSection />

@@ -4,9 +4,24 @@ import {
   CreditCard,
   BarChart3,
   Award,
+  Brain,
 } from "lucide-react";
 
 const features = [
+  {
+    icon: Brain,
+    title: "AI Paper Reviewer Assistant",
+    tagline: "NEW — AI-powered paper analysis",
+    isNew: true,
+    description:
+      "Analyze research papers instantly with AI-powered insights designed for faster and smarter decision-making. Get structured feedback in seconds, not hours.",
+    outcomes: [
+      "📄 Instant paper summary with key contributions",
+      "✅ Identify strengths & weaknesses automatically",
+      "✍️ Detect grammar issues across the manuscript",
+      "🧾 AI-generated decision suggestion with confidence score",
+    ],
+  },
   {
     icon: FileText,
     title: "Submission Management",
@@ -101,22 +116,35 @@ export function FeaturesSection() {
         {/* Feature Cards */}
         <div className="mt-16 space-y-6">
 
-          {features.map((feature, index) => (
+          {features.map((feature: any, index: number) => (
             <div
               key={feature.title}
-              className={`group overflow-hidden rounded-2xl border bg-white transition hover:shadow-lg ${
-                index === 0 ? "border-indigo-200 shadow-sm" : "border-gray-200"
+              className={`group relative overflow-hidden rounded-2xl border bg-white transition hover:shadow-lg ${
+                feature.isNew ? "border-purple-200 shadow-md ring-1 ring-purple-100" : index === 1 ? "border-indigo-200 shadow-sm" : "border-gray-200"
               }`}
             >
+              {/* NEW badge */}
+              {feature.isNew && (
+                <div className="absolute top-4 right-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-sm">
+                  ✨ NEW
+                </div>
+              )}
+
               <div className="grid gap-6 p-8 lg:grid-cols-[1fr_1.2fr] lg:gap-12 lg:p-10">
 
                 {/* Text */}
                 <div>
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 transition group-hover:bg-indigo-600 group-hover:text-white">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg transition ${
+                      feature.isNew
+                        ? "bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white"
+                        : "bg-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white"
+                    }`}>
                       <feature.icon className="h-5 w-5" />
                     </div>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
+                    <span className={`text-xs font-semibold uppercase tracking-wider ${
+                      feature.isNew ? "text-purple-600" : "text-indigo-600"
+                    }`}>
                       {feature.tagline}
                     </span>
                   </div>
@@ -133,10 +161,12 @@ export function FeaturesSection() {
                 {/* Outcomes */}
                 <div className="flex items-center">
                   <ul className="space-y-4">
-                    {feature.outcomes.map((outcome) => (
+                    {feature.outcomes.map((outcome: string) => (
                       <li key={outcome} className="flex items-start gap-3">
-                        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                          <svg className="h-3 w-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                          feature.isNew ? "bg-purple-100" : "bg-emerald-100"
+                        }`}>
+                          <svg className={`h-3 w-3 ${feature.isNew ? "text-purple-600" : "text-emerald-600"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
