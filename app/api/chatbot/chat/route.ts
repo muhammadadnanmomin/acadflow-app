@@ -1,10 +1,10 @@
 // ============================================================
 // AcadFlow Chatbot — /api/chatbot/chat
 // POST: SSE streaming chat with RAG + role-aware context
-// Powered by Google Gemini (gemini-1.5-flash) — free tier
+// Powered by Google Gemini (gemini-2.5-flash) — free tier
 // ============================================================
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { supabaseServer } from "@/lib/supabase/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -107,13 +107,7 @@ function getFallbackResponse(message: string): string {
   return "I'm here to help with AcadFlow — the academic conference management platform. I can assist with **paper submissions**, **conference discovery**, **deadlines**, **review processes**, and **platform navigation**.\n\nCould you be more specific about what you need help with? Or try one of the quick actions below.";
 }
 
-// ── Safety settings (permissive for academic context) ─────────
-const SAFETY_SETTINGS = [
-  { category: HarmCategory.HARM_CATEGORY_HARASSMENT,         threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
-  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
-  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,  threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
-  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,  threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
-];
+// ── Safety settings removed — handled by default in @google/genai SDK ──
 
 // ── Main POST Handler ─────────────────────────────────────────
 export async function POST(req: NextRequest) {
@@ -202,21 +196,25 @@ export async function POST(req: NextRequest) {
     let ragContext = "";
     if (geminiKey) {
       try {
-        const genAI = new GoogleGenerativeAI(geminiKey);
-        const embModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
-        const embResult = await embModel.embedContent(message.slice(0, 8000));
-        const queryEmbedding = embResult.embedding.values;
-
-        const { data: docs } = await supabaseServer.rpc("match_chatbot_documents", {
-          query_embedding: queryEmbedding,
-          match_threshold: 0.45,
-          match_count: 4,
+        const genAI = new GoogleGenAI({ apiKey: geminiKey });
+        const embResult = await genAI.models.embedContent({
+          model: "gemini-embedding-001",
+          contents: message.slice(0, 8000),
         });
+        const queryEmbedding = embResult.embeddings?.[0]?.values;
 
-        if (docs?.length) {
-          ragContext = docs
-            .map((d: { content: string }) => d.content)
-            .join("\n\n---\n\n");
+        if (queryEmbedding) {
+          const { data: docs } = await supabaseServer.rpc("match_chatbot_documents", {
+            query_embedding: queryEmbedding,
+            match_threshold: 0.45,
+            match_count: 4,
+          });
+
+          if (docs?.length) {
+            ragContext = docs
+              .map((d: { content: string }) => d.content)
+              .join("\n\n---\n\n");
+          }
         }
       } catch (ragErr) {
         console.warn("RAG search failed, continuing without context:", ragErr);
@@ -264,12 +262,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Gemini streaming ──────────────────────────────────────
-    const genAI = new GoogleGenerativeAI(geminiKey);
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL ?? "gemini-1.5-flash",
-      systemInstruction: buildSystemPrompt(userRole, ragContext),
-      safetySettings: SAFETY_SETTINGS,
-    });
+    const genAI = new GoogleGenAI({ apiKey: geminiKey });
 
     const geminiHistory = conversationHistory
       .filter((m) => m.role === "user" || m.role === "assistant")
@@ -278,9 +271,14 @@ export async function POST(req: NextRequest) {
         parts: [{ text: m.content }],
       }));
 
-    const chat = model.startChat({
+    const chat = genAI.chats.create({
+      model: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
+      config: {
+        systemInstruction: buildSystemPrompt(userRole, ragContext),
+        maxOutputTokens: 600,
+        temperature: 0.7,
+      },
       history: geminiHistory,
-      generationConfig: { maxOutputTokens: 600, temperature: 0.7 },
     });
 
     const encoder = new TextEncoder();
@@ -292,10 +290,12 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const result = await chat.sendMessageStream(message);
+          const result = await chat.sendMessageStream({
+            message,
+          });
 
-          for await (const chunk of result.stream) {
-            const token = chunk.text();
+          for await (const chunk of result) {
+            const token = chunk.text ?? "";
             if (token) {
               fullResponse += token;
               const data = JSON.stringify({ type: "token", content: token });

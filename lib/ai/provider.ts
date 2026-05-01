@@ -1,11 +1,11 @@
 // ============================================================
-// AcadFlow Shared AI Provider — Zero-Failure Architecture
+// AcadFlow Shared AI Provider — Stabilized Zero-Failure
 // NEVER throws to callers. Always returns a result or null.
-// Features: time budget, circuit breaker, parallel racing,
-//   retry-with-delay, request dedup, heuristic fallback,
-//   server-side cooldown, output normalization
+// Features: stable models, input cap (8k), single retry,
+//   circuit breaker, fast-mode fallback, health check,
+//   structured error logging, request dedup, cooldown
 // ============================================================
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 // ══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -13,40 +13,63 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const OLLAMA_URL = "http://localhost:11434/api/generate";
 
-const GLOBAL_TIME_BUDGET_MS = 12_000;  // 12s max total execution
-const SINGLE_CALL_TIMEOUT_MS = 8_000;  // 8s per individual API call
-const OLLAMA_TIMEOUT_MS = 5_000;       // 5s for local model
-const RETRY_COUNT = 2;                 // 2 retries per provider
-const RETRY_DELAY_MS = 2_000;          // 2s between retries
-const COOLDOWN_MS = 30_000;            // 30s server-side cooldown
-const CIRCUIT_BREAK_MS = 120_000;      // 2min circuit breaker
-const CIRCUIT_BREAK_THRESHOLD = 3;     // failures before breaking
-const MAX_TEXT_CHARS = 200_000;
+const GLOBAL_TIME_BUDGET_MS = 12_000;  // 12s max total
+const SINGLE_CALL_TIMEOUT_MS = 8_000;  // 8s per call
+const OLLAMA_TIMEOUT_MS = 5_000;
+const RETRY_DELAY_MS = 1_500;          // 1.5s between retry
+const COOLDOWN_MS = 30_000;
+const CIRCUIT_BREAK_MS = 120_000;
+const CIRCUIT_BREAK_THRESHOLD = 3;
 
-// ── Lean model chains (2 per provider for speed) ──────────────
+// ── CRITICAL: Max input to AI — prevents timeouts/failures ────
+const MAX_AI_INPUT_CHARS = 8_000;
+
+// ── Current models ONLY (verified May 2026) ────────────────────
 const GROQ_MODELS = [
-  "llama3-70b-8192",        // deep reasoning
-  "mixtral-8x7b-32768",     // structured output, 32k ctx
+  "llama-3.3-70b-versatile",  // deep reasoning — PRIMARY
+  "llama-3.1-8b-instant",    // fast fallback
 ];
 
-const GEMINI_MODELS = [
-  "gemini-2.5-flash-preview-04-17",
-  "gemini-2.0-flash",
-];
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 const OLLAMA_MODELS = ["mistral", "llama3"];
 
-// ── Text size thresholds ──────────────────────────────────────
+// ── Text processing thresholds ────────────────────────────────
 const SHORT_TEXT_LIMIT = 12_000;
 const MEDIUM_TEXT_LIMIT = 80_000;
+const MAX_TEXT_CHARS = 200_000;
 
 // ══════════════════════════════════════════════════════════════
-// CIRCUIT BREAKER — disables a provider after repeated failures
+// STARTUP LOGGING — validate keys on first load
 // ══════════════════════════════════════════════════════════════
-interface CircuitState {
-  failures: number;
-  disabledUntil: number; // timestamp
+const _groqKeyPresent = !!(process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.length > 10);
+const _geminiKeyPresent = !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 10);
+console.log(`[ai-provider] Groq key: ${_groqKeyPresent ? "✅ present" : "❌ missing"}`);
+console.log(`[ai-provider] Gemini key: ${_geminiKeyPresent ? "✅ present" : "❌ missing"}`);
+console.log(`[ai-provider] Models: Groq=[${GROQ_MODELS.join(", ")}] Gemini=${GEMINI_MODEL}`);
+console.log(`[ai-provider] Max AI input: ${MAX_AI_INPUT_CHARS} chars`);
+
+// ══════════════════════════════════════════════════════════════
+// RATE THROTTLE — minimum 3s between Groq API calls
+// Prevents account restriction from rapid requests
+// ══════════════════════════════════════════════════════════════
+const MIN_GROQ_INTERVAL_MS = 3_000;
+let _lastGroqCallTime = 0;
+
+async function throttleGroq(): Promise<void> {
+  const elapsed = Date.now() - _lastGroqCallTime;
+  if (elapsed < MIN_GROQ_INTERVAL_MS) {
+    const waitMs = MIN_GROQ_INTERVAL_MS - elapsed;
+    console.log(`[ai-provider] ⏱️ Throttling Groq: waiting ${waitMs}ms`);
+    await new Promise((r) => setTimeout(r, waitMs));
+  }
+  _lastGroqCallTime = Date.now();
 }
+
+// ══════════════════════════════════════════════════════════════
+// CIRCUIT BREAKER
+// ══════════════════════════════════════════════════════════════
+interface CircuitState { failures: number; disabledUntil: number; }
 
 const circuits: Record<string, CircuitState> = {
   groq: { failures: 0, disabledUntil: 0 },
@@ -55,21 +78,29 @@ const circuits: Record<string, CircuitState> = {
 
 function isCircuitOpen(provider: "groq" | "gemini"): boolean {
   const s = circuits[provider];
-  if (Date.now() < s.disabledUntil) return true; // still disabled
+  if (Date.now() < s.disabledUntil) return true;
   if (Date.now() >= s.disabledUntil && s.failures > 0) {
-    // Reset after cooldown expires
     s.failures = 0;
     s.disabledUntil = 0;
   }
   return false;
 }
 
-function recordFailure(provider: "groq" | "gemini") {
+function recordFailure(provider: "groq" | "gemini", httpStatus?: number) {
   const s = circuits[provider];
+
+  // INSTANT circuit break on 400/429/403 — don't wait for threshold
+  if (httpStatus && (httpStatus === 400 || httpStatus === 429 || httpStatus === 403)) {
+    s.failures = CIRCUIT_BREAK_THRESHOLD;
+    s.disabledUntil = Date.now() + CIRCUIT_BREAK_MS;
+    console.warn(`[ai-provider] 🔴 ${provider} instantly disabled for ${CIRCUIT_BREAK_MS / 1000}s (HTTP ${httpStatus})`);
+    return;
+  }
+
   s.failures++;
   if (s.failures >= CIRCUIT_BREAK_THRESHOLD) {
     s.disabledUntil = Date.now() + CIRCUIT_BREAK_MS;
-    console.warn(`[ai-provider] Circuit OPEN for ${provider} — disabled for ${CIRCUIT_BREAK_MS / 1000}s`);
+    console.warn(`[ai-provider] 🔴 Circuit OPEN for ${provider} — disabled ${CIRCUIT_BREAK_MS / 1000}s`);
   }
 }
 
@@ -79,35 +110,73 @@ function recordSuccess(provider: "groq" | "gemini") {
 }
 
 // ══════════════════════════════════════════════════════════════
-// SERVER-SIDE COOLDOWN — prevents repeated requests
+// STARTUP HEALTH CHECK — verify Groq key works
+// Runs once asynchronously, disables Groq if key is bad
+// ══════════════════════════════════════════════════════════════
+let _groqHealthChecked = false;
+
+async function checkGroqHealth(): Promise<boolean> {
+  if (_groqHealthChecked) return !isCircuitOpen("groq");
+  _groqHealthChecked = true;
+
+  const key = getGroqKey();
+  if (!key) return false;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5_000);
+    const res = await fetch(GROQ_API_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: GROQ_MODELS[0],
+        messages: [{ role: "user", content: "Reply with OK" }],
+        max_tokens: 5,
+        temperature: 0,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      console.log("[ai-provider] ✅ Groq health check passed");
+      return true;
+    }
+
+    const status = res.status;
+    const body = await res.text().catch(() => "");
+    console.error(`[ai-provider] ❌ Groq health check failed:`, { status, body: body.slice(0, 150) });
+    recordFailure("groq", status);
+    return false;
+  } catch (err: any) {
+    console.error(`[ai-provider] ❌ Groq health check error: ${err.message}`);
+    return false;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// SERVER-SIDE COOLDOWN
 // ══════════════════════════════════════════════════════════════
 const cooldownMap = new Map<string, number>();
 
 export function checkCooldown(userId: string, submissionId: string): { blocked: boolean; waitMs: number } {
   const key = `${userId}:${submissionId}`;
-  const lastTime = cooldownMap.get(key) || 0;
-  const elapsed = Date.now() - lastTime;
-
-  if (elapsed < COOLDOWN_MS) {
-    return { blocked: true, waitMs: COOLDOWN_MS - elapsed };
-  }
+  const last = cooldownMap.get(key) || 0;
+  const elapsed = Date.now() - last;
+  if (elapsed < COOLDOWN_MS) return { blocked: true, waitMs: COOLDOWN_MS - elapsed };
   return { blocked: false, waitMs: 0 };
 }
 
 export function recordRequest(userId: string, submissionId: string) {
   cooldownMap.set(`${userId}:${submissionId}`, Date.now());
-
-  // Cleanup old entries every 100 requests
   if (cooldownMap.size > 500) {
     const now = Date.now();
-    for (const [k, v] of cooldownMap) {
-      if (now - v > COOLDOWN_MS * 2) cooldownMap.delete(k);
-    }
+    for (const [k, v] of cooldownMap) { if (now - v > COOLDOWN_MS * 2) cooldownMap.delete(k); }
   }
 }
 
 // ══════════════════════════════════════════════════════════════
-// REQUEST DEDUPLICATION — reuses in-flight promises
+// REQUEST DEDUPLICATION
 // ══════════════════════════════════════════════════════════════
 const inflightMap = new Map<string, Promise<AICallResult | null>>();
 
@@ -120,33 +189,26 @@ function getGroqKey(): string | null {
   return key;
 }
 
-function getGeminiClient(): GoogleGenerativeAI | null {
+function getGeminiClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY ?? "";
   if (!apiKey || apiKey.length < 10 || apiKey.startsWith("your-")) return null;
-  return new GoogleGenerativeAI(apiKey);
+  return new GoogleGenAI({ apiKey });
 }
 
 // ══════════════════════════════════════════════════════════════
-// RETRY WITH DELAY
+// SINGLE RETRY — lightweight, retry ONCE only
 // ══════════════════════════════════════════════════════════════
-async function retryWithDelay<T>(
-  fn: () => Promise<T>,
-  retries = RETRY_COUNT,
-  delay = RETRY_DELAY_MS
-): Promise<T> {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      if (i === retries) throw err;
-      await new Promise((r) => setTimeout(r, delay));
-    }
+async function safeCall<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (firstErr) {
+    await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    return await fn(); // single retry — throws if this also fails
   }
-  throw new Error("retryWithDelay: unreachable");
 }
 
 // ══════════════════════════════════════════════════════════════
-// GROQ PROVIDER — tries each model in chain
+// GROQ PROVIDER — tries each model, structured error logging
 // ══════════════════════════════════════════════════════════════
 async function callGroqChain(
   apiKey: string,
@@ -157,9 +219,13 @@ async function callGroqChain(
   for (const model of GROQ_MODELS) {
     if (Date.now() >= deadline) throw new Error("TIME_BUDGET_EXCEEDED");
 
+    // Rate throttle — wait 3s between Groq calls
+    await throttleGroq();
+
     const remainingMs = Math.min(SINGLE_CALL_TIMEOUT_MS, deadline - Date.now());
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), remainingMs);
+    const callStart = Date.now();
 
     try {
       const res = await fetch(GROQ_API_URL, {
@@ -175,17 +241,44 @@ async function callGroqChain(
       if (res.ok) {
         const data = await res.json();
         const content = data.choices?.[0]?.message?.content ?? "";
-        if (content) return { text: content, model: `groq/${model}` };
+        if (content) {
+          const latency = Date.now() - callStart;
+          console.log(`[ai-provider] ✅ Groq ${model} succeeded (${content.length} chars, ${latency}ms)`);
+          return { text: content, model: `groq/${model}` };
+        }
       }
 
       const status = res.status;
-      // Auth/account errors → skip all Groq models
-      if (status === 401 || status === 403) throw new Error("GROQ_AUTH_FAIL");
-      // Rate limit / server error → try next model
-      console.warn(`[ai-provider] Groq ${model} failed (${status}), trying next...`);
+      const errBody = await res.text().catch(() => "");
+
+      console.error(`[ai-provider] ❌ Groq ${model} error:`, {
+        status,
+        body: errBody.slice(0, 200),
+        model,
+        latency: Date.now() - callStart,
+      });
+
+      // Auth/restriction → skip ALL Groq models, instant circuit break
+      if (status === 401 || status === 403 || errBody.includes("restricted")) {
+        recordFailure("groq", status);
+        throw new Error("GROQ_AUTH_FAIL");
+      }
+
+      // Rate limit → instant circuit break (don't try next model)
+      if (status === 429 || status === 400) {
+        recordFailure("groq", status);
+        throw new Error("GROQ_RATE_LIMITED");
+      }
+
+      // Other errors → try next model
     } catch (err: any) {
-      if (err.message === "GROQ_AUTH_FAIL" || err.message === "TIME_BUDGET_EXCEEDED") throw err;
-      console.warn(`[ai-provider] Groq ${model}: ${err.name === "AbortError" ? "timeout" : err.message}`);
+      if (err.message === "GROQ_AUTH_FAIL" || err.message === "GROQ_RATE_LIMITED" || err.message === "TIME_BUDGET_EXCEEDED") throw err;
+
+      console.error(`[ai-provider] ❌ Groq ${model} exception:`, {
+        name: err.name,
+        message: err.message?.slice(0, 150),
+        isTimeout: err.name === "AbortError",
+      });
     } finally {
       clearTimeout(timeout);
     }
@@ -194,60 +287,117 @@ async function callGroqChain(
 }
 
 // ══════════════════════════════════════════════════════════════
-// GEMINI PROVIDER — tries each model in chain
+// GEMINI PROVIDER — single stable model, structured logging
 // ══════════════════════════════════════════════════════════════
-async function callGeminiChain(
-  genAI: GoogleGenerativeAI,
+async function callGeminiSingle(
+  genAI: GoogleGenAI,
   prompt: string,
   deadline: number
 ): Promise<{ text: string; model: string }> {
-  for (const modelName of GEMINI_MODELS) {
-    if (Date.now() >= deadline) throw new Error("TIME_BUDGET_EXCEEDED");
+  if (Date.now() >= deadline) throw new Error("TIME_BUDGET_EXCEEDED");
 
-    try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      if (text) return { text, model: `gemini/${modelName}` };
-    } catch (err: any) {
-      console.warn(`[ai-provider] Gemini ${modelName}: ${(err.message || "").slice(0, 80)}`);
+  const callStart = Date.now();
+
+  try {
+    const response = await genAI.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt,
+    });
+    const text = response.text ?? "";
+
+    if (text) {
+      const latency = Date.now() - callStart;
+      console.log(`[ai-provider] ✅ Gemini ${GEMINI_MODEL} succeeded (${text.length} chars, ${latency}ms)`);
+      return { text, model: `gemini/${GEMINI_MODEL}` };
     }
+
+    throw new Error("Empty response from Gemini");
+  } catch (err: any) {
+    console.error(`[ai-provider] ❌ Gemini ${GEMINI_MODEL} error:`, {
+      message: err.message?.slice(0, 200),
+      includes429: err.message?.includes("429"),
+      includes404: err.message?.includes("404"),
+    });
+    throw new Error("GEMINI_FAILED");
   }
-  throw new Error("GEMINI_ALL_EXHAUSTED");
 }
 
 // ══════════════════════════════════════════════════════════════
-// OLLAMA LOCAL MODEL — optional, fast-fail if not running
+// OLLAMA LOCAL MODEL
 // ══════════════════════════════════════════════════════════════
 async function callOllama(prompt: string): Promise<{ text: string; model: string } | null> {
   for (const model of OLLAMA_MODELS) {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), OLLAMA_TIMEOUT_MS);
-
       const res = await fetch(OLLAMA_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model, prompt, stream: false }),
         signal: controller.signal,
       });
-
       clearTimeout(timeout);
-
       if (res.ok) {
         const data = await res.json();
-        if (data.response) return { text: data.response, model: `ollama/${model}` };
+        if (data.response) {
+          console.log(`[ai-provider] ✅ Ollama ${model} succeeded`);
+          return { text: data.response, model: `ollama/${model}` };
+        }
       }
     } catch {
-      // Ollama not running or model not available — silently skip
+      // Silently skip — Ollama likely not running
     }
   }
   return null;
 }
 
 // ══════════════════════════════════════════════════════════════
+// FAST MODE FALLBACK — smaller prompt if full analysis fails
+// ══════════════════════════════════════════════════════════════
+async function tryFastMode(
+  text: string,
+  deadline: number
+): Promise<AICallResult | null> {
+  if (Date.now() >= deadline) return null;
+
+  const shortText = text.slice(0, 2000);
+  const fastPrompt = `Summarize the following research paper excerpt in 100 words, then provide a brief quality assessment (1 sentence). Respond in JSON: {"summary": "...", "quality": "..."}\n\n${shortText}`;
+
+  // Try Gemini first for fast mode (single model, no chain)
+  const geminiClient = getGeminiClient();
+  if (geminiClient && !isCircuitOpen("gemini")) {
+    try {
+      const result = await callGeminiSingle(geminiClient, fastPrompt, deadline);
+      console.log("[ai-provider] ✅ Fast mode succeeded via Gemini");
+      return { ...result, provider: "gemini" };
+    } catch {
+      // continue
+    }
+  }
+
+  // Try Groq for fast mode
+  const groqKey = getGroqKey();
+  if (groqKey && !isCircuitOpen("groq")) {
+    try {
+      const result = await callGroqChain(
+        groqKey,
+        [{ role: "user", content: fastPrompt }],
+        300,
+        deadline
+      );
+      console.log("[ai-provider] ✅ Fast mode succeeded via Groq");
+      return { ...result, provider: "groq" };
+    } catch {
+      // continue
+    }
+  }
+
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════════
 // UNIFIED AI CALLER — NEVER throws. Returns result or null.
-// Execution: race(Groq, Gemini) → retry loser → Ollama → null
+// Chain: safeCall(Groq) → safeCall(Gemini) → fastMode → Ollama → null
 // ══════════════════════════════════════════════════════════════
 export interface AICallOptions {
   messages?: { role: string; content: string }[];
@@ -255,7 +405,6 @@ export interface AICallOptions {
   maxTokens?: number;
   preferProvider?: "groq" | "gemini" | "auto";
   textLength?: number;
-  /** Unique key for request deduplication */
   dedupKey?: string;
 }
 
@@ -275,12 +424,26 @@ function messagesToPrompt(messages: { role: string; content: string }[]): string
     .join("\n\n");
 }
 
+/** Cap input text to MAX_AI_INPUT_CHARS before sending to any provider */
+function capInput(text: string): string {
+  if (text.length <= MAX_AI_INPUT_CHARS) return text;
+
+  // Smart cap: keep head + tail for context
+  const headLen = Math.floor(MAX_AI_INPUT_CHARS * 0.6);
+  const tailLen = MAX_AI_INPUT_CHARS - headLen - 50;
+  return text.slice(0, headLen) + "\n\n[...content trimmed...]\n\n" + text.slice(-tailLen);
+}
+
+function capMessages(messages: { role: string; content: string }[]): { role: string; content: string }[] {
+  return messages.map((m) => ({ ...m, content: capInput(m.content) }));
+}
+
 export async function callAI(options: AICallOptions): Promise<AICallResult | null> {
-  // ── Deduplication check ─────────────────────────────────────
+  // Dedup
   if (options.dedupKey) {
     const existing = inflightMap.get(options.dedupKey);
     if (existing) {
-      console.log("[ai-provider] Reusing in-flight request:", options.dedupKey);
+      console.log("[ai-provider] ♻️ Reusing in-flight request:", options.dedupKey);
       return existing;
     }
   }
@@ -301,77 +464,79 @@ async function _callAIInternal(options: AICallOptions): Promise<AICallResult | n
     prompt,
     maxTokens = 2000,
     preferProvider = "auto",
-    textLength = 0,
   } = options;
 
   const deadline = Date.now() + GLOBAL_TIME_BUDGET_MS;
   const groqKey = getGroqKey();
   const geminiClient = getGeminiClient();
-  const chatMessages = messages || [{ role: "user", content: prompt || "" }];
-  const singlePrompt = prompt || messagesToPrompt(chatMessages);
+
+  // Cap all input before sending
+  const chatMessages = capMessages(messages || [{ role: "user", content: prompt || "" }]);
+  const singlePrompt = capInput(prompt || messagesToPrompt(chatMessages));
+  const rawText = prompt || messagesToPrompt(messages || []);
 
   const groqAvailable = !!groqKey && !isCircuitOpen("groq");
   const geminiAvailable = !!geminiClient && !isCircuitOpen("gemini");
 
-  // ── Strategy 1: Parallel race (both available) ──────────────
-  if (groqAvailable && geminiAvailable && preferProvider === "auto") {
-    try {
-      const result = await Promise.any([
-        retryWithDelay(() => callGroqChain(groqKey!, chatMessages, maxTokens, deadline))
-          .then((r): AICallResult => { recordSuccess("groq"); return { ...r, provider: "groq" }; })
-          .catch((err) => { recordFailure("groq"); throw err; }),
-        retryWithDelay(() => callGeminiChain(geminiClient!, singlePrompt, deadline))
-          .then((r): AICallResult => { recordSuccess("gemini"); return { ...r, provider: "gemini" }; })
-          .catch((err) => { recordFailure("gemini"); throw err; }),
-      ]);
-      return result;
-    } catch {
-      // Both providers failed — continue to Ollama
-    }
-  }
+  console.log(`[ai-provider] Starting call: groq=${groqAvailable ? "✅" : "❌"} gemini=${geminiAvailable ? "✅" : "❌"} inputLen=${singlePrompt.length}`);
 
-  // ── Strategy 2: Sequential (preferred or single available) ──
+  // ── Determine order ─────────────────────────────────────────
   const tryOrder: ("groq" | "gemini")[] =
     preferProvider === "gemini" ? ["gemini", "groq"] :
     preferProvider === "groq" ? ["groq", "gemini"] :
-    textLength < SHORT_TEXT_LIMIT ? ["groq", "gemini"] : ["gemini", "groq"];
+    ["groq", "gemini"]; // Default: Groq first
 
+  // ── Sequential: NO retry for Groq (anti-ban), single retry for Gemini
   for (const provider of tryOrder) {
     if (Date.now() >= deadline) break;
 
     if (provider === "groq" && groqAvailable) {
+      // Run health check on first call
+      const healthy = await checkGroqHealth();
+      if (!healthy) {
+        console.warn("[ai-provider] Groq health check failed, skipping");
+        continue;
+      }
+
       try {
-        const result = await retryWithDelay(() =>
-          callGroqChain(groqKey!, chatMessages, maxTokens, deadline)
-        );
+        // NO safeCall — single attempt only for Groq (anti-ban)
+        const result = await callGroqChain(groqKey!, chatMessages, maxTokens, deadline);
         recordSuccess("groq");
         return { ...result, provider: "groq" };
-      } catch {
-        recordFailure("groq");
+      } catch (err: any) {
+        console.warn(`[ai-provider] Groq failed: ${err.message}`);
+        // recordFailure already called inside callGroqChain for 400/429
       }
     }
 
     if (provider === "gemini" && geminiAvailable) {
       try {
-        const result = await retryWithDelay(() =>
-          callGeminiChain(geminiClient!, singlePrompt, deadline)
+        // Single retry for Gemini only
+        const result = await safeCall(() =>
+          callGeminiSingle(geminiClient!, singlePrompt, deadline)
         );
         recordSuccess("gemini");
         return { ...result, provider: "gemini" };
-      } catch {
+      } catch (err: any) {
+        console.warn(`[ai-provider] Gemini failed: ${err.message}`);
         recordFailure("gemini");
       }
     }
   }
 
-  // ── Strategy 3: Ollama local model ──────────────────────────
+  // ── Fast mode fallback (shorter prompt) ─────────────────────
+  console.warn("[ai-provider] Full analysis failed. Trying fast mode...");
+  const fastResult = await tryFastMode(rawText, deadline);
+  if (fastResult) return fastResult;
+
+  // ── Ollama local ────────────────────────────────────────────
   if (Date.now() < deadline) {
     const ollamaResult = await callOllama(singlePrompt);
     if (ollamaResult) return { ...ollamaResult, provider: "ollama" };
   }
 
-  // ── All providers exhausted → return null (caller uses heuristic)
-  console.warn("[ai-provider] All providers exhausted. Caller should use heuristic fallback.");
+  // ── All exhausted ───────────────────────────────────────────
+  console.warn("[ai-provider] ⚠️ ALL providers exhausted. Returning null for heuristic fallback.");
   return null;
 }
 
@@ -453,12 +618,9 @@ export function getPlagiarismHeuristicFallback(
 }
 
 // ══════════════════════════════════════════════════════════════
-// TEXT EXTRACTION — from file buffers (PDF, DOCX, TXT)
+// TEXT EXTRACTION
 // ══════════════════════════════════════════════════════════════
-export async function extractTextFromBuffer(
-  buffer: Buffer,
-  fileName: string
-): Promise<string> {
+export async function extractTextFromBuffer(buffer: Buffer, fileName: string): Promise<string> {
   const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
 
   if (ext === "pdf") {
@@ -474,15 +636,13 @@ export async function extractTextFromBuffer(
     return result.value || "";
   }
 
-  if (ext === "txt") {
-    return buffer.toString("utf-8");
-  }
+  if (ext === "txt") return buffer.toString("utf-8");
 
   throw new Error(`Unsupported file format: .${ext}. Supported: PDF, DOCX, TXT`);
 }
 
 // ══════════════════════════════════════════════════════════════
-// TEXT PROCESSING — smart extraction + chunking
+// TEXT PROCESSING
 // ══════════════════════════════════════════════════════════════
 
 export function smartExtractText(text: string): string {

@@ -4,7 +4,7 @@
 // Uses: text-embedding-004 → 768-dim vectors
 // ============================================================
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { supabaseServer } from "@/lib/supabase/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { buildKnowledgeDocuments } from "@/lib/chatbot/mockData";
@@ -45,8 +45,7 @@ export async function POST(req: NextRequest) {
       documents = buildKnowledgeDocuments();
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const embModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+    const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     // Gemini embedding API is per-document (no batch endpoint like OpenAI)
     // Process one at a time with a small delay to avoid rate limits
@@ -56,8 +55,11 @@ export async function POST(req: NextRequest) {
     for (const doc of documents) {
       try {
         const text = doc.content.replace(/\n/g, " ").slice(0, 8000);
-        const embResult = await embModel.embedContent(text);
-        const embedding = embResult.embedding.values; // 768-dim
+        const embResult = await genAI.models.embedContent({
+          model: "gemini-embedding-001",
+          contents: text,
+        });
+        const embedding = embResult.embeddings?.[0]?.values;
 
         const { error } = await supabaseServer.from("chatbot_documents").insert({
           content: doc.content,
