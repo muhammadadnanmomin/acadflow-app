@@ -83,11 +83,10 @@ export function SolutionSection() {
             {comparisons.map((item, index) => (
               <div
                 key={item.label}
-                className={`grid grid-cols-[1fr_1fr_1fr] items-center gap-4 rounded-xl px-4 py-4 sm:px-6 transition-colors ${
-                  index % 2 === 0
+                className={`grid grid-cols-[1fr_1fr_1fr] items-center gap-4 rounded-xl px-4 py-4 sm:px-6 transition-colors ${index % 2 === 0
                     ? "bg-gray-50 hover:bg-gray-100/70"
                     : "bg-white hover:bg-gray-50/70"
-                }`}
+                  }`}
               >
                 <span className="text-sm font-semibold text-gray-900">
                   {item.label}
@@ -111,7 +110,7 @@ export function SolutionSection() {
             href="/signup"
             className="group inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-0.5"
           >
-            Run Your First Conference Free
+            Run Your Conference Free
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
           <p className="mt-3 text-sm text-gray-500">

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight, Brain, Sparkles, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 /* ------------------------------------------------------------------ */
@@ -13,10 +13,11 @@ import { createClient } from "@/lib/supabase/client";
 const plans = [
   {
     name: "Free",
-    description: "Run your entire conference — free.",
+    description: "Start and run your conference — free, with limited AI insights.",
     price: "₹0",
     period: "forever",
     badge: "Start here",
+    aiBadge: null,
     valueHighlight: "Start and run your conference from submission to certificate — free",
     features: [
       "1 conference",
@@ -29,17 +30,22 @@ const plans = [
       "Schedule management",
       "Payment collection enabled",
     ],
+    aiFeatures: [
+      "🧠 5 AI-powered paper analyses",
+    ],
     cta: "Run Your First Conference Free",
     link: "/dashboard/onboarding/organization",
     popular: false,
+    microCopy: null,
   },
   {
     name: "Pro",
-    description: "For conferences scaling beyond 150 submissions.",
+    description: "For conferences scaling with AI-powered insights.",
     price: "₹2,999",
     period: "per conference",
     badge: null,
-    valueHighlight: "Scale your conference without losing control of submissions, reviews, and payments",
+    aiBadge: "AI Included",
+    valueHighlight: "Scale your conference with unlimited submissions and AI-powered review intelligence",
     features: [
       "Unlimited submissions",
       "Full conference workflow",
@@ -47,28 +53,37 @@ const plans = [
       "Analytics dashboard",
       "Priority support",
     ],
-    cta: "Start Your Conference",
+    aiFeatures: [
+      "🧠 100 AI-powered analyses included",
+      "➕ Add more AI credits anytime",
+    ],
+    cta: "Start Your Conference with AI",
     link: "/dashboard/organizer",
     popular: true,
+    microCopy: "Includes 100 AI analyses. Need more? Add credits anytime.",
   },
   {
     name: "Institutional",
     description:
-      "For universities and institutions managing multiple conferences.",
+      "For institutions managing multiple conferences with advanced AI capabilities.",
     price: "Custom",
     period: "pricing",
     badge: null,
+    aiBadge: null,
     valueHighlight: null,
     features: [
       "Unlimited conferences",
       "Unlimited submissions",
       "Institutional branding",
-      "AI-powered features",
       "Dedicated onboarding & support",
+    ],
+    aiFeatures: [
+      "🧠 High-volume AI usage (custom limits)",
     ],
     cta: "Contact",
     link: "/contact",
     popular: false,
+    microCopy: null,
   },
 ];
 
@@ -141,13 +156,13 @@ export function PricingSection() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="mt-20 grid gap-8 md:grid-cols-3">
+        <div className="mt-20 grid gap-8 md:grid-cols-3 items-start">
 
           {plans.map((plan) => (
             <div
               key={plan.name}
               className={`relative flex flex-col rounded-2xl border bg-white p-8 shadow-sm transition hover:shadow-lg ${plan.popular
-                ? "border-indigo-600 shadow-md ring-1 ring-indigo-600 scale-[1.03]"
+                ? "border-2 border-indigo-600 shadow-lg ring-1 ring-indigo-600/20 scale-[1.03]"
                 : "border-gray-200"
                 }`}
             >
@@ -161,9 +176,18 @@ export function PricingSection() {
 
               <div className="text-center">
 
-                <h3 className="text-xl font-bold text-gray-900">
-                  {plan.name}
-                </h3>
+                {/* Plan name + AI badge */}
+                <div className="flex items-center justify-center gap-2">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {plan.name}
+                  </h3>
+                  {plan.aiBadge && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                      <Brain className="h-3 w-3" />
+                      {plan.aiBadge}
+                    </span>
+                  )}
+                </div>
 
                 <p className="mt-2 text-sm leading-relaxed text-gray-600">
                   {plan.description}
@@ -194,11 +218,22 @@ export function PricingSection() {
 
               </div>
 
+              {/* Standard features */}
               <ul className="mt-8 flex-1 space-y-3.5">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-3">
                     <Check className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
                     <span className="text-sm leading-relaxed text-gray-600">
+                      {feature}
+                    </span>
+                  </li>
+                ))}
+
+                {/* AI features — visually distinct */}
+                {plan.aiFeatures.map((feature) => (
+                  <li key={feature} className="flex items-start gap-3">
+                    <Zap className="mt-0.5 h-5 w-5 shrink-0 text-purple-500" />
+                    <span className="text-sm leading-relaxed font-medium text-purple-700">
                       {feature}
                     </span>
                   </li>
@@ -218,13 +253,26 @@ export function PricingSection() {
                 {plan.popular && <ArrowRight className="ml-2 h-4 w-4" />}
               </Button>
 
+              {/* Micro copy */}
+              {plan.microCopy && (
+                <p className="mt-3 text-center text-xs text-gray-400">
+                  {plan.microCopy}
+                </p>
+              )}
+
             </div>
           ))}
 
         </div>
 
+        {/* AI insight line */}
+        <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-gray-500">
+          <Sparkles className="h-3.5 w-3.5 text-purple-500" />
+          AI-powered insights help reduce review time by up to 70%
+        </p>
+
         {/* Bottom notes */}
-        <div className="mt-14 space-y-2.5 text-center">
+        <div className="mt-10 space-y-2.5 text-center">
           <p className="text-sm text-gray-500">
             Pro pricing may increase as the platform grows. Lock in your rate today.
           </p>
