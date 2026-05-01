@@ -1,8 +1,9 @@
 // ============================================================
-// AcadFlow Shared AI Provider — Zero-Cost Hybrid Architecture
-// Intelligent routing: Groq → Gemini fallback
-// Features: model fallback chains, rate limit handling,
-//           text extraction, chunking, safe JSON parsing
+// AcadFlow Shared AI Provider — Zero-Failure Architecture
+// NEVER throws to callers. Always returns a result or null.
+// Features: time budget, circuit breaker, parallel racing,
+//   retry-with-delay, request dedup, heuristic fallback,
+//   server-side cooldown, output normalization
 // ============================================================
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -10,27 +11,105 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const API_TIMEOUT_MS = 45_000;
+const OLLAMA_URL = "http://localhost:11434/api/generate";
+
+const GLOBAL_TIME_BUDGET_MS = 12_000;  // 12s max total execution
+const SINGLE_CALL_TIMEOUT_MS = 8_000;  // 8s per individual API call
+const OLLAMA_TIMEOUT_MS = 5_000;       // 5s for local model
+const RETRY_COUNT = 2;                 // 2 retries per provider
+const RETRY_DELAY_MS = 2_000;          // 2s between retries
+const COOLDOWN_MS = 30_000;            // 30s server-side cooldown
+const CIRCUIT_BREAK_MS = 120_000;      // 2min circuit breaker
+const CIRCUIT_BREAK_THRESHOLD = 3;     // failures before breaking
 const MAX_TEXT_CHARS = 200_000;
 
-// ── Model chains (each model has separate free-tier quota) ────
+// ── Lean model chains (2 per provider for speed) ──────────────
 const GROQ_MODELS = [
-  "llama3-70b-8192",          // deep reasoning
-  "mixtral-8x7b-32768",      // structured output, 32k ctx
-  "llama-3.3-70b-versatile",  // versatile
-  "llama-3.1-8b-instant",    // fast fallback
+  "llama3-70b-8192",        // deep reasoning
+  "mixtral-8x7b-32768",     // structured output, 32k ctx
 ];
 
 const GEMINI_MODELS = [
   "gemini-2.5-flash-preview-04-17",
   "gemini-2.0-flash",
-  "gemini-2.0-flash-lite",
 ];
 
-// ── Text size thresholds for intelligent routing ──────────────
-const SHORT_TEXT_LIMIT = 12_000;   // chars → Groq direct
-const MEDIUM_TEXT_LIMIT = 80_000;  // chars → Gemini (long ctx)
-// > MEDIUM → chunk + summarize, then Groq
+const OLLAMA_MODELS = ["mistral", "llama3"];
+
+// ── Text size thresholds ──────────────────────────────────────
+const SHORT_TEXT_LIMIT = 12_000;
+const MEDIUM_TEXT_LIMIT = 80_000;
+
+// ══════════════════════════════════════════════════════════════
+// CIRCUIT BREAKER — disables a provider after repeated failures
+// ══════════════════════════════════════════════════════════════
+interface CircuitState {
+  failures: number;
+  disabledUntil: number; // timestamp
+}
+
+const circuits: Record<string, CircuitState> = {
+  groq: { failures: 0, disabledUntil: 0 },
+  gemini: { failures: 0, disabledUntil: 0 },
+};
+
+function isCircuitOpen(provider: "groq" | "gemini"): boolean {
+  const s = circuits[provider];
+  if (Date.now() < s.disabledUntil) return true; // still disabled
+  if (Date.now() >= s.disabledUntil && s.failures > 0) {
+    // Reset after cooldown expires
+    s.failures = 0;
+    s.disabledUntil = 0;
+  }
+  return false;
+}
+
+function recordFailure(provider: "groq" | "gemini") {
+  const s = circuits[provider];
+  s.failures++;
+  if (s.failures >= CIRCUIT_BREAK_THRESHOLD) {
+    s.disabledUntil = Date.now() + CIRCUIT_BREAK_MS;
+    console.warn(`[ai-provider] Circuit OPEN for ${provider} — disabled for ${CIRCUIT_BREAK_MS / 1000}s`);
+  }
+}
+
+function recordSuccess(provider: "groq" | "gemini") {
+  circuits[provider].failures = 0;
+  circuits[provider].disabledUntil = 0;
+}
+
+// ══════════════════════════════════════════════════════════════
+// SERVER-SIDE COOLDOWN — prevents repeated requests
+// ══════════════════════════════════════════════════════════════
+const cooldownMap = new Map<string, number>();
+
+export function checkCooldown(userId: string, submissionId: string): { blocked: boolean; waitMs: number } {
+  const key = `${userId}:${submissionId}`;
+  const lastTime = cooldownMap.get(key) || 0;
+  const elapsed = Date.now() - lastTime;
+
+  if (elapsed < COOLDOWN_MS) {
+    return { blocked: true, waitMs: COOLDOWN_MS - elapsed };
+  }
+  return { blocked: false, waitMs: 0 };
+}
+
+export function recordRequest(userId: string, submissionId: string) {
+  cooldownMap.set(`${userId}:${submissionId}`, Date.now());
+
+  // Cleanup old entries every 100 requests
+  if (cooldownMap.size > 500) {
+    const now = Date.now();
+    for (const [k, v] of cooldownMap) {
+      if (now - v > COOLDOWN_MS * 2) cooldownMap.delete(k);
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// REQUEST DEDUPLICATION — reuses in-flight promises
+// ══════════════════════════════════════════════════════════════
+const inflightMap = new Map<string, Promise<AICallResult | null>>();
 
 // ══════════════════════════════════════════════════════════════
 // API KEY HELPERS
@@ -48,147 +127,142 @@ function getGeminiClient(): GoogleGenerativeAI | null {
 }
 
 // ══════════════════════════════════════════════════════════════
-// GROQ PROVIDER — with model fallback chain
+// RETRY WITH DELAY
 // ══════════════════════════════════════════════════════════════
-async function callGroqDirect(
+async function retryWithDelay<T>(
+  fn: () => Promise<T>,
+  retries = RETRY_COUNT,
+  delay = RETRY_DELAY_MS
+): Promise<T> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === retries) throw err;
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw new Error("retryWithDelay: unreachable");
+}
+
+// ══════════════════════════════════════════════════════════════
+// GROQ PROVIDER — tries each model in chain
+// ══════════════════════════════════════════════════════════════
+async function callGroqChain(
   apiKey: string,
   messages: { role: string; content: string }[],
   maxTokens: number,
-  modelIndex = 0
+  deadline: number
 ): Promise<{ text: string; model: string }> {
-  if (modelIndex >= GROQ_MODELS.length) {
-    throw new Error("GROQ_ALL_EXHAUSTED");
-  }
+  for (const model of GROQ_MODELS) {
+    if (Date.now() >= deadline) throw new Error("TIME_BUDGET_EXCEEDED");
 
-  const model = GROQ_MODELS[modelIndex];
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+    const remainingMs = Math.min(SINGLE_CALL_TIMEOUT_MS, deadline - Date.now());
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), remainingMs);
 
-  try {
-    const res = await fetch(GROQ_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        max_tokens: maxTokens,
-        temperature: 0.3,
-      }),
-      signal: controller.signal,
-    });
+    try {
+      const res = await fetch(GROQ_API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0.3 }),
+        signal: controller.signal,
+      });
 
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
+      if (res.ok) {
+        const data = await res.json();
+        const content = data.choices?.[0]?.message?.content ?? "";
+        if (content) return { text: content, model: `groq/${model}` };
+      }
+
       const status = res.status;
-
-      // Rate limit or server error → try next model
-      if (status === 429 || status === 503 || status === 500) {
-        console.warn(`[ai-provider] Groq ${model} failed (${status}), trying next...`);
-        return callGroqDirect(apiKey, messages, maxTokens, modelIndex + 1);
-      }
-
-      // Account restricted or auth error → all Groq models will fail
-      if (status === 401 || status === 403 || errBody.includes("restricted")) {
-        throw new Error("GROQ_ALL_EXHAUSTED");
-      }
-
-      // 404 model not found → try next
-      if (status === 404) {
-        console.warn(`[ai-provider] Groq ${model} not found, trying next...`);
-        return callGroqDirect(apiKey, messages, maxTokens, modelIndex + 1);
-      }
-
-      throw new Error(`Groq API error ${status}: ${errBody.slice(0, 200)}`);
+      // Auth/account errors → skip all Groq models
+      if (status === 401 || status === 403) throw new Error("GROQ_AUTH_FAIL");
+      // Rate limit / server error → try next model
+      console.warn(`[ai-provider] Groq ${model} failed (${status}), trying next...`);
+    } catch (err: any) {
+      if (err.message === "GROQ_AUTH_FAIL" || err.message === "TIME_BUDGET_EXCEEDED") throw err;
+      console.warn(`[ai-provider] Groq ${model}: ${err.name === "AbortError" ? "timeout" : err.message}`);
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content ?? "";
-    return { text: content, model: `groq/${model}` };
-  } catch (err: any) {
-    if (err.message === "GROQ_ALL_EXHAUSTED") throw err;
-
-    if (err.name === "AbortError") {
-      console.warn(`[ai-provider] Groq ${model} timed out, trying next...`);
-      return callGroqDirect(apiKey, messages, maxTokens, modelIndex + 1);
-    }
-
-    // Network error → try next model
-    if (modelIndex < GROQ_MODELS.length - 1) {
-      console.warn(`[ai-provider] Groq ${model} error: ${err.message}, trying next...`);
-      return callGroqDirect(apiKey, messages, maxTokens, modelIndex + 1);
-    }
-
-    throw new Error("GROQ_ALL_EXHAUSTED");
-  } finally {
-    clearTimeout(timeout);
   }
+  throw new Error("GROQ_ALL_EXHAUSTED");
 }
 
 // ══════════════════════════════════════════════════════════════
-// GEMINI PROVIDER — with model fallback chain
+// GEMINI PROVIDER — tries each model in chain
 // ══════════════════════════════════════════════════════════════
-async function callGeminiDirect(
+async function callGeminiChain(
   genAI: GoogleGenerativeAI,
   prompt: string,
-  modelIndex = 0
+  deadline: number
 ): Promise<{ text: string; model: string }> {
-  if (modelIndex >= GEMINI_MODELS.length) {
-    throw new Error("GEMINI_ALL_EXHAUSTED");
-  }
+  for (const modelName of GEMINI_MODELS) {
+    if (Date.now() >= deadline) throw new Error("TIME_BUDGET_EXCEEDED");
 
-  const modelName = GEMINI_MODELS[modelIndex];
-  const model = genAI.getGenerativeModel({ model: modelName });
-
-  try {
-    const result = await model.generateContent(prompt);
-    return { text: result.response.text(), model: `gemini/${modelName}` };
-  } catch (err: any) {
-    const msg = err?.message || "";
-
-    // Rate limited or not found → try next model
-    if (
-      msg.includes("429") ||
-      msg.includes("quota") ||
-      msg.includes("Too Many") ||
-      msg.includes("404") ||
-      msg.includes("not found") ||
-      msg.includes("not supported")
-    ) {
-      console.warn(`[ai-provider] Gemini ${modelName} unavailable, trying next...`);
-      return callGeminiDirect(genAI, prompt, modelIndex + 1);
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      if (text) return { text, model: `gemini/${modelName}` };
+    } catch (err: any) {
+      console.warn(`[ai-provider] Gemini ${modelName}: ${(err.message || "").slice(0, 80)}`);
     }
-
-    // If more models available, try next
-    if (modelIndex < GEMINI_MODELS.length - 1) {
-      console.warn(`[ai-provider] Gemini ${modelName} error, trying next...`);
-      return callGeminiDirect(genAI, prompt, modelIndex + 1);
-    }
-
-    throw new Error("GEMINI_ALL_EXHAUSTED");
   }
+  throw new Error("GEMINI_ALL_EXHAUSTED");
 }
 
 // ══════════════════════════════════════════════════════════════
-// UNIFIED AI CALLER — Groq primary → Gemini fallback
-// Converts chat messages to a single prompt for Gemini compat
+// OLLAMA LOCAL MODEL — optional, fast-fail if not running
+// ══════════════════════════════════════════════════════════════
+async function callOllama(prompt: string): Promise<{ text: string; model: string } | null> {
+  for (const model of OLLAMA_MODELS) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), OLLAMA_TIMEOUT_MS);
+
+      const res = await fetch(OLLAMA_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model, prompt, stream: false }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.response) return { text: data.response, model: `ollama/${model}` };
+      }
+    } catch {
+      // Ollama not running or model not available — silently skip
+    }
+  }
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════════
+// UNIFIED AI CALLER — NEVER throws. Returns result or null.
+// Execution: race(Groq, Gemini) → retry loser → Ollama → null
 // ══════════════════════════════════════════════════════════════
 export interface AICallOptions {
   messages?: { role: string; content: string }[];
-  prompt?: string; // alternative: single prompt string
+  prompt?: string;
   maxTokens?: number;
-  /** Override routing: "groq" | "gemini" | "auto" */
   preferProvider?: "groq" | "gemini" | "auto";
-  /** Text length hint for intelligent routing */
   textLength?: number;
+  /** Unique key for request deduplication */
+  dedupKey?: string;
 }
 
 export interface AICallResult {
   text: string;
-  model: string;     // e.g. "groq/llama3-70b-8192" or "gemini/gemini-2.0-flash"
-  provider: "groq" | "gemini";
+  model: string;
+  provider: "groq" | "gemini" | "ollama";
 }
 
 function messagesToPrompt(messages: { role: string; content: string }[]): string {
@@ -201,7 +275,27 @@ function messagesToPrompt(messages: { role: string; content: string }[]): string
     .join("\n\n");
 }
 
-export async function callAI(options: AICallOptions): Promise<AICallResult> {
+export async function callAI(options: AICallOptions): Promise<AICallResult | null> {
+  // ── Deduplication check ─────────────────────────────────────
+  if (options.dedupKey) {
+    const existing = inflightMap.get(options.dedupKey);
+    if (existing) {
+      console.log("[ai-provider] Reusing in-flight request:", options.dedupKey);
+      return existing;
+    }
+  }
+
+  const promise = _callAIInternal(options);
+
+  if (options.dedupKey) {
+    inflightMap.set(options.dedupKey, promise);
+    promise.finally(() => inflightMap.delete(options.dedupKey!));
+  }
+
+  return promise;
+}
+
+async function _callAIInternal(options: AICallOptions): Promise<AICallResult | null> {
   const {
     messages,
     prompt,
@@ -210,66 +304,152 @@ export async function callAI(options: AICallOptions): Promise<AICallResult> {
     textLength = 0,
   } = options;
 
+  const deadline = Date.now() + GLOBAL_TIME_BUDGET_MS;
   const groqKey = getGroqKey();
   const geminiClient = getGeminiClient();
-
-  if (!groqKey && !geminiClient) {
-    throw new Error(
-      "No AI provider configured. Add GROQ_API_KEY or GEMINI_API_KEY to environment."
-    );
-  }
-
-  // Build unified prompt for Gemini compatibility
   const chatMessages = messages || [{ role: "user", content: prompt || "" }];
   const singlePrompt = prompt || messagesToPrompt(chatMessages);
 
-  // ── Intelligent routing ─────────────────────────────────────
-  let tryGroqFirst: boolean;
+  const groqAvailable = !!groqKey && !isCircuitOpen("groq");
+  const geminiAvailable = !!geminiClient && !isCircuitOpen("gemini");
 
-  if (preferProvider === "groq") {
-    tryGroqFirst = true;
-  } else if (preferProvider === "gemini") {
-    tryGroqFirst = false;
-  } else {
-    // Auto routing based on text length
-    // Short text → Groq (faster, better for structured output)
-    // Medium/long → Gemini (bigger context window)
-    tryGroqFirst = textLength < SHORT_TEXT_LIMIT;
-  }
-
-  // ── Try primary provider → fallback to secondary ────────────
-  if (tryGroqFirst && groqKey) {
+  // ── Strategy 1: Parallel race (both available) ──────────────
+  if (groqAvailable && geminiAvailable && preferProvider === "auto") {
     try {
-      const result = await callGroqDirect(groqKey, chatMessages, maxTokens);
-      return { ...result, provider: "groq" };
-    } catch (err: any) {
-      console.warn("[ai-provider] Groq chain exhausted, falling back to Gemini...");
-    }
-  }
-
-  // Try Gemini
-  if (geminiClient) {
-    try {
-      const result = await callGeminiDirect(geminiClient, singlePrompt);
-      return { ...result, provider: "gemini" };
-    } catch (err: any) {
-      console.warn("[ai-provider] Gemini chain exhausted...");
-    }
-  }
-
-  // If we haven't tried Groq yet (was set to gemini-first), try it now
-  if (!tryGroqFirst && groqKey) {
-    try {
-      const result = await callGroqDirect(groqKey, chatMessages, maxTokens);
-      return { ...result, provider: "groq" };
+      const result = await Promise.any([
+        retryWithDelay(() => callGroqChain(groqKey!, chatMessages, maxTokens, deadline))
+          .then((r): AICallResult => { recordSuccess("groq"); return { ...r, provider: "groq" }; })
+          .catch((err) => { recordFailure("groq"); throw err; }),
+        retryWithDelay(() => callGeminiChain(geminiClient!, singlePrompt, deadline))
+          .then((r): AICallResult => { recordSuccess("gemini"); return { ...r, provider: "gemini" }; })
+          .catch((err) => { recordFailure("gemini"); throw err; }),
+      ]);
+      return result;
     } catch {
-      // All exhausted
+      // Both providers failed — continue to Ollama
     }
   }
 
-  throw new Error(
-    "AI analysis temporarily unavailable. All providers are rate-limited. Please try again in a few minutes."
-  );
+  // ── Strategy 2: Sequential (preferred or single available) ──
+  const tryOrder: ("groq" | "gemini")[] =
+    preferProvider === "gemini" ? ["gemini", "groq"] :
+    preferProvider === "groq" ? ["groq", "gemini"] :
+    textLength < SHORT_TEXT_LIMIT ? ["groq", "gemini"] : ["gemini", "groq"];
+
+  for (const provider of tryOrder) {
+    if (Date.now() >= deadline) break;
+
+    if (provider === "groq" && groqAvailable) {
+      try {
+        const result = await retryWithDelay(() =>
+          callGroqChain(groqKey!, chatMessages, maxTokens, deadline)
+        );
+        recordSuccess("groq");
+        return { ...result, provider: "groq" };
+      } catch {
+        recordFailure("groq");
+      }
+    }
+
+    if (provider === "gemini" && geminiAvailable) {
+      try {
+        const result = await retryWithDelay(() =>
+          callGeminiChain(geminiClient!, singlePrompt, deadline)
+        );
+        recordSuccess("gemini");
+        return { ...result, provider: "gemini" };
+      } catch {
+        recordFailure("gemini");
+      }
+    }
+  }
+
+  // ── Strategy 3: Ollama local model ──────────────────────────
+  if (Date.now() < deadline) {
+    const ollamaResult = await callOllama(singlePrompt);
+    if (ollamaResult) return { ...ollamaResult, provider: "ollama" };
+  }
+
+  // ── All providers exhausted → return null (caller uses heuristic)
+  console.warn("[ai-provider] All providers exhausted. Caller should use heuristic fallback.");
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════════
+// HEURISTIC FALLBACKS — deterministic, no API needed
+// ══════════════════════════════════════════════════════════════
+
+export interface ReviewFallback {
+  summary: string;
+  key_contributions: string[];
+  strengths: string[];
+  weaknesses: string[];
+  grammar_issues: string[];
+  final_decision: string;
+  confidence_score: number;
+}
+
+export function getReviewHeuristicFallback(text: string): ReviewFallback {
+  const wordCount = text.split(/\s+/).length;
+  const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 10);
+  const preview = text.slice(0, 500).replace(/\n+/g, " ").trim();
+
+  return {
+    summary: preview + (text.length > 500 ? "…" : ""),
+    key_contributions: [
+      "AI analysis unavailable — manual review required",
+      `Document contains approximately ${wordCount.toLocaleString()} words across ${sentences.length} sentences`,
+    ],
+    strengths: [
+      "Paper structure appears valid",
+      "Document was successfully parsed and is readable",
+    ],
+    weaknesses: [
+      "Automated AI analysis could not be completed at this time",
+      "Please perform a manual review for detailed assessment",
+    ],
+    grammar_issues: [],
+    final_decision: "Manual Review Required",
+    confidence_score: 0,
+  };
+}
+
+export interface PlagiarismFallback {
+  risk_score: number;
+  risk_level: string;
+  actionable_message: string;
+  suspicious_sections: any[];
+  insights: string;
+  writing_quality: string;
+  structural_analysis: Record<string, any>;
+  llm_score: null;
+}
+
+export function getPlagiarismHeuristicFallback(
+  structuralAnalysis: Record<string, any>
+): PlagiarismFallback {
+  const score = structuralAnalysis.score ?? 0;
+  const level = score < 30 ? "Low" : score < 70 ? "Medium" : "High";
+
+  return {
+    risk_score: score,
+    risk_level: level,
+    actionable_message:
+      level === "Low"
+        ? "✅ Low Risk — Structural analysis shows minimal repetition patterns."
+        : level === "Medium"
+        ? "⚠️ Medium Risk — Structural analysis detected some repetition. Manual review recommended."
+        : "🚨 High Risk — Structural analysis detected significant repetition patterns.",
+    suspicious_sections: [],
+    insights:
+      `Based on structural analysis only (AI providers unavailable). ` +
+      `Repetition ratio: ${Math.round((structuralAnalysis.repetition_ratio ?? 0) * 100)}%, ` +
+      `Vocabulary diversity: ${Math.round((structuralAnalysis.vocabulary_diversity ?? 0) * 100)}%, ` +
+      `Template phrases found: ${structuralAnalysis.template_phrase_count ?? 0}.`,
+    writing_quality: "AI writing quality assessment unavailable. Showing structural metrics only.",
+    structural_analysis: structuralAnalysis,
+    llm_score: null,
+  };
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -305,7 +485,6 @@ export async function extractTextFromBuffer(
 // TEXT PROCESSING — smart extraction + chunking
 // ══════════════════════════════════════════════════════════════
 
-/** Smart extract: head + mid + tail for medium-length docs */
 export function smartExtractText(text: string): string {
   if (text.length <= SHORT_TEXT_LIMIT) return text;
 
@@ -318,21 +497,10 @@ export function smartExtractText(text: string): string {
   const midStart = Math.floor((text.length - midLen) / 2);
   const mid = text.slice(midStart, midStart + midLen);
 
-  return [
-    head,
-    "\n\n[--- MIDDLE SECTION EXCERPT ---]\n\n",
-    mid,
-    "\n\n[--- CONCLUSION SECTION ---]\n\n",
-    tail,
-  ].join("");
+  return [head, "\n\n[--- MIDDLE SECTION ---]\n\n", mid, "\n\n[--- CONCLUSION ---]\n\n", tail].join("");
 }
 
-/** Chunk text with overlap for analysis */
-export function chunkTextWithOverlap(
-  text: string,
-  chunkWords = 1800,
-  overlapWords = 200
-): string[] {
+export function chunkTextWithOverlap(text: string, chunkWords = 1800, overlapWords = 200): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   const chunks: string[] = [];
   let start = 0;
@@ -347,7 +515,6 @@ export function chunkTextWithOverlap(
   return chunks;
 }
 
-/** Chunk + summarize for very large documents */
 export async function chunkAndSummarize(text: string): Promise<string> {
   const CHUNK_SIZE = 20_000;
   const chunks: string[] = [];
@@ -356,123 +523,45 @@ export async function chunkAndSummarize(text: string): Promise<string> {
     chunks.push(text.slice(i, i + CHUNK_SIZE));
   }
 
-  // Summarize each chunk (sequentially to avoid rate limits)
   const summaries: string[] = [];
   for (let i = 0; i < chunks.length; i++) {
     const result = await callAI({
       messages: [
-        {
-          role: "system",
-          content:
-            "You are an academic paper analyst. Summarize this section in 300-400 words. Focus on key arguments, methodology, findings, and claims. Preserve technical details.",
-        },
-        {
-          role: "user",
-          content: `Section ${i + 1} of ${chunks.length}:\n\n${chunks[i]}`,
-        },
+        { role: "system", content: "Summarize this section in 300-400 words. Focus on key arguments, methodology, findings." },
+        { role: "user", content: `Section ${i + 1} of ${chunks.length}:\n\n${chunks[i]}` },
       ],
       maxTokens: 500,
       preferProvider: "auto",
       textLength: chunks[i].length,
     });
-    summaries.push(result.text);
+    summaries.push(result?.text ?? `[Section ${i + 1}: summary unavailable]`);
   }
 
-  return summaries
-    .map((s, i) => `=== Section ${i + 1} Summary ===\n${s}`)
-    .join("\n\n");
+  return summaries.map((s, i) => `=== Section ${i + 1} ===\n${s}`).join("\n\n");
 }
 
-/**
- * Full text processing pipeline with intelligent routing:
- * - Short (<12k) → direct to Groq
- * - Medium (<80k) → smart extract → Gemini or Groq
- * - Large (>80k) → chunk + summarize → then Groq
- */
-export async function processTextForAI(
-  text: string
-): Promise<{ processed: string; method: string }> {
+export async function processTextForAI(text: string): Promise<{ processed: string; method: string }> {
   const cleaned = text.slice(0, MAX_TEXT_CHARS);
 
-  if (cleaned.length <= SHORT_TEXT_LIMIT) {
-    return { processed: cleaned, method: "direct" };
-  }
+  if (cleaned.length <= SHORT_TEXT_LIMIT) return { processed: cleaned, method: "direct" };
+  if (cleaned.length <= MEDIUM_TEXT_LIMIT) return { processed: smartExtractText(cleaned), method: "smart_extraction" };
 
-  if (cleaned.length <= MEDIUM_TEXT_LIMIT) {
-    return { processed: smartExtractText(cleaned), method: "smart_extraction" };
-  }
-
-  // Large document → chunk + summarize
   const summarized = await chunkAndSummarize(cleaned);
   return { processed: summarized, method: "chunked_summarization" };
 }
 
 // ══════════════════════════════════════════════════════════════
-// SAFE JSON PARSING — with multiple fallback strategies
+// SAFE JSON PARSING
 // ══════════════════════════════════════════════════════════════
 export function safeParseJSON(raw: string): Record<string, any> | null {
-  // 1. Direct parse
-  try {
-    return JSON.parse(raw);
-  } catch { /* continue */ }
+  try { return JSON.parse(raw); } catch { /* */ }
 
-  // 2. Extract from markdown code blocks
-  const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (codeBlockMatch) {
-    try {
-      return JSON.parse(codeBlockMatch[1].trim());
-    } catch { /* continue */ }
-  }
+  const codeBlock = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlock) { try { return JSON.parse(codeBlock[1].trim()); } catch { /* */ } }
 
-  // 3. Find JSON object braces in text
-  const braceStart = raw.indexOf("{");
-  const braceEnd = raw.lastIndexOf("}");
-  if (braceStart !== -1 && braceEnd > braceStart) {
-    try {
-      return JSON.parse(raw.slice(braceStart, braceEnd + 1));
-    } catch { /* continue */ }
-  }
+  const s = raw.indexOf("{");
+  const e = raw.lastIndexOf("}");
+  if (s !== -1 && e > s) { try { return JSON.parse(raw.slice(s, e + 1)); } catch { /* */ } }
 
   return null;
-}
-
-// ══════════════════════════════════════════════════════════════
-// RETRY WITH JSON FIX — retries once if JSON parsing fails
-// ══════════════════════════════════════════════════════════════
-export async function callAIWithJSONRetry(
-  options: AICallOptions
-): Promise<{ parsed: Record<string, any>; model: string; provider: string }> {
-  const result = await callAI(options);
-  let parsed = safeParseJSON(result.text);
-
-  if (!parsed) {
-    // Retry once with explicit JSON instruction
-    try {
-      const retryResult = await callAI({
-        messages: [
-          ...(options.messages || [{ role: "user", content: options.prompt || "" }]),
-          { role: "assistant", content: result.text },
-          {
-            role: "user",
-            content:
-              "Your previous response was not valid JSON. Please respond with ONLY a valid JSON object, no markdown, no explanation.",
-          },
-        ],
-        maxTokens: options.maxTokens,
-        preferProvider: result.provider,
-        textLength: options.textLength,
-      });
-      parsed = safeParseJSON(retryResult.text);
-    } catch {
-      /* fall through */
-    }
-  }
-
-  if (!parsed) {
-    throw new Error(
-      "Failed to parse AI response. The model returned an invalid format. Please try again."
-    );
-  }
-
-  return { parsed, model: result.model, provider: result.provider };
 }
