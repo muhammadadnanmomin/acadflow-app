@@ -10,9 +10,12 @@ import {
     PLAN_LABELS,
     normalizePlanType,
     type PlanType,
+    AI_CREDIT_PACKS,
+    getAICreditPack,
 } from "@/lib/config/pricing";
 import { generateReceipt, type ReceiptData } from "@/lib/billing/generateReceipt";
 import PaymentSuccessModal from "@/components/payments/PaymentSuccessModal";
+import AICreditModal from "@/components/billing/AICreditModal";
 import { toast } from "@/components/ui/use-toast";
 
 import { Card } from "@/components/ui/card";
@@ -29,6 +32,8 @@ import {
     Receipt,
     CreditCard,
     Clock,
+    Zap,
+    Package,
 } from "lucide-react";
 
 declare global {
@@ -81,6 +86,12 @@ export default function OrganizerBillingPage() {
     const [purchases, setPurchases] = useState<SlotPurchase[]>([]);
     const [historyLoading, setHistoryLoading] = useState(true);
 
+    /* AI state (for credit purchase card) */
+    const [aiConferences, setAiConferences] = useState<{ id: string; title: string }[]>([]);
+    const [selectedConference, setSelectedConference] = useState<string | null>(null);
+    const [buyingCredits, setBuyingCredits] = useState(false);
+    const [openBundleModal, setOpenBundleModal] = useState(false);
+
     useEffect(() => {
         if (normalizePlanType(organization?.plan_type) === "institutional") {
             setAlreadyPaid(true);
@@ -113,9 +124,34 @@ export default function OrganizerBillingPage() {
         loadHistory();
     }, [organization?.id]);
 
+    /* Load conferences for AI credit purchase card */
+    useEffect(() => {
+        async function loadConferences() {
+            if (!organization?.id) return;
+
+            const { data: confs } = await supabase
+                .from("conferences")
+                .select("id, title")
+                .eq("organization_id", organization.id)
+                .order("created_at", { ascending: false });
+
+            const conferences = confs || [];
+            setAiConferences(conferences);
+
+            if (conferences.length > 0) {
+                setSelectedConference(conferences[0].id);
+            }
+        }
+
+        loadConferences();
+    }, [organization?.id]);
+
+
+
     const SLOT_BENEFITS = [
         "Unlimited paper submissions per conference",
         "Unlocks one additional conference slot",
+        "100 AI-powered analyses included",
         "Full conference management workflow",
         "Advanced reviewer management",
         "Submission reports and analytics",
@@ -126,10 +162,15 @@ export default function OrganizerBillingPage() {
     /* ---------------------------------------------------------------- */
     /*  Razorpay Checkout                                                */
     /* ---------------------------------------------------------------- */
-    async function handlePayment() {
+    async function handlePayment(selectedCredits: number = 0) {
         if (!profile || !organization) return;
 
+        setOpenBundleModal(false);
         setPaying(true);
+
+        // Calculate add-on price
+        const addOnPrice = selectedCredits === 50 ? 299 : selectedCredits === 100 ? 499 : 0;
+        const totalAmount = PRO_SLOT_PRICE + addOnPrice;
 
         try {
             /* 1. Create order */
@@ -139,6 +180,7 @@ export default function OrganizerBillingPage() {
                 body: JSON.stringify({
                     organizationId: organization.id,
                     userId: profile.id,
+                    credits: selectedCredits,
                 }),
             });
 
@@ -163,7 +205,9 @@ export default function OrganizerBillingPage() {
                 amount: order.amount,
                 currency: order.currency,
                 name: "AcadFlow",
-                description: "Conference Slot — Pro Plan",
+                description: selectedCredits > 0
+                    ? `Pro Plan + ${selectedCredits} AI Credits`
+                    : "Pro Plan + 100 AI Analyses",
                 order_id: order.id,
                 prefill: {
                     email: profile.email || "",
@@ -179,6 +223,8 @@ export default function OrganizerBillingPage() {
                             paymentId: response.razorpay_payment_id,
                             signature: response.razorpay_signature,
                             organizationId: organization.id,
+                            credits: selectedCredits,
+                            addOnPrice,
                         }),
                     });
 
@@ -187,8 +233,10 @@ export default function OrganizerBillingPage() {
                         const receipt: ReceiptData = {
                             paymentId: response.razorpay_payment_id,
                             orderId: order.id,
-                            amount: PRO_SLOT_PRICE,
-                            description: "Conference Slot — Pro Plan",
+                            amount: totalAmount,
+                            description: selectedCredits > 0
+                                ? `Pro Plan + ${selectedCredits} AI Credits`
+                                : "Pro Plan + 100 AI Analyses",
                             payerName: profile.name || "Organizer",
                             payerEmail: profile.email || undefined,
                             paidAt: new Date().toISOString(),
@@ -225,6 +273,112 @@ export default function OrganizerBillingPage() {
             console.error("Payment error:", err);
         } finally {
             setPaying(false);
+        }
+    }
+
+    /* ---------------------------------------------------------------- */
+    /*  AI Credit Purchase (Razorpay)                                    */
+    /* ---------------------------------------------------------------- */
+    async function handleBuyCredits(packId: string) {
+        if (!profile || !selectedConference) {
+            toast({
+                variant: "destructive",
+                title: "Cannot purchase credits",
+                description: "Please select a conference first.",
+            });
+            return;
+        }
+
+        const pack = getAICreditPack(packId);
+        if (!pack) return;
+
+        setBuyingCredits(true);
+
+        try {
+            /* 1. Create order */
+            const res = await fetch("/api/ai-credits/create-order", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    conferenceId: selectedConference,
+                    packId,
+                    userId: profile.id,
+                }),
+            });
+
+            if (!res.ok) throw new Error("Failed to create order");
+            const order = await res.json();
+
+            /* 2. Load Razorpay script */
+            if (!window.Razorpay) {
+                await new Promise<void>((resolve, reject) => {
+                    const script = document.createElement("script");
+                    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+                    script.onload = () => resolve();
+                    script.onerror = () => reject(new Error("Razorpay script failed"));
+                    document.body.appendChild(script);
+                });
+            }
+
+            /* 3. Open checkout */
+            const options = {
+                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+                amount: order.amount,
+                currency: order.currency,
+                name: "AcadFlow",
+                description: `AI Credits — ${pack.label}`,
+                order_id: order.id,
+                prefill: {
+                    email: profile.email || "",
+                    name: profile.name || "",
+                },
+                handler: async (response: any) => {
+                    /* 4. Verify */
+                    const verifyRes = await fetch("/api/ai-credits/verify", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            orderId: order.id,
+                            paymentId: response.razorpay_payment_id,
+                            signature: response.razorpay_signature,
+                            conferenceId: selectedConference,
+                            packId,
+                        }),
+                    });
+
+                    const verifyData = await verifyRes.json();
+
+                    if (verifyRes.ok && verifyData.success) {
+                        toast({
+                            title: "🎉 Credits Added!",
+                            description: `${pack.credits} AI credits have been added.`,
+                        });
+                    } else {
+                        toast({
+                            variant: "destructive",
+                            title: "Verification failed",
+                            description:
+                                "Credits will be added automatically. Contact support if not reflected within 5 minutes.",
+                        });
+                    }
+                },
+                modal: {
+                    ondismiss: () => setBuyingCredits(false),
+                },
+                theme: { color: "#7c3aed" },
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+        } catch (err) {
+            console.error("AI credit purchase error:", err);
+            toast({
+                variant: "destructive",
+                title: "Payment failed",
+                description: "Could not initiate payment. Please try again.",
+            });
+        } finally {
+            setBuyingCredits(false);
         }
     }
 
@@ -279,7 +433,6 @@ export default function OrganizerBillingPage() {
                 Back
             </button>
 
-            {/* Header */}
             <div className="text-center space-y-2">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100">
                     <Crown className="h-6 w-6 text-indigo-600" />
@@ -288,9 +441,68 @@ export default function OrganizerBillingPage() {
                     Billing
                 </h1>
                 <p className="text-gray-600 max-w-md mx-auto">
-                    Purchase conference slots and manage your billing history.
+                    Manage your conference billing and AI usage.
                 </p>
             </div>
+
+
+
+            {/* ============================================================ */}
+            {/*  AI Credit Purchase Card                                      */}
+            {/* ============================================================ */}
+            {selectedConference && (
+                <Card className="p-6 border-green-200 bg-gradient-to-b from-green-50/50 to-white shadow-sm">
+                    <div className="flex items-center gap-3 mb-5">
+                        <div className="h-9 w-9 rounded-xl bg-green-100 flex items-center justify-center">
+                            <Package className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900">⚡ Buy AI Credits</h3>
+                            <p className="text-xs text-gray-500">
+                                Top up your AI analyses instantly
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        {AI_CREDIT_PACKS.map((pack) => (
+                            <button
+                                key={pack.id}
+                                onClick={() => handleBuyCredits(pack.id)}
+                                disabled={buyingCredits}
+                                className={`relative group rounded-xl border-2 p-4 text-left transition-all hover:shadow-md ${
+                                    pack.id === "ai_100"
+                                        ? "border-indigo-300 bg-indigo-50/50 hover:border-indigo-400"
+                                        : "border-gray-200 bg-white hover:border-gray-300"
+                                }`}
+                            >
+                                {pack.id === "ai_100" && (
+                                    <span className="absolute -top-2.5 right-3 bg-indigo-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                        Best Value
+                                    </span>
+                                )}
+                                <p className="text-2xl font-bold text-gray-900">+{pack.credits}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">AI Credits</p>
+                                <div className="mt-3 flex items-baseline gap-1">
+                                    <span className="text-lg font-bold text-gray-900">
+                                        ₹{pack.price.toLocaleString("en-IN")}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                        (₹{(pack.price / pack.credits).toFixed(1)}/credit)
+                                    </span>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    <p className="text-xs text-gray-400 mt-4 flex items-center gap-1.5">
+                        <Zap className="h-3 w-3" />
+                        Each AI analysis (paper review or plagiarism check) uses 1 credit
+                    </p>
+                </Card>
+            )}
+
+
 
             {/* ============================================================ */}
             {/*  Slot Purchase Card                                          */}
@@ -327,7 +539,7 @@ export default function OrganizerBillingPage() {
                 </div>
 
                 <Button
-                    onClick={handlePayment}
+                    onClick={() => setOpenBundleModal(true)}
                     disabled={paying}
                     className="mt-8 w-full h-12 text-base bg-indigo-600 hover:bg-indigo-700 gap-2"
                 >
@@ -510,17 +722,23 @@ export default function OrganizerBillingPage() {
                     open={true}
                     onClose={() => {
                         setSuccessData(null);
-                        router.refresh();
                     }}
                     receipt={successData}
                     continueLabel="Continue to Dashboard"
                     onContinue={() => {
                         setSuccessData(null);
                         router.push("/dashboard/organizer");
-                        router.refresh();
                     }}
                 />
             )}
+
+            {/* AI Credit Bundle Modal */}
+            <AICreditModal
+                open={openBundleModal}
+                onClose={() => setOpenBundleModal(false)}
+                onConfirm={(credits) => handlePayment(credits)}
+                paying={paying}
+            />
         </div>
     );
 }

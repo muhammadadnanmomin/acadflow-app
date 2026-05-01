@@ -165,7 +165,7 @@ export default function OrganizerConferences() {
             onClick={() => setShowUpgradeModal(true)}
           >
             <Sparkles className="h-4 w-4" />
-            Buy Conference Slot — ₹1,999
+            Buy Conference Slot — ₹2,999
           </Button>
         </Card>
       ) : (

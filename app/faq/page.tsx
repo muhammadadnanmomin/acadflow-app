@@ -20,7 +20,7 @@ const faqs = [
   {
     question: "How much does it cost to run a conference on AcadFlow?",
     answer:
-      "AcadFlow offers a free plan for small conferences with essential features. For larger conferences, organizers can upgrade to a paid plan which currently costs ₹1,999 per conference and includes advanced conference management tools.",
+      "AcadFlow offers a free plan for small conferences with essential features. For larger conferences, organizers can upgrade to a paid plan which currently costs ₹2,999 per conference and includes advanced conference management tools.",
   },
   {
     question: "How do participants submit papers?",

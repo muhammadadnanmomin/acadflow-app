@@ -6,7 +6,7 @@
 export type PlanType = "free" | "pro" | "institutional";
 
 /** Price in INR for one conference slot (Pro plan) */
-export const PRO_SLOT_PRICE = 1999;
+export const PRO_SLOT_PRICE = 2999;
 
 /** @deprecated Use PRO_SLOT_PRICE instead. Kept for backward compatibility. */
 export const EARLY_ADOPTER_SLOT_PRICE = PRO_SLOT_PRICE;

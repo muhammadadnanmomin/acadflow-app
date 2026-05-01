@@ -3,12 +3,12 @@ import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendPaymentConfirmationEmail } from "@/lib/email/sendPaymentEmail";
 import { PRO_SLOT_PRICE } from "@/lib/config/pricing";
-import { upgradePlanCredits } from "@/lib/ai/credits";
+import { upgradePlanCredits, purchaseAICredits } from "@/lib/ai/credits";
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { orderId, paymentId, signature, organizationId } = body;
+        const { orderId, paymentId, signature, organizationId, credits = 0, addOnPrice = 0 } = body;
 
         if (!orderId || !paymentId || !signature || !organizationId) {
             return NextResponse.json(
@@ -77,13 +77,41 @@ export async function POST(req: Request) {
         upgradePlanCredits(organizationId, newPlanType).catch(() => {});
 
         /* ---- Record the purchase for billing history ---- */
+        const bundledCredits = Number(credits) || 0;
+        const bundledAddOnPrice = Number(addOnPrice) || 0;
+        const totalPaid = PRO_SLOT_PRICE + bundledAddOnPrice;
+        const description = bundledCredits > 0
+            ? `Pro Plan + ${bundledCredits} AI Credits`
+            : "Pro Plan + 100 AI Analyses";
+
         await supabaseAdmin.from("organizer_slot_purchases").insert({
             organization_id: organizationId,
             payment_id: paymentId,
             order_id: orderId,
-            amount: PRO_SLOT_PRICE,
-            description: "Conference Slot — Pro Plan",
+            amount: totalPaid,
+            description,
         });
+
+        /* ---- Add bundled AI credits (if any) ---- */
+        if (bundledCredits > 0) {
+            // Find the first conference for this org to add credits to
+            const { data: confs } = await supabaseAdmin
+                .from("conferences")
+                .select("id")
+                .eq("organization_id", organizationId)
+                .order("created_at", { ascending: false })
+                .limit(1);
+
+            if (confs && confs.length > 0) {
+                purchaseAICredits(
+                    confs[0].id,
+                    bundledCredits,
+                    bundledAddOnPrice
+                ).catch((err) =>
+                    console.error("Failed to add bundled AI credits:", err)
+                );
+            }
+        }
 
         /* ---- Send confirmation email (non-blocking) ---- */
         // Find the organizer's email via organization_members
@@ -108,8 +136,8 @@ export async function POST(req: Request) {
                     name: profile.name || org.name || "Organizer",
                     paymentId,
                     orderId,
-                    amount: PRO_SLOT_PRICE,
-                    description: "Conference Slot — Pro Plan",
+                    amount: totalPaid,
+                    description,
                     paidAt: new Date().toISOString(),
                 }).catch(() => {});
             }

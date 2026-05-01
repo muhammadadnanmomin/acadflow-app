@@ -298,14 +298,12 @@ export default function BillingUpgradePage() {
                     onClose={() => {
                         setSuccessData(null);
                         router.push("/dashboard/organizer");
-                        router.refresh();
                     }}
                     receipt={successData}
                     continueLabel="Continue to Dashboard"
                     onContinue={() => {
                         setSuccessData(null);
                         router.push("/dashboard/organizer");
-                        router.refresh();
                     }}
                 />
             )}
