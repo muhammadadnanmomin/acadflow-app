@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 
 import AIReviewCard from "@/components/dashboard/AIReviewCard";
+import PlagiarismRiskCard from "@/components/dashboard/PlagiarismRiskCard";
 
 const supabase = createClient();
 
@@ -390,6 +391,9 @@ export default function ReviewerReviewPage() {
           } : undefined}
         />
       </div>
+
+      {/* ── AI Plagiarism Risk Detector ── */}
+      <PlagiarismRiskCard submissionId={paperId as string} />
 
       {/* ── Review History ── */}
       {reviewHistory.length > 0 && (
