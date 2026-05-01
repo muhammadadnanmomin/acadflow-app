@@ -1,151 +1,33 @@
 // ============================================================
 // AcadFlow AI Plagiarism Risk Detector — /api/plagiarism-check
 // POST: Analyze a submission's paper for similarity patterns
+// Uses: Shared AI provider (Groq → Gemini fallback)
 // Features: hybrid scoring (structural + LLM), caching,
 //           chunking with overlap, model versioning
-// Uses: Google Gemini API (free tier)
 // ============================================================
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient, supabaseServer } from "@/lib/supabase/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import {
+  callAI,
+  extractTextFromBuffer,
+  safeParseJSON,
+  chunkTextWithOverlap,
+} from "@/lib/ai/provider";
 
 // ── Constants ─────────────────────────────────────────────────
-const MODEL_VERSION = "plagiarism-v1.1"; // bump when prompt/model changes
+const MODEL_VERSION = "plagiarism-v2.0"; // bump when prompt/model changes
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const CHUNK_WORD_SIZE = 1800; // ~1800 words per chunk
-const CHUNK_OVERLAP_WORDS = 200; // 200 words overlap
 const MAX_SUSPICIOUS_SECTIONS = 5;
 const MAX_TEXT_CHARS = 200_000;
 
-// ── Structural weight in hybrid score ─────────────────────────
-const STRUCTURAL_WEIGHT = 0.3;
-const LLM_WEIGHT = 0.7;
-
-// ── Gemini Client with model fallback chain ──────────────────
-// Free tier quotas are PER MODEL — so using different models
-// gives us separate daily limits
-const GEMINI_MODELS = [
-  "gemini-2.5-flash-preview-04-17",
-  "gemini-2.5-pro-preview-05-06",
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-lite",
-];
-
-function getGeminiClient() {
-  const apiKey = process.env.GEMINI_API_KEY ?? "";
-  if (!apiKey || apiKey.length < 10 || apiKey.startsWith("your-")) return null;
-  return new GoogleGenerativeAI(apiKey);
-}
-
-// ── Call Gemini with retry + model fallback ───────────────────
-async function callGemini(
-  genAI: GoogleGenerativeAI,
-  prompt: string,
-  modelIndex = 0
-): Promise<{ text: string; modelUsed: string }> {
-  if (modelIndex >= GEMINI_MODELS.length) {
-    throw new Error(
-      "All AI models are currently rate-limited. Please wait a minute and try again."
-    );
-  }
-
-  const modelName = GEMINI_MODELS[modelIndex];
-  const model = genAI.getGenerativeModel({ model: modelName });
-
-  try {
-    const result = await model.generateContent(prompt);
-    return { text: result.response.text(), modelUsed: modelName };
-  } catch (err: any) {
-    const msg = err?.message || "";
-
-    // If rate limited (429), try next model immediately
-    if (msg.includes("429") || msg.includes("quota") || msg.includes("Too Many Requests")) {
-      console.warn(
-        `[plagiarism-check] ${modelName} rate limited, trying next model...`
-      );
-      return callGemini(genAI, prompt, modelIndex + 1);
-    }
-
-    // If model not found (404), try next model
-    if (msg.includes("404") || msg.includes("not found")) {
-      console.warn(
-        `[plagiarism-check] ${modelName} not found, trying next model...`
-      );
-      return callGemini(genAI, prompt, modelIndex + 1);
-    }
-
-    throw err;
-  }
-}
-
-// ── Safe JSON Parsing ─────────────────────────────────────────
-function safeParseJSON(raw: string): Record<string, any> | null {
-  try {
-    return JSON.parse(raw);
-  } catch { /* continue */ }
-
-  const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (codeBlockMatch) {
-    try {
-      return JSON.parse(codeBlockMatch[1].trim());
-    } catch { /* continue */ }
-  }
-
-  const braceStart = raw.indexOf("{");
-  const braceEnd = raw.lastIndexOf("}");
-  if (braceStart !== -1 && braceEnd > braceStart) {
-    try {
-      return JSON.parse(raw.slice(braceStart, braceEnd + 1));
-    } catch { /* continue */ }
-  }
-
-  return null;
-}
-
-// ── Extract text from file buffer ─────────────────────────────
-async function extractText(buffer: Buffer, fileName: string): Promise<string> {
-  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
-
-  if (ext === "pdf") {
-    const { getDocumentProxy, extractText: pdfExtract } = await import("unpdf");
-    const pdf = await getDocumentProxy(new Uint8Array(buffer));
-    const { text } = await pdfExtract(pdf, { mergePages: true });
-    return text || "";
-  }
-
-  if (ext === "docx") {
-    const mammoth = await import("mammoth");
-    const result = await mammoth.extractRawText({ buffer });
-    return result.value || "";
-  }
-
-  if (ext === "txt") {
-    return buffer.toString("utf-8");
-  }
-
-  throw new Error(`Unsupported file format: .${ext}. Supported: PDF, DOCX, TXT`);
-}
-
-// ── Chunking with overlap ─────────────────────────────────────
-function chunkText(text: string): string[] {
-  const words = text.split(/\s+/).filter(Boolean);
-  const chunks: string[] = [];
-  let start = 0;
-
-  while (start < words.length) {
-    const end = Math.min(start + CHUNK_WORD_SIZE, words.length);
-    chunks.push(words.slice(start, end).join(" "));
-    start += CHUNK_WORD_SIZE - CHUNK_OVERLAP_WORDS;
-    if (end >= words.length) break;
-  }
-
-  return chunks;
-}
+// ── Hybrid scoring weights ────────────────────────────────────
+const STRUCTURAL_WEIGHT = 0.5;
+const LLM_WEIGHT = 0.5;
 
 // ══════════════════════════════════════════════════════════════
 // STRUCTURAL SIMILARITY ANALYSIS
-// Lightweight n-gram fingerprinting + repetition + vocabulary
-// diversity — runs entirely locally, no external API needed
+// Local n-gram fingerprinting + repetition + vocabulary
+// diversity — runs entirely locally, no API needed
 // ══════════════════════════════════════════════════════════════
 
 function generateNgrams(text: string, n: number): Map<string, number> {
@@ -180,7 +62,7 @@ function computeCosineSimilarity(a: Map<string, number>, b: Map<string, number>)
 }
 
 interface StructuralAnalysis {
-  score: number; // 0-100
+  score: number;
   repetitionRatio: number;
   vocabularyDiversity: number;
   avgChunkSimilarity: number;
@@ -188,7 +70,7 @@ interface StructuralAnalysis {
 }
 
 function analyzeStructural(text: string, chunks: string[]): StructuralAnalysis {
-  // 1. Repetition ratio — how many n-grams appear more than once
+  // 1. Repetition ratio — how many n-grams appear more than twice
   const trigrams = generateNgrams(text, 3);
   let repeatedCount = 0;
   let totalCount = 0;
@@ -201,7 +83,6 @@ function analyzeStructural(text: string, chunks: string[]): StructuralAnalysis {
   // 2. Vocabulary diversity (type-token ratio)
   const words = text.toLowerCase().replace(/[^\w\s]/g, "").split(/\s+/).filter(Boolean);
   const uniqueWords = new Set(words);
-  // Normalize for text length (longer texts naturally have lower TTR)
   const expectedTTR = Math.min(1, 0.05 + 0.95 / Math.sqrt(words.length / 100));
   const rawTTR = words.length > 0 ? uniqueWords.size / words.length : 1;
   const vocabularyDiversity = Math.min(1, rawTTR / expectedTTR);
@@ -222,30 +103,15 @@ function analyzeStructural(text: string, chunks: string[]): StructuralAnalysis {
 
   // 4. Template/generic phrase detection
   const templatePhrases = [
-    "it is worth noting",
-    "it should be noted",
-    "in this paper we",
-    "the results show that",
-    "in conclusion",
-    "as mentioned above",
-    "as shown in",
-    "it can be seen",
-    "on the other hand",
-    "in order to",
-    "it is important to note",
-    "the purpose of this study",
-    "the aim of this paper",
-    "further research is needed",
-    "the findings suggest",
-    "based on the above",
-    "as a result",
-    "in the present study",
-    "to the best of our knowledge",
-    "plays an important role",
-    "it is evident that",
-    "in light of",
-    "it has been shown",
-    "according to the results",
+    "it is worth noting", "it should be noted", "in this paper we",
+    "the results show that", "in conclusion", "as mentioned above",
+    "as shown in", "it can be seen", "on the other hand", "in order to",
+    "it is important to note", "the purpose of this study",
+    "the aim of this paper", "further research is needed",
+    "the findings suggest", "based on the above", "as a result",
+    "in the present study", "to the best of our knowledge",
+    "plays an important role", "it is evident that", "in light of",
+    "it has been shown", "according to the results",
   ];
 
   const lowerText = text.toLowerCase();
@@ -256,21 +122,16 @@ function analyzeStructural(text: string, chunks: string[]): StructuralAnalysis {
     if (matches) templatePhraseCount += matches.length;
   }
 
-  // Normalize template count relative to text length (per 1000 words)
   const templateDensity = words.length > 0 ? (templatePhraseCount / words.length) * 1000 : 0;
 
   // Compute structural score (0-100)
-  // Higher = more suspicious
-  const repScore = Math.min(100, repetitionRatio * 400); // high repetition = suspicious
-  const vocScore = Math.max(0, (1 - vocabularyDiversity) * 100); // low diversity = suspicious
-  const simScore = Math.min(100, avgChunkSimilarity * 200); // high chunk similarity = suspicious
-  const tmpScore = Math.min(100, templateDensity * 8); // many templates = suspicious
+  const repScore = Math.min(100, repetitionRatio * 400);
+  const vocScore = Math.max(0, (1 - vocabularyDiversity) * 100);
+  const simScore = Math.min(100, avgChunkSimilarity * 200);
+  const tmpScore = Math.min(100, templateDensity * 8);
 
   const score = Math.round(
-    repScore * 0.25 +
-    vocScore * 0.25 +
-    simScore * 0.25 +
-    tmpScore * 0.25
+    repScore * 0.25 + vocScore * 0.25 + simScore * 0.25 + tmpScore * 0.25
   );
 
   return {
@@ -282,14 +143,11 @@ function analyzeStructural(text: string, chunks: string[]): StructuralAnalysis {
   };
 }
 
-// ── Prepare text for analysis ─────────────────────────────────
+// ── Prepare text for LLM analysis ─────────────────────────────
 function prepareTextForLLM(text: string): string {
   const cleaned = text.slice(0, MAX_TEXT_CHARS);
-
-  // For shorter papers, send directly
   if (cleaned.length <= 30_000) return cleaned;
 
-  // For longer papers, extract key sections
   const headLen = 12_000;
   const tailLen = 8_000;
   const midLen = 10_000;
@@ -315,7 +173,7 @@ function computeRiskLevel(score: number): string {
   return "High";
 }
 
-function getActionableMessage(level: string, score: number): string {
+function getActionableMessage(level: string): string {
   if (level === "Low") {
     return "✅ Low Risk — The paper shows minimal similarity patterns. Standard originality indicators are within expected ranges.";
   }
@@ -334,9 +192,8 @@ async function getCachedResult(submissionId: string) {
       .eq("submission_id", submissionId)
       .single();
 
-    // Invalidate if model version changed
     if (data && data.model_version !== MODEL_VERSION) {
-      return null;
+      return null; // Invalidate stale cache
     }
 
     return data;
@@ -362,7 +219,7 @@ async function cacheResult(
       { onConflict: "submission_id" }
     );
   } catch (err) {
-    console.warn("Failed to cache plagiarism result (table may not exist yet):", err);
+    console.warn("Failed to cache plagiarism result (table may not exist):", err);
   }
 }
 
@@ -410,7 +267,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Check cache (unless force regenerate)
+    // 3. Check cache
     if (!forceRegenerate) {
       const cached = await getCachedResult(submissionId);
       if (cached) {
@@ -424,19 +281,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Initialize Gemini
-    const genAI = getGeminiClient();
-    if (!genAI) {
-      return NextResponse.json(
-        {
-          error:
-            "AI analysis is not configured. Please add GEMINI_API_KEY to your environment variables.",
-        },
-        { status: 503 }
-      );
-    }
-
-    // 5. Fetch paper submission
+    // 4. Fetch paper submission
     const { data: paper, error: paperErr } = await supabaseServer
       .from("paper_submissions")
       .select("id, file_url, title, reviewer_id")
@@ -450,7 +295,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5b. Authorization
+    // 5. Authorization
     const isOrganizerOrAdmin = ["organizer", "admin"].includes(userRole);
     const isAssignedReviewer = userRole === "reviewer" && paper.reviewer_id === userId;
 
@@ -490,7 +335,7 @@ export async function POST(req: NextRequest) {
     const fileName = paper.file_url.split("/").pop() || "paper.pdf";
     let rawText: string;
     try {
-      rawText = await extractText(fileBuffer, fileName);
+      rawText = await extractTextFromBuffer(fileBuffer, fileName);
     } catch (err: any) {
       return NextResponse.json(
         { error: err.message || "Failed to extract text from paper" },
@@ -502,7 +347,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Could not extract sufficient text from the paper. The file may be image-based or corrupted.",
+            "Could not extract sufficient text. The file may be image-based or corrupted.",
         },
         { status: 400 }
       );
@@ -511,15 +356,15 @@ export async function POST(req: NextRequest) {
     const cleanedText = rawText.slice(0, MAX_TEXT_CHARS);
 
     // 8. Chunk text with overlap for structural analysis
-    const chunks = chunkText(cleanedText);
+    const chunks = chunkTextWithOverlap(cleanedText, 1800, 200);
 
     // 9. Structural similarity analysis (local, no API)
     const structural = analyzeStructural(cleanedText, chunks);
 
-    // 10. LLM analysis via Gemini
+    // 10. LLM analysis via hybrid provider
     const llmText = prepareTextForLLM(cleanedText);
 
-    const prompt = `You are an academic integrity assistant specialized in detecting similarity patterns in research papers. Your role is to identify:
+    const plagiarismPrompt = `You are an academic integrity assistant specialized in detecting similarity patterns in research papers. Your role is to identify:
 - Repetitive phrasing or sentence structures
 - Generic or template-like academic writing
 - Sections that appear AI-generated or heavily paraphrased
@@ -563,29 +408,35 @@ ${llmText}
 
     let rawResponse: string;
     let modelUsed: string;
+    let providerUsed: string;
 
     try {
-      const geminiResult = await callGemini(genAI, prompt);
-      rawResponse = geminiResult.text;
-      modelUsed = geminiResult.modelUsed;
+      const aiResult = await callAI({
+        prompt: plagiarismPrompt,
+        maxTokens: 2000,
+        preferProvider: "auto",
+        textLength: llmText.length,
+      });
+      rawResponse = aiResult.text;
+      modelUsed = aiResult.model;
+      providerUsed = aiResult.provider;
     } catch (err: any) {
-      console.error("[plagiarism-check] Gemini API error:", err);
       return NextResponse.json(
-        { error: err.message || "AI analysis failed. Please try again." },
+        { error: err.message || "AI analysis temporarily unavailable. Please try again." },
         { status: 500 }
       );
     }
 
-    // 11. Parse JSON safely — with retry on failure
+    // 11. Parse JSON safely — with retry
     let llmResult = safeParseJSON(rawResponse);
 
     if (!llmResult) {
-      // Retry once with explicit instruction
       try {
-        const retryResult = await callGemini(
-          genAI,
-          `Your previous response was not valid JSON. Please respond with ONLY a valid JSON object matching the schema I specified. No markdown, no explanation. Here was your response:\n\n${rawResponse.slice(0, 1000)}`
-        );
+        const retryResult = await callAI({
+          prompt: `Your previous response was not valid JSON. Please respond with ONLY a valid JSON object matching the schema I specified. No markdown, no explanation. Here was your response:\n\n${rawResponse.slice(0, 1000)}`,
+          maxTokens: 2000,
+          preferProvider: providerUsed as "groq" | "gemini",
+        });
         llmResult = safeParseJSON(retryResult.text);
       } catch {
         /* fall through */
@@ -596,13 +447,13 @@ ${llmText}
       return NextResponse.json(
         {
           error:
-            "Failed to parse AI response. The model returned an invalid format. Please try again.",
+            "Failed to parse AI response. Please try again.",
         },
         { status: 500 }
       );
     }
 
-    // 12. Hybrid risk scoring
+    // 12. Hybrid risk scoring (50% structural + 50% LLM)
     const llmScore = Math.max(0, Math.min(100, Number(llmResult.risk_score) || 50));
     const hybridScore = Math.round(
       structural.score * STRUCTURAL_WEIGHT + llmScore * LLM_WEIGHT
@@ -610,12 +461,11 @@ ${llmText}
     const finalScore = Math.max(0, Math.min(100, hybridScore));
     const riskLevel = computeRiskLevel(finalScore);
 
-    // 13. Limit suspicious sections to top MAX_SUSPICIOUS_SECTIONS
+    // 13. Limit suspicious sections
     let suspiciousSections = Array.isArray(llmResult.suspicious_sections)
       ? llmResult.suspicious_sections.slice(0, MAX_SUSPICIOUS_SECTIONS)
       : [];
 
-    // Filter out overly short or generic entries
     suspiciousSections = suspiciousSections.filter(
       (s: any) => s.text && s.text.length > 20 && s.reason && s.reason.length > 10
     );
@@ -624,7 +474,7 @@ ${llmText}
     const resultData = {
       risk_score: finalScore,
       risk_level: riskLevel,
-      actionable_message: getActionableMessage(riskLevel, finalScore),
+      actionable_message: getActionableMessage(riskLevel),
       suspicious_sections: suspiciousSections,
       insights: llmResult.insights || "No specific patterns identified.",
       writing_quality: llmResult.writing_quality || "",
@@ -645,6 +495,7 @@ ${llmText}
       success: true,
       result: resultData,
       model: modelUsed,
+      provider: providerUsed,
       modelVersion: MODEL_VERSION,
       cached: false,
     });

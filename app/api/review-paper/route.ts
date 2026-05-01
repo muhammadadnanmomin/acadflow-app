@@ -1,107 +1,22 @@
 // ============================================================
 // AcadFlow AI Paper Reviewer — /api/review-paper
-// POST: Analyze a submission's paper via Groq LLM
-// Features: auth, caching, chunked summarization, safe JSON
-//           parsing, timeout, decision normalization
+// POST: Analyze a submission's paper via hybrid AI
+// Uses: Shared AI provider (Groq → Gemini fallback)
+// Features: auth, intelligent routing, caching, chunking,
+//           safe JSON, decision normalization
 // ============================================================
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient, supabaseServer } from "@/lib/supabase/server";
+import {
+  callAI,
+  callAIWithJSONRetry,
+  extractTextFromBuffer,
+  processTextForAI,
+  safeParseJSON,
+} from "@/lib/ai/provider";
 
 // ── Constants ─────────────────────────────────────────────────
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const PRIMARY_MODEL = "llama-3.3-70b-versatile";
-const FALLBACK_MODEL = "llama-3.1-8b-instant";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const API_TIMEOUT_MS = 45_000; // 45 seconds per call
-const SMALL_DOC_LIMIT = 25_000; // chars — send directly
-const LARGE_DOC_LIMIT = 80_000; // chars — needs chunking
-const MAX_TEXT_CHARS = 200_000; // absolute cap
-
-// ── Groq API Key ──────────────────────────────────────────────
-function getGroqKey(): string | null {
-  const key = process.env.GROQ_API_KEY ?? "";
-  if (!key || key.length < 10 || key.startsWith("your-")) return null;
-  return key;
-}
-
-// ── Call Groq API with timeout + model fallback ───────────────
-async function callGroq(
-  apiKey: string,
-  messages: { role: string; content: string }[],
-  maxTokens = 1500,
-  model = PRIMARY_MODEL
-): Promise<string> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-
-  try {
-    const res = await fetch(GROQ_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        max_tokens: maxTokens,
-        temperature: 0.3,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
-      // If primary model fails, try fallback
-      if (model === PRIMARY_MODEL) {
-        console.warn(`Primary model failed (${res.status}), trying fallback...`);
-        return callGroq(apiKey, messages, maxTokens, FALLBACK_MODEL);
-      }
-      throw new Error(`Groq API error ${res.status}: ${errBody.slice(0, 200)}`);
-    }
-
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content ?? "";
-  } catch (err: any) {
-    if (err.name === "AbortError") {
-      if (model === PRIMARY_MODEL) {
-        console.warn("Primary model timed out, trying fallback...");
-        return callGroq(apiKey, messages, maxTokens, FALLBACK_MODEL);
-      }
-      throw new Error("AI analysis timed out. Please try again.");
-    }
-    throw err;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-// ── Safe JSON Parsing with fallbacks ──────────────────────────
-function safeParseReviewJSON(raw: string): Record<string, any> | null {
-  // 1. Direct parse
-  try {
-    return JSON.parse(raw);
-  } catch { /* continue */ }
-
-  // 2. Extract from markdown code blocks
-  const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (codeBlockMatch) {
-    try {
-      return JSON.parse(codeBlockMatch[1].trim());
-    } catch { /* continue */ }
-  }
-
-  // 3. Find JSON object braces in text
-  const braceStart = raw.indexOf("{");
-  const braceEnd = raw.lastIndexOf("}");
-  if (braceStart !== -1 && braceEnd > braceStart) {
-    try {
-      return JSON.parse(raw.slice(braceStart, braceEnd + 1));
-    } catch { /* continue */ }
-  }
-
-  return null;
-}
 
 // ── Normalize AI Decision to standard labels ──────────────────
 function normalizeDecision(raw: string): string {
@@ -111,109 +26,6 @@ function normalizeDecision(raw: string): string {
   if (lower.includes("minor")) return "Minor Revision";
   if (lower.includes("accept")) return "Accept";
   return raw || "Unknown";
-}
-
-// ── Text Processing: smart extraction + chunking pipeline ─────
-function smartExtractText(text: string): string {
-  if (text.length <= SMALL_DOC_LIMIT) return text;
-
-  // Head (abstract, introduction) + mid (methodology/results) + tail (conclusion)
-  const headLen = 10_000;
-  const tailLen = 8_000;
-  const midLen = 7_000;
-
-  const head = text.slice(0, headLen);
-  const tail = text.slice(-tailLen);
-  const midStart = Math.floor((text.length - midLen) / 2);
-  const mid = text.slice(midStart, midStart + midLen);
-
-  return [
-    head,
-    "\n\n[--- MIDDLE SECTION EXCERPT ---]\n\n",
-    mid,
-    "\n\n[--- CONCLUSION SECTION ---]\n\n",
-    tail,
-  ].join("");
-}
-
-async function chunkAndSummarize(text: string, apiKey: string): Promise<string> {
-  const CHUNK_SIZE = 20_000;
-  const chunks: string[] = [];
-
-  for (let i = 0; i < text.length && chunks.length < 5; i += CHUNK_SIZE) {
-    chunks.push(text.slice(i, i + CHUNK_SIZE));
-  }
-
-  // Summarize each chunk in parallel
-  const summaries = await Promise.all(
-    chunks.map((chunk, i) =>
-      callGroq(
-        apiKey,
-        [
-          {
-            role: "system",
-            content:
-              "You are an academic paper analyst. Summarize this section of a research paper in 300-400 words. Focus on key arguments, methodology, findings, and claims. Preserve technical details.",
-          },
-          {
-            role: "user",
-            content: `Section ${i + 1} of ${chunks.length}:\n\n${chunk}`,
-          },
-        ],
-        500
-      )
-    )
-  );
-
-  return summaries
-    .map((s, i) => `=== Section ${i + 1} Summary ===\n${s}`)
-    .join("\n\n");
-}
-
-async function processText(
-  text: string,
-  apiKey: string
-): Promise<{ processed: string; method: string }> {
-  const cleaned = text.slice(0, MAX_TEXT_CHARS);
-
-  if (cleaned.length <= SMALL_DOC_LIMIT) {
-    return { processed: cleaned, method: "direct" };
-  }
-
-  if (cleaned.length <= LARGE_DOC_LIMIT) {
-    return { processed: smartExtractText(cleaned), method: "smart_extraction" };
-  }
-
-  // Large document — chunk and summarize
-  const summarized = await chunkAndSummarize(cleaned, apiKey);
-  return { processed: summarized, method: "chunked_summarization" };
-}
-
-// ── Extract text from file buffer ─────────────────────────────
-async function extractText(
-  buffer: Buffer,
-  fileName: string
-): Promise<string> {
-  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
-
-  if (ext === "pdf") {
-    const { getDocumentProxy, extractText: pdfExtract } = await import("unpdf");
-    const pdf = await getDocumentProxy(new Uint8Array(buffer));
-    const { text } = await pdfExtract(pdf, { mergePages: true });
-    return text || "";
-  }
-
-  if (ext === "docx") {
-    const mammoth = await import("mammoth");
-    const result = await mammoth.extractRawText({ buffer });
-    return result.value || "";
-  }
-
-  if (ext === "txt") {
-    return buffer.toString("utf-8");
-  }
-
-  throw new Error(`Unsupported file format: .${ext}. Supported: PDF, DOCX, TXT`);
 }
 
 // ── Review Prompt ─────────────────────────────────────────────
@@ -346,19 +158,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Verify Groq API key
-    const apiKey = getGroqKey();
-    if (!apiKey) {
-      return NextResponse.json(
-        {
-          error:
-            "AI review is not configured. Please add GROQ_API_KEY to your environment variables.",
-        },
-        { status: 503 }
-      );
-    }
-
-    // 5. Fetch paper submission
+    // 4. Fetch paper submission
     const { data: paper, error: paperErr } = await supabaseServer
       .from("paper_submissions")
       .select("id, file_url, title, reviewer_id")
@@ -372,7 +172,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5b. Authorization — organizer/admin always allowed, reviewer only if assigned
+    // 5. Authorization — organizer/admin always allowed, reviewer only if assigned
     const isOrganizerOrAdmin = ["organizer", "admin"].includes(userRole);
     const isAssignedReviewer = userRole === "reviewer" && paper.reviewer_id === userId;
 
@@ -412,7 +212,7 @@ export async function POST(req: NextRequest) {
     const fileName = paper.file_url.split("/").pop() || "paper.pdf";
     let rawText: string;
     try {
-      rawText = await extractText(fileBuffer, fileName);
+      rawText = await extractTextFromBuffer(fileBuffer, fileName);
     } catch (err: any) {
       return NextResponse.json(
         { error: err.message || "Failed to extract text from paper" },
@@ -431,55 +231,29 @@ export async function POST(req: NextRequest) {
     }
 
     // 8. Process text (direct / smart extraction / chunking)
-    const { processed, method } = await processText(rawText, apiKey);
+    const { processed, method } = await processTextForAI(rawText);
 
-    // 9. Call Groq for the review
+    // 9. Call AI for the review (intelligent routing)
     const messages = buildReviewMessages(processed);
-    let rawResponse: string;
-    let modelUsed = PRIMARY_MODEL;
+    let aiResult;
 
     try {
-      rawResponse = await callGroq(apiKey, messages, 1500);
+      aiResult = await callAIWithJSONRetry({
+        messages,
+        maxTokens: 1500,
+        preferProvider: "auto",
+        textLength: processed.length,
+      });
     } catch (err: any) {
       return NextResponse.json(
-        { error: err.message || "AI analysis failed" },
+        { error: err.message || "AI analysis temporarily unavailable. Please try again." },
         { status: 500 }
       );
     }
 
-    // 10. Parse JSON safely — with one retry on failure
-    let review = safeParseReviewJSON(rawResponse);
+    const review = aiResult.parsed;
 
-    if (!review) {
-      // Retry once with explicit instruction
-      try {
-        const retryMessages = [
-          ...messages,
-          { role: "assistant" as const, content: rawResponse },
-          {
-            role: "user" as const,
-            content:
-              "Your previous response was not valid JSON. Please respond with ONLY a valid JSON object, no markdown, no explanation.",
-          },
-        ];
-        const retryResponse = await callGroq(apiKey, retryMessages, 1500);
-        review = safeParseReviewJSON(retryResponse);
-      } catch {
-        /* fall through */
-      }
-    }
-
-    if (!review) {
-      return NextResponse.json(
-        {
-          error:
-            "Failed to parse AI response. The model returned an invalid format. Please try again.",
-        },
-        { status: 500 }
-      );
-    }
-
-    // 11. Normalize decision
+    // 10. Normalize decision
     if (review.final_decision) {
       review.final_decision = normalizeDecision(review.final_decision);
     }
@@ -493,13 +267,14 @@ export async function POST(req: NextRequest) {
       Math.min(100, review.confidence_score ?? 50)
     );
 
-    // 12. Cache result
-    await cacheReview(submissionId, review, modelUsed);
+    // 11. Cache result
+    await cacheReview(submissionId, review, aiResult.model);
 
     return NextResponse.json({
       success: true,
       review,
-      model: modelUsed,
+      model: aiResult.model,
+      provider: aiResult.provider,
       textProcessing: method,
       cached: false,
     });
