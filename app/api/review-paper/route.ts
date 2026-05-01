@@ -14,6 +14,7 @@ import {
   recordRequest,
   getReviewHeuristicFallback,
 } from "@/lib/ai/provider";
+import { checkAICredits, consumeAICredit, getAIUsage } from "@/lib/ai/credits";
 
 // ── Constants ─────────────────────────────────────────────────
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -155,10 +156,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Cache check (unless force regenerate)
+    // 4. Fetch conference_id early (needed for usage in all responses)
+    const { data: submission } = await supabaseServer
+      .from("paper_submissions")
+      .select("conference_id")
+      .eq("id", submissionId)
+      .single();
+    const conferenceId = submission?.conference_id;
+
+    // 4b. Cache check (unless force regenerate)
     if (!forceRegenerate) {
       const cached = await getCachedReview(submissionId);
       if (cached) {
+        const usage = conferenceId ? await getAIUsage(conferenceId) : null;
         return NextResponse.json({
           success: true,
           review: cached.review_data,
@@ -167,6 +177,7 @@ export async function POST(req: NextRequest) {
           cached: true,
           cachedAt: cached.created_at,
           fallback: cached.model_used === "heuristic",
+          usage: usage ? { used: usage.used_credits, total: usage.total_credits } : null,
         });
       }
     }
@@ -174,11 +185,24 @@ export async function POST(req: NextRequest) {
     // 5. Fetch paper + authorization
     const { data: paper, error: paperErr } = await supabaseServer
       .from("paper_submissions")
-      .select("id, file_url, title, reviewer_id")
+      .select("id, file_url, title, reviewer_id, conference_id")
       .eq("id", submissionId)
       .single();
 
     if (paperErr || !paper) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+
+    // 5b. AI credit check — block BEFORE downloading/processing the file
+    const creditCheck = await checkAICredits(paper.conference_id);
+    if (!creditCheck.allowed) {
+      return NextResponse.json({
+        success: false,
+        error: creditCheck.error,
+        message: creditCheck.message,
+        usage: creditCheck.usage
+          ? { used: creditCheck.usage.used_credits, total: creditCheck.usage.total_credits }
+          : null,
+      }, { status: 429 });
+    }
 
     const isOrganizerOrAdmin = ["organizer", "admin"].includes(userRole);
     const isAssignedReviewer = userRole === "reviewer" && paper.reviewer_id === userId;
@@ -253,6 +277,14 @@ export async function POST(req: NextRequest) {
     // 11. Cache result
     await cacheReview(submissionId, review, model);
 
+    // 12. Consume 1 credit for any successful analysis (AI or fallback)
+    if (paper.conference_id) {
+      await consumeAICredit(paper.conference_id);
+    }
+
+    // 13. Fetch fresh usage after consumption
+    const freshUsage = paper.conference_id ? await getAIUsage(paper.conference_id) : null;
+
     return NextResponse.json({
       success: true,
       review,
@@ -265,6 +297,7 @@ export async function POST(req: NextRequest) {
       message: isFallback
         ? "AI temporarily unavailable. Showing basic analysis."
         : undefined,
+      usage: freshUsage ? { used: freshUsage.used_credits, total: freshUsage.total_credits } : null,
     });
   } catch (err: any) {
     console.error("[review-paper POST]", err);

@@ -32,6 +32,8 @@ import {
 
 import AIReviewCard from "@/components/dashboard/AIReviewCard";
 import PlagiarismRiskCard from "@/components/dashboard/PlagiarismRiskCard";
+import AIUsageBanner from "@/components/dashboard/AIUsageBanner";
+import { useAICreditPurchase } from "@/lib/hooks/useAICreditPurchase";
 
 const supabase = createClient();
 
@@ -55,6 +57,14 @@ export default function ReviewerReviewPage() {
 
   const toggle = (key: string) =>
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  // AI credit purchase integration
+  useAICreditPurchase({
+    conferenceId: paper?.conference_id ?? null,
+    userId: profile?.id ?? null,
+    userName: profile?.name ?? undefined,
+    userEmail: profile?.email ?? undefined,
+  });
 
   /* Load draft */
   useEffect(() => {
@@ -87,7 +97,8 @@ export default function ReviewerReviewPage() {
         declaration_original,
         declaration_no_plagiarism,
         declaration_author_approval,
-        conferences ( title )
+        conferences ( title ),
+        conference_id
       `)
       .eq("id", paperId)
       .eq("reviewer_id", profile.id)
@@ -376,6 +387,11 @@ export default function ReviewerReviewPage() {
           <p className="text-xs text-gray-400">Currently viewing revision v{paper.revision_number}</p>
         )}
       </Card>
+
+      {/* ── AI Usage Banner ── */}
+      {paper.conference_id && (
+        <AIUsageBanner conferenceId={paper.conference_id} />
+      )}
 
       {/* ── AI Paper Reviewer Assistant ── */}
       <div className="space-y-2">

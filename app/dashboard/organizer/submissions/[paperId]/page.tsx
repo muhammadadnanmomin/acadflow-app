@@ -37,6 +37,8 @@ import {
 
 import AIReviewCard from "@/components/dashboard/AIReviewCard";
 import PlagiarismRiskCard from "@/components/dashboard/PlagiarismRiskCard";
+import AIUsageBanner from "@/components/dashboard/AIUsageBanner";
+import { useAICreditPurchase } from "@/lib/hooks/useAICreditPurchase";
 
 const supabase = createClient();
 
@@ -63,6 +65,14 @@ export default function OrganizerPaperReviewPage() {
   const [plagiarismSaving, setPlagiarismSaving] = useState(false);
 
   const toggle = (key: string) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+
+  // AI credit purchase integration
+  useAICreditPurchase({
+    conferenceId: paper?.conference_id ?? null,
+    userId: profile?.id ?? null,
+    userName: profile?.name ?? undefined,
+    userEmail: profile?.email ?? undefined,
+  });
 
   /* ─── Data Loading ─── */
   const loadPaper = useCallback(async () => {
@@ -459,6 +469,11 @@ export default function OrganizerPaperReviewPage() {
           </div>
         )}
       </Card>
+
+      {/* ── AI Usage Banner ── */}
+      {paper.conference_id && (
+        <AIUsageBanner conferenceId={paper.conference_id} />
+      )}
 
       {/* ── AI Paper Reviewer ── */}
       <AIReviewCard submissionId={paperId as string} />

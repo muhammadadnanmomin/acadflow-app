@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendPaymentConfirmationEmail } from "@/lib/email/sendPaymentEmail";
 import { PRO_SLOT_PRICE } from "@/lib/config/pricing";
+import { upgradePlanCredits } from "@/lib/ai/credits";
 
 export async function POST(req: Request) {
     try {
@@ -70,6 +71,10 @@ export async function POST(req: Request) {
         console.log(
             `✅ Organization ${organizationId} — conference slot purchased (${currentSlots} → ${currentSlots + 1})`
         );
+
+        /* ---- Upgrade AI credits for all org conferences ---- */
+        // Non-blocking: don't fail the payment flow if this errors
+        upgradePlanCredits(organizationId, newPlanType).catch(() => {});
 
         /* ---- Record the purchase for billing history ---- */
         await supabaseAdmin.from("organizer_slot_purchases").insert({

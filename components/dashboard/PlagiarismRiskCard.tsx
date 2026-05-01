@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import AILimitModal from "@/components/dashboard/AILimitModal";
 import {
   Loader2,
   Search,
@@ -283,8 +284,30 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
   const [showFullReport, setShowFullReport] = useState(false);
   const [cooldown, setCooldown] = useState(false);
   const [cooldownMsg, setCooldownMsg] = useState<string | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
+  const [limitUsage, setLimitUsage] = useState<{ used: number; total: number } | null>(null);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   const resultRef = useRef<HTMLDivElement>(null);
+
+  // Listen for limit events from other AI cards
+  useEffect(() => {
+    function handleLimitEvent(e: CustomEvent<{ used: number; total: number }>) {
+      setLimitReached(true);
+      setLimitUsage(e.detail);
+    }
+    function handleLimitCleared() {
+      setLimitReached(false);
+      setLimitUsage(null);
+      setShowLimitModal(false);
+    }
+    window.addEventListener("ai-limit-reached", handleLimitEvent as EventListener);
+    window.addEventListener("ai-limit-cleared", handleLimitCleared);
+    return () => {
+      window.removeEventListener("ai-limit-reached", handleLimitEvent as EventListener);
+      window.removeEventListener("ai-limit-cleared", handleLimitCleared);
+    };
+  }, []);
 
   const analyzeSimilarity = useCallback(
     async (forceRegenerate = false) => {
@@ -311,6 +334,17 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
         }
 
         if (!res.ok && !data.success) {
+          // Detect AI limit reached
+          if (data.error === "AI_LIMIT_REACHED") {
+            setLimitReached(true);
+            setLimitUsage(data.usage ?? null);
+            setShowLimitModal(true);
+            // Notify other AI cards on the page
+            window.dispatchEvent(
+              new CustomEvent("ai-limit-reached", { detail: data.usage })
+            );
+            return;
+          }
           throw new Error(data.error || "Failed to analyze paper");
         }
 
@@ -320,6 +354,13 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
         setModel(data.model ?? null);
         setSource(data.source ?? null);
         setFallback(data.fallback ?? false);
+
+        // Broadcast usage update so AIUsageBanner stays in sync
+        if (data.usage) {
+          window.dispatchEvent(
+            new CustomEvent("ai-usage-update", { detail: data.usage })
+          );
+        }
 
         if (!data.cached) {
           setCooldown(true);
@@ -367,16 +408,22 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
           </div>
 
           <Button
-            onClick={() => analyzeSimilarity(false)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+            onClick={() => limitReached ? setShowLimitModal(true) : analyzeSimilarity(false)}
+            className={limitReached
+              ? "bg-gray-400 hover:bg-gray-400 text-white gap-2 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700 text-white gap-2"}
             size="sm"
+            disabled={limitReached}
           >
             <Search className="h-4 w-4" />
-            Analyze Similarity
+            {limitReached ? "Credits Exhausted" : "Analyze Similarity"}
           </Button>
 
           <p className="text-[10px] text-gray-400 mt-3 text-center max-w-[280px]">
             AI-based similarity detection. Not a definitive plagiarism check.
+          </p>
+          <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
+            ⚡ Uses 1 AI credit
           </p>
         </div>
       </Card>
@@ -714,6 +761,15 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
           result={result}
           model={model}
           onClose={() => setShowFullReport(false)}
+        />
+      )}
+
+      {/* AI Limit Modal */}
+      {showLimitModal && (
+        <AILimitModal
+          onClose={() => setShowLimitModal(false)}
+          used={limitUsage?.used}
+          total={limitUsage?.total}
         />
       )}
     </>

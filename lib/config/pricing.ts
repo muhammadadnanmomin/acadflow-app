@@ -100,3 +100,25 @@ export const PLAN_LABELS: Record<PlanType, string> = {
     pro: "Pro",
     institutional: "Institutional",
 };
+
+/* ------------------------------------------------------------------ */
+/*  AI Credit Add-on Packs                                              */
+/* ------------------------------------------------------------------ */
+
+export interface AICreditPack {
+    id: string;
+    credits: number;
+    /** Price in INR */
+    price: number;
+    label: string;
+}
+
+export const AI_CREDIT_PACKS: AICreditPack[] = [
+    { id: "ai_50", credits: 50, price: 299, label: "50 AI Credits" },
+    { id: "ai_100", credits: 100, price: 499, label: "100 AI Credits" },
+];
+
+/** Look up a credit pack by ID. Returns undefined if invalid. */
+export function getAICreditPack(packId: string): AICreditPack | undefined {
+    return AI_CREDIT_PACKS.find((p) => p.id === packId);
+}

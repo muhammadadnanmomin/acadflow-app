@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { addLedgerCredit, addLedgerDebit } from "@/lib/payment/balance";
+import { upgradePlanCredits, purchaseAICredits } from "@/lib/ai/credits";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -144,9 +145,27 @@ async function handlePaymentCaptured(
       console.log(
         `✅ Webhook: Org ${orgId} slot purchased (${currentSlots} → ${currentSlots + 1})`
       );
+
+      // Upgrade AI credits for all org conferences (non-blocking)
+      upgradePlanCredits(orgId, newPlanType).catch(() => {});
     }
 
     // Slot purchases don't need further processing below
+    return;
+  }
+
+  // ── Handle ai_credit_purchase ──
+  if (notes.type === "ai_credit_purchase" && notes.conference_id) {
+    const credits = Number(notes.credits) || 0;
+    const amount = Number(notes.amount) || 0;
+
+    if (credits > 0) {
+      await purchaseAICredits(notes.conference_id, credits, amount);
+      console.log(
+        `✅ Webhook: AI credits purchased — conference ${notes.conference_id} +${credits} credits`
+      );
+    }
+
     return;
   }
 
