@@ -150,11 +150,11 @@ function FullReportModal({
           {/* Score breakdown */}
           <div className="grid grid-cols-2 gap-3 mt-3">
             <div className="bg-white/60 rounded-md p-3">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Structural Score</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Pattern Analysis</p>
               <p className="text-lg font-bold text-gray-700">{sa.score}/100</p>
             </div>
             <div className="bg-white/60 rounded-md p-3">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">AI Semantic Score</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Content Analysis</p>
               <p className="text-lg font-bold text-gray-700">{result.llm_score}/100</p>
             </div>
           </div>
@@ -164,28 +164,28 @@ function FullReportModal({
         <div>
           <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-indigo-500" />
-            📊 Structural Analysis Details
+            📊 Detailed Analysis
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <MetricCard
               label="Repetition Ratio"
               value={`${Math.round(sa.repetition_ratio * 100)}%`}
-              description="Trigram patterns appearing 3+ times"
+              description="Repeated phrase patterns detected"
             />
             <MetricCard
               label="Vocabulary Diversity"
               value={`${Math.round(sa.vocabulary_diversity * 100)}%`}
-              description="Normalized type-token ratio"
+              description="Range of unique words used"
             />
             <MetricCard
-              label="Chunk Similarity"
+              label="Section Similarity"
               value={`${Math.round(sa.avg_chunk_similarity * 100)}%`}
-              description="Average inter-section similarity"
+              description="Similarity between document sections"
             />
             <MetricCard
               label="Template Phrases"
               value={`${sa.template_phrase_count}`}
-              description="Common academic template matches"
+              description="Common boilerplate expressions found"
             />
           </div>
         </div>
@@ -228,15 +228,12 @@ function FullReportModal({
           )}
         </div>
 
-        {/* Disclaimer + Meta */}
+        {/* Disclaimer */}
         <div className="border-t pt-3 space-y-2">
           <p className="text-xs text-gray-400 flex items-center gap-1">
             <Info className="h-3 w-3" />
             AI-based similarity detection. Not a definitive plagiarism check. Results are
             indicative and should be reviewed by a human.
-          </p>
-          <p className="text-xs text-gray-400">
-            Model: {model || "AI"} | Hybrid scoring: 50% structural + 50% semantic
           </p>
         </div>
 
@@ -451,7 +448,7 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
             Analyzing similarity patterns…
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            Running structural analysis + AI semantic detection
+            This may take a moment for thorough analysis
           </p>
         </div>
       </Card>
@@ -522,7 +519,7 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
           </h2>
           <div className="flex items-center gap-2">
             <Badge className="bg-indigo-50 text-indigo-600 text-[10px] tracking-wider uppercase border border-indigo-200">
-              AI Generated
+              AI Analysis
             </Badge>
             <Button
               onClick={() => analyzeSimilarity(true)}
@@ -542,17 +539,12 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
           <FadeInSection>
             <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 text-xs text-blue-600 flex items-center gap-1.5">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Cached result from{" "}
+              Instant result (optimized) — analyzed{" "}
               {new Date(cachedAt).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
                 year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
               })}
-              <span className="text-blue-400 ml-1">
-                • Click Re-analyze for a fresh analysis
-              </span>
             </div>
           </FadeInSection>
         )}
@@ -589,14 +581,16 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
               </span>
             </div>
 
-            {/* Score breakdown mini */}
-            <div className="flex gap-4 mt-2 text-xs text-gray-500">
-              <span>
-                Structural: <strong>{result.structural_analysis.score}</strong>/100
-              </span>
-              <span>
-                Semantic: <strong>{result.llm_score}</strong>/100
-              </span>
+            {/* Score context */}
+            <div className="mt-2 text-xs text-gray-500">
+              <span>Detailed similarity analysis available</span>
+              <span className="mx-2">•</span>
+              <button
+                onClick={() => setShowFullReport(true)}
+                className="text-indigo-500 hover:text-indigo-700 underline underline-offset-2 transition-colors"
+              >
+                View Details
+              </button>
             </div>
           </div>
         </FadeInSection>
@@ -620,7 +614,7 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
                 <span className="text-base">🚩</span>
                 <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                   <Flag className="h-3.5 w-3.5 text-red-500" />
-                  Suspicious Sections
+                  Flagged Sections
                 </h3>
                 <Badge className="bg-gray-100 text-gray-500 text-[10px]">
                   {result.suspicious_sections.length}
@@ -704,7 +698,7 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
             {fallback && (
               <div className="bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-xs text-amber-700 flex items-center gap-1.5 mb-2">
                 <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
-                ⚠️ Structural analysis only — AI providers unavailable
+                ⚠️ Limited analysis — showing basic results. Try again shortly.
               </div>
             )}
 
@@ -721,29 +715,14 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
             </p>
             <div className="flex items-center justify-between text-xs text-gray-400">
               <span className="flex items-center gap-1.5">
-                {source === "cache" ? (
-                  <><span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-400" /> Using cached result ⚡</>
-                ) : source === "fallback" ? (
-                  <><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> Structural fallback</>
-                ) : source === "groq" ? (
-                  <><span className="inline-block h-1.5 w-1.5 rounded-full bg-green-400" /> Powered by Groq AI</>
-                ) : source === "gemini" ? (
-                  <><span className="inline-block h-1.5 w-1.5 rounded-full bg-cyan-400" /> Powered by Gemini</>
-                ) : source === "ollama" ? (
-                  <><span className="inline-block h-1.5 w-1.5 rounded-full bg-purple-400" /> Local AI (Ollama)</>
-                ) : (
-                  <>Generated by <span className="font-medium text-gray-500">{model || "AI"}</span></>
-                )}
-                <span className="text-gray-300">•</span>
-                {fallback ? "100% structural" : "Hybrid scoring (50% structural + 50% semantic)"}
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-400" />
+                Advanced AI analysis
               </span>
               <span>
                 {new Date().toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
                 })}
               </span>
             </div>

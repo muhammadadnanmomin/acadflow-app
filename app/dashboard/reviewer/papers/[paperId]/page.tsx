@@ -323,7 +323,7 @@ export default function ReviewerReviewPage() {
             <div className="mt-0.5"><StatusBadge status={paper.status} /></div>
           </div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Plagiarism</p>
+            <p className="text-xs text-gray-400 uppercase tracking-wide">Similarity</p>
             <div className="mt-0.5"><PlagiarismBadge status={paper.plagiarism_status} /></div>
           </div>
         </div>
@@ -562,7 +562,7 @@ export default function ReviewerReviewPage() {
             {paper.plagiarism_status === "flagged" && (
               <div className="bg-red-50 border border-red-200 rounded p-2 text-sm text-red-700 flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                Plagiarism is flagged for this paper.
+                Similarity is flagged for this paper.
               </div>
             )}
 
@@ -684,7 +684,7 @@ function PlagiarismBadge({ status }: { status?: string }) {
   if (status === "passed") return <Badge className="bg-green-100 text-green-700">Passed</Badge>;
   if (status === "flagged") return <Badge className="bg-red-100 text-red-700">Flagged</Badge>;
   if (status === "checking") return <Badge className="bg-blue-100 text-blue-700">Checking</Badge>;
-  return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
+  return <Badge className="bg-yellow-100 text-yellow-700">Not Analyzed</Badge>;
 }
 
 function StepPill({ label, done, variant }: { label: string; done: boolean; variant?: "green" | "red" | "orange" }) {

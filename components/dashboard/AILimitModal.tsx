@@ -55,7 +55,7 @@ export default function AILimitModal({ onClose, used, total }: AILimitModalProps
           <p className="text-sm text-gray-600 leading-relaxed">
             You&apos;ve used all AI analyses for this conference. Purchase
             additional analyses or upgrade your plan to continue using AI-powered
-            paper reviews and plagiarism detection.
+            paper reviews and similarity detection.
           </p>
 
           {/* Credit packs */}

@@ -69,6 +69,11 @@ function formatDate(date: string) {
     });
 }
 
+/** Normalize legacy descriptions that used "AI Credits" → "AI Analyses" */
+function normalizeDescription(desc: string) {
+    return desc?.replace(/AI Credits/gi, "AI Analyses") ?? desc;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Page Component                                                     */
 /* ------------------------------------------------------------------ */
@@ -206,7 +211,7 @@ export default function OrganizerBillingPage() {
                 currency: order.currency,
                 name: "AcadFlow",
                 description: selectedCredits > 0
-                    ? `Pro Plan + ${selectedCredits} AI Credits`
+                    ? `Pro Plan + ${selectedCredits} AI Analyses`
                     : "Pro Plan + 100 AI Analyses",
                 order_id: order.id,
                 prefill: {
@@ -235,7 +240,7 @@ export default function OrganizerBillingPage() {
                             orderId: order.id,
                             amount: totalAmount,
                             description: selectedCredits > 0
-                                ? `Pro Plan + ${selectedCredits} AI Credits`
+                                ? `Pro Plan + ${selectedCredits} AI Analyses`
                                 : "Pro Plan + 100 AI Analyses",
                             payerName: profile.name || "Organizer",
                             payerEmail: profile.email || undefined,
@@ -326,7 +331,7 @@ export default function OrganizerBillingPage() {
                 amount: order.amount,
                 currency: order.currency,
                 name: "AcadFlow",
-                description: `AI Credits — ${pack.label}`,
+                description: `AI Analyses — ${pack.label}`,
                 order_id: order.id,
                 prefill: {
                     email: profile.email || "",
@@ -351,7 +356,7 @@ export default function OrganizerBillingPage() {
                     if (verifyRes.ok && verifyData.success) {
                         toast({
                             title: "🎉 Credits Added!",
-                            description: `${pack.credits} AI credits have been added.`,
+                            description: `${pack.credits} AI analyses have been added.`,
                         });
                     } else {
                         toast({
@@ -457,7 +462,7 @@ export default function OrganizerBillingPage() {
                             <Package className="h-5 w-5 text-green-600" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-900">⚡ Buy AI Credits</h3>
+                            <h3 className="text-lg font-semibold text-gray-900">⚡ Buy AI Analyses</h3>
                             <p className="text-xs text-gray-500">
                                 Top up your AI analyses instantly
                             </p>
@@ -482,13 +487,13 @@ export default function OrganizerBillingPage() {
                                     </span>
                                 )}
                                 <p className="text-2xl font-bold text-gray-900">+{pack.credits}</p>
-                                <p className="text-xs text-gray-500 mt-0.5">AI Credits</p>
+                                <p className="text-xs text-gray-500 mt-0.5">AI Analyses</p>
                                 <div className="mt-3 flex items-baseline gap-1">
                                     <span className="text-lg font-bold text-gray-900">
                                         ₹{pack.price.toLocaleString("en-IN")}
                                     </span>
                                     <span className="text-xs text-gray-400">
-                                        (₹{(pack.price / pack.credits).toFixed(1)}/credit)
+                                        (₹{(pack.price / pack.credits).toFixed(1)}/analysis)
                                     </span>
                                 </div>
                             </button>
@@ -497,7 +502,7 @@ export default function OrganizerBillingPage() {
 
                     <p className="text-xs text-gray-400 mt-4 flex items-center gap-1.5">
                         <Zap className="h-3 w-3" />
-                        Each AI analysis (paper review or plagiarism check) uses 1 credit
+                        Each AI action (paper review or similarity check) uses 1 analysis
                     </p>
                 </Card>
             )}
@@ -631,7 +636,7 @@ export default function OrganizerBillingPage() {
                                             {p.payment_id}
                                         </td>
                                         <td className="py-3 px-4 text-gray-700">
-                                            {p.description}
+                                            {normalizeDescription(p.description)}
                                         </td>
                                         <td className="py-3 px-4 font-semibold text-gray-900">
                                             ₹{p.amount.toLocaleString("en-IN")}
@@ -649,7 +654,7 @@ export default function OrganizerBillingPage() {
                                                         paymentId: p.payment_id,
                                                         orderId: p.order_id,
                                                         amount: p.amount,
-                                                        description: p.description,
+                                                        description: normalizeDescription(p.description),
                                                         payerName: profile?.name || "Organizer",
                                                         payerEmail: profile?.email || undefined,
                                                         paidAt: p.created_at,
@@ -675,7 +680,7 @@ export default function OrganizerBillingPage() {
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-gray-900 truncate">
-                                            {p.description}
+                                            {normalizeDescription(p.description)}
                                         </p>
                                         <p className="text-xs text-gray-400 font-mono mt-0.5">
                                             {p.payment_id}
@@ -699,7 +704,7 @@ export default function OrganizerBillingPage() {
                                                 paymentId: p.payment_id,
                                                 orderId: p.order_id,
                                                 amount: p.amount,
-                                                description: p.description,
+                                                description: normalizeDescription(p.description),
                                                 payerName: profile?.name || "Organizer",
                                                 payerEmail: profile?.email || undefined,
                                                 paidAt: p.created_at,

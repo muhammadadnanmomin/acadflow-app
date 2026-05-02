@@ -777,7 +777,7 @@ export default function ParticipantSubmissionsPage() {
                   {/* ── Plagiarism Status ── */}
                   <div className="flex items-center gap-2 text-sm">
                     <ShieldCheck className="h-4 w-4 text-gray-500" />
-                    <span className="text-gray-600">Plagiarism Check:</span>
+                    <span className="text-gray-600">Similarity Check:</span>
                     <PlagiarismBadge status={submission.plagiarism_status} />
                   </div>
 
@@ -1095,7 +1095,7 @@ function StatusBadge({ status }: { status: string }) {
 function PlagiarismBadge({ status }: { status?: string }) {
   if (status === "passed") return <Badge className="bg-green-100 text-green-700">Passed</Badge>;
   if (status === "flagged") return <Badge className="bg-red-100 text-red-700">Flagged</Badge>;
-  return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
+  return <Badge className="bg-yellow-100 text-yellow-700">Not Analyzed</Badge>;
 }
 
 function PaymentBadge({ status }: { status?: string }) {

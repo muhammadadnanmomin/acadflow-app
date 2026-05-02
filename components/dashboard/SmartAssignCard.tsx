@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, Fragment } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -307,7 +307,7 @@ export default function SmartAssignCard({
           </h2>
           <div className="flex items-center gap-2">
             <Badge className="bg-indigo-50 text-indigo-600 text-[10px] tracking-wider uppercase border border-indigo-200">
-              {reviewers.length} Match{reviewers.length !== 1 ? "es" : ""}
+              Top Reviewer Matches
             </Badge>
             <Button
               onClick={fetchSuggestions}
@@ -391,20 +391,25 @@ export default function SmartAssignCard({
                         </span>
                       </div>
 
-                      {/* Reason */}
-                      <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-                        {r.reason}
-                      </p>
-
-                      {/* Workload indicator */}
+                      {/* Match label + workload */}
                       <div className="flex items-center gap-3 mt-2">
                         <span className="text-[10px] text-gray-400 flex items-center gap-1">
                           📋 {r.current_workload} paper{r.current_workload !== 1 ? "s" : ""} assigned
                         </span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${sc.bg} ${sc.text} font-medium`}>
-                          {r.score >= 80 ? "Excellent match" : r.score >= 60 ? "Good match" : r.score >= 40 ? "Moderate match" : "Low match"}
+                          {r.score >= 80 ? "Best Match" : r.score >= 60 ? "Strong Match" : r.score >= 40 ? "Fair Match" : "Weak Match"}
                         </span>
                       </div>
+
+                      {/* Why this match? — expandable */}
+                      <details className="mt-2 group">
+                        <summary className="text-[11px] text-indigo-500 cursor-pointer hover:text-indigo-700 transition-colors select-none">
+                          Why this match?
+                        </summary>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed pl-1 border-l-2 border-indigo-100">
+                          {r.reason || "Relevant experience in similar research topics"}
+                        </p>
+                      </details>
                     </div>
                   </div>
 
@@ -477,23 +482,14 @@ export default function SmartAssignCard({
         >
           <div className="flex items-center justify-between text-xs text-gray-400">
             <span className="flex items-center gap-1.5">
-              {source === "fallback" ? (
-                <><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" /> Keyword-based matching</>
-              ) : source === "groq" ? (
-                <><span className="inline-block h-1.5 w-1.5 rounded-full bg-green-400" /> AI-powered via Groq</>
-              ) : source === "gemini" ? (
-                <><span className="inline-block h-1.5 w-1.5 rounded-full bg-cyan-400" /> AI-powered via Gemini</>
-              ) : (
-                <>Matched by <span className="font-medium text-gray-500">{model || "AI"}</span></>
-              )}
-              {model && source !== "fallback" && <span className="text-gray-300">• {model}</span>}
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-400" />
+              AI-powered analysis
             </span>
             <span>
               {new Date().toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
+                year: "numeric",
               })}
             </span>
           </div>

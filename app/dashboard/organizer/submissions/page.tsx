@@ -398,14 +398,14 @@ export default function OrganizerSubmissionsSummary() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500">Plagiarism</label>
+            <label className="text-xs text-gray-500">Similarity</label>
             <FilterSelect
               label="Plagiarism"
               value={plagiarismFilter}
               onChange={setPlagiarismFilter}
               options={[
                 { value: "all", label: "All" },
-                { value: "pending", label: "Pending" },
+                { value: "pending", label: "Not Analyzed" },
                 { value: "checking", label: "Checking" },
                 { value: "passed", label: "Passed" },
                 { value: "flagged", label: "Flagged" },
@@ -551,7 +551,7 @@ export default function OrganizerSubmissionsSummary() {
                             ? "bg-red-100 text-red-700"
                             : "bg-yellow-100 text-yellow-700"
                       }>
-                        Plagiarism: {p.plagiarism_status || "pending"}
+                        Similarity: {p.plagiarism_status === "pending" || !p.plagiarism_status ? "Not analyzed yet" : p.plagiarism_status}
                       </Badge>
 
                       {needsReviewer && (

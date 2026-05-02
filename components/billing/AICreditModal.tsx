@@ -17,7 +17,7 @@ const CREDIT_OPTIONS = [
     credits: p.credits,
     price: p.price,
     label: p.label,
-    perCredit: `₹${(p.price / p.credits).toFixed(1)}/credit`,
+    perCredit: `₹${(p.price / p.credits).toFixed(1)}/analysis`,
   })),
 ];
 
@@ -66,7 +66,7 @@ export default function AICreditModal({
             <div>
               <h2 className="text-lg font-bold">Complete Your Purchase</h2>
               <p className="text-white/80 text-sm">
-                Add AI credits to supercharge your conference
+                Add AI analyses to supercharge your conference
               </p>
             </div>
           </div>
@@ -79,7 +79,7 @@ export default function AICreditModal({
             <div className="flex items-center gap-2 mb-3">
               <Brain className="h-4 w-4 text-purple-600" />
               <p className="text-sm font-semibold text-gray-800">
-                Add AI Credits (optional)
+                Add AI Analyses (optional)
               </p>
             </div>
 
@@ -110,13 +110,13 @@ export default function AICreditModal({
                     <p className="text-2xl font-bold text-gray-900">
                       +{pack.credits}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">AI Credits</p>
+                    <p className="text-xs text-gray-500 mt-0.5">AI Analyses</p>
                     <div className="mt-3 flex items-baseline gap-1">
                       <span className="text-lg font-bold text-gray-900">
                         ₹{pack.price.toLocaleString("en-IN")}
                       </span>
                       <span className="text-[11px] text-gray-400">
-                        (₹{(pack.price / pack.credits).toFixed(1)}/credit)
+                        (₹{(pack.price / pack.credits).toFixed(1)}/analysis)
                       </span>
                     </div>
                   </button>
@@ -137,7 +137,7 @@ export default function AICreditModal({
               {selected === 0 && (
                 <CheckCircle2 className="inline h-3.5 w-3.5 mr-1.5 text-gray-600" />
               )}
-              Continue without AI credits
+              Continue without AI analyses
             </button>
           </div>
 
@@ -161,7 +161,7 @@ export default function AICreditModal({
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-700 flex items-center gap-1.5">
                   <Zap className="h-3.5 w-3.5 text-purple-500" />
-                  {selected} AI Credits
+                  {selected} AI Analyses
                 </span>
                 <span className="font-medium text-gray-900">
                   ₹{addOnPrice.toLocaleString("en-IN")}
@@ -179,7 +179,7 @@ export default function AICreditModal({
             {selected > 0 && (
               <p className="text-[11px] text-green-600 flex items-center gap-1">
                 <Zap className="h-3 w-3" />
-                You save by bundling — credits activated instantly after payment
+                You save by bundling — analyses activated instantly after payment
               </p>
             )}
           </div>

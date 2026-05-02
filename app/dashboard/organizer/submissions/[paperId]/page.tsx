@@ -358,7 +358,7 @@ export default function OrganizerPaperReviewPage() {
             <div className="mt-0.5"><StatusBadge status={paper.status} /></div>
           </div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Plagiarism</p>
+            <p className="text-xs text-gray-400 uppercase tracking-wide">Similarity</p>
             <div className="mt-0.5"><PlagiarismBadge status={paper.plagiarism_status} /></div>
           </div>
         </div>
@@ -634,7 +634,7 @@ export default function OrganizerPaperReviewPage() {
       {/* ── Plagiarism Review Panel ── */}
       <Card className="p-5 space-y-4">
         <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4" /> Plagiarism Review
+          <ShieldCheck className="h-4 w-4" /> Similarity Review
         </h2>
 
         {/* Current status alert */}
@@ -647,7 +647,7 @@ export default function OrganizerPaperReviewPage() {
             : paper.plagiarism_status === "flagged" ? <AlertTriangle className="h-4 w-4" />
               : paper.plagiarism_status === "checking" ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <Clock className="h-4 w-4" />}
-          Current Status: <strong className="ml-1">{paper.plagiarism_status || "pending"}</strong>
+          Current Status: <strong className="ml-1">{paper.plagiarism_status === "pending" || !paper.plagiarism_status ? "Not analyzed yet" : paper.plagiarism_status}</strong>
         </div>
 
         {/* Flagged warning */}
@@ -666,7 +666,7 @@ export default function OrganizerPaperReviewPage() {
               onChange={e => setPlagiarismStatus(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="pending">Pending</option>
+              <option value="pending">Not Analyzed</option>
               <option value="checking">Checking</option>
               <option value="passed">Passed</option>
               <option value="flagged">Flagged</option>
@@ -689,11 +689,11 @@ export default function OrganizerPaperReviewPage() {
 
         {/* Plagiarism notes (UI-ready for future column) */}
         <div>
-          <label className="text-xs text-gray-500 block mb-1">Plagiarism Notes (optional)</label>
+          <label className="text-xs text-gray-500 block mb-1">Similarity Notes (optional)</label>
           <Textarea
             value={plagiarismNote}
             onChange={e => setPlagiarismNote(e.target.value)}
-            placeholder="Add notes about the plagiarism review…"
+            placeholder="Add notes about the similarity review…"
             rows={2}
             className="text-sm"
           />
@@ -981,7 +981,7 @@ function PlagiarismBadge({ status }: { status?: string }) {
   if (status === "passed") return <Badge className="bg-green-100 text-green-700">Passed</Badge>;
   if (status === "flagged") return <Badge className="bg-red-100 text-red-700">Flagged</Badge>;
   if (status === "checking") return <Badge className="bg-blue-100 text-blue-700">Checking</Badge>;
-  return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
+  return <Badge className="bg-yellow-100 text-yellow-700">Not Analyzed</Badge>;
 }
 
 function ReviewDecisionBadge({ decision }: { decision: string }) {
