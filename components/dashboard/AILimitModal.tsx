@@ -11,7 +11,7 @@ interface AILimitModalProps {
 }
 
 /**
- * Premium modal shown when AI credits are exhausted.
+ * Premium modal shown when AI analyses are exhausted.
  * Drives users to purchase add-ons or upgrade their plan.
  */
 export default function AILimitModal({ onClose, used, total }: AILimitModalProps) {
@@ -33,7 +33,7 @@ export default function AILimitModal({ onClose, used, total }: AILimitModalProps
             </div>
             <div>
               <h2 className="text-lg font-bold">AI Limit Reached</h2>
-              <p className="text-white/80 text-sm">Credits exhausted</p>
+              <p className="text-white/80 text-sm">Analyses exhausted</p>
             </div>
           </div>
 
@@ -54,7 +54,7 @@ export default function AILimitModal({ onClose, used, total }: AILimitModalProps
         <div className="px-6 py-5 space-y-4">
           <p className="text-sm text-gray-600 leading-relaxed">
             You&apos;ve used all AI analyses for this conference. Purchase
-            additional credits or upgrade your plan to continue using AI-powered
+            additional analyses or upgrade your plan to continue using AI-powered
             paper reviews and plagiarism detection.
           </p>
 
@@ -71,7 +71,7 @@ export default function AILimitModal({ onClose, used, total }: AILimitModalProps
               className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white gap-2 h-11 shadow-lg shadow-purple-200/50"
             >
               <Sparkles className="h-4 w-4" />
-              Buy 100 Credits — ₹499
+              Buy 100 Analyses — ₹499
             </Button>
 
             <Button
@@ -82,7 +82,7 @@ export default function AILimitModal({ onClose, used, total }: AILimitModalProps
               className="w-full gap-2 h-10 border-amber-300 text-amber-700 hover:bg-amber-50"
             >
               <Crown className="h-4 w-4" />
-              Upgrade to Pro — 100 Credits Included
+              Upgrade to Pro — 100 Analyses Included
             </Button>
           </div>
 
@@ -96,7 +96,7 @@ export default function AILimitModal({ onClose, used, total }: AILimitModalProps
             }}
             className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors py-1"
           >
-            Or buy 50 credits for ₹299 →
+            Or buy 50 analyses for ₹299 →
           </button>
         </div>
       </Card>

@@ -227,20 +227,19 @@ export default function AIReviewCard({ submissionId, onUseDecision, readOnly }: 
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Brain className="h-4 w-4 text-purple-600" />
-            <span>🧠 AI Paper Reviewer Assistant</span>
+            <span>🧠 AI Paper Reviewer</span>
           </h2>
-          <Badge className="bg-purple-50 text-purple-600 text-[10px] tracking-wider uppercase border border-purple-200">
-            AI Powered
-          </Badge>
         </div>
 
         <div className="flex flex-col items-center justify-center py-8 bg-gradient-to-b from-purple-50/50 to-transparent rounded-lg border border-dashed border-purple-200/60">
           <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center mb-4">
             <Sparkles className="h-6 w-6 text-purple-600" />
           </div>
-          <p className="text-sm text-gray-500 mb-4 text-center max-w-xs">
-            Get AI-powered analysis including summary, strengths, weaknesses, and a
-            recommended decision.
+          <p className="text-sm font-medium text-gray-800 mb-1 text-center max-w-xs">
+            Get instant feedback including summary, strengths, weaknesses, and a suggested decision
+          </p>
+          <p className="text-xs text-gray-400 mb-4 text-center max-w-xs">
+            AI analyzes the full paper content and generates a detailed review
           </p>
           <Button
             onClick={() => limitReached ? setShowLimitModal(true) : analyzeePaper(false)}
@@ -251,10 +250,10 @@ export default function AIReviewCard({ submissionId, onUseDecision, readOnly }: 
             disabled={limitReached}
           >
             <Sparkles className="h-4 w-4" />
-            {limitReached ? "Credits Exhausted" : "Analyze Paper"}
+            {limitReached ? "Limit Reached" : "Analyze Paper"}
           </Button>
           <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
-            ⚡ Uses 1 AI credit
+            ⚡ Uses 1 AI analysis
           </p>
         </div>
       </Card>
@@ -268,11 +267,8 @@ export default function AIReviewCard({ submissionId, onUseDecision, readOnly }: 
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Brain className="h-4 w-4 text-purple-600" />
-            <span>🧠 AI Paper Reviewer Assistant</span>
+            <span>🧠 AI Paper Reviewer</span>
           </h2>
-          <Badge className="bg-purple-50 text-purple-600 text-[10px] tracking-wider uppercase border border-purple-200">
-            AI Powered
-          </Badge>
         </div>
 
         <div className="flex flex-col items-center justify-center py-12">
@@ -296,7 +292,7 @@ export default function AIReviewCard({ submissionId, onUseDecision, readOnly }: 
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Brain className="h-4 w-4 text-purple-600" />
-            <span>🧠 AI Paper Reviewer Assistant</span>
+            <span>🧠 AI Paper Reviewer</span>
           </h2>
         </div>
 

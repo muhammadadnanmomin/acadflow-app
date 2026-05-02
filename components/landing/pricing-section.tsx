@@ -13,12 +13,12 @@ import { createClient } from "@/lib/supabase/client";
 const plans = [
   {
     name: "Free",
-    description: "Start and run your conference — free, with limited AI insights.",
+    description: "Run your entire conference — free, with limited AI-powered insights.",
     price: "₹0",
     period: "forever",
     badge: "Start here",
     aiBadge: null,
-    valueHighlight: "Start and run your conference from submission to certificate — free",
+    valueHighlight: null,
     features: [
       "1 conference",
       "Up to 150 submissions",
@@ -32,6 +32,8 @@ const plans = [
     ],
     aiFeatures: [
       "🧠 5 AI-powered paper analyses",
+      "🤖 AI Reviewer Suggestions (limited)",
+      "↳ Try AI-powered reviewer matching",
     ],
     cta: "Run Your First Conference Free",
     link: "/dashboard/onboarding/organization",
@@ -40,12 +42,12 @@ const plans = [
   },
   {
     name: "Pro",
-    description: "For conferences scaling with AI-powered insights.",
+    description: "For conferences that need faster reviews, smarter decisions, and unlimited scale.",
     price: "₹2,999",
     period: "per conference",
     badge: null,
-    aiBadge: "AI Included",
-    valueHighlight: "Scale your conference with unlimited submissions and AI-powered review intelligence",
+    aiBadge: "🚀 AI-Powered Pro",
+    valueHighlight: "Manage unlimited submissions with AI-powered review intelligence.",
     features: [
       "Unlimited submissions",
       "Full conference workflow",
@@ -54,18 +56,20 @@ const plans = [
       "Priority support",
     ],
     aiFeatures: [
+      "🤖 Smart AI Reviewer Assignment",
+      "↳ Automatically matches papers with the best reviewers",
       "🧠 100 AI-powered analyses included",
-      "➕ Add more AI credits anytime",
+      "➕ Add more AI analyses anytime",
     ],
     cta: "Start Your Conference with AI",
     link: "/dashboard/organizer",
     popular: true,
-    microCopy: "Includes 100 AI analyses. Need more? Add credits anytime.",
+    microCopy: "Includes 100 AI analyses. Need more? Add additional analyses anytime.",
   },
   {
     name: "Institutional",
     description:
-      "For institutions managing multiple conferences with advanced AI capabilities.",
+      "For universities and institutions running multiple conferences with advanced AI-powered workflows.",
     price: "Custom",
     period: "pricing",
     badge: null,
@@ -78,7 +82,9 @@ const plans = [
       "Dedicated onboarding & support",
     ],
     aiFeatures: [
-      "🧠 High-volume AI usage (custom limits)",
+      "🤖 Advanced AI Reviewer Assignment",
+      "↳ High-accuracy reviewer matching at scale",
+      "🧠 High-volume AI-powered analyses (custom limits)",
     ],
     cta: "Contact",
     link: "/contact",
@@ -140,12 +146,12 @@ export function PricingSection() {
 
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
             Start for Free.{" "}
-            <span className="text-indigo-600">Pay Only When You Scale.</span>
+            <span className="text-indigo-600">Scale with AI When You&apos;re Ready.</span>
           </h2>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-600">
-            Run your conference without upfront cost. Upgrade only when you
-            need more scale.{" "}
+            Run your conference end-to-end for free. Upgrade when you need
+            AI-powered insights and scale.{" "}
             <strong className="text-gray-900">No subscriptions, no hidden fees.</strong>
           </p>
 
@@ -230,15 +236,34 @@ export function PricingSection() {
                 ))}
 
                 {/* AI features — visually distinct */}
-                {plan.aiFeatures.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3">
-                    <Zap className="mt-0.5 h-5 w-5 shrink-0 text-purple-500" />
-                    <span className="text-sm leading-relaxed font-medium text-purple-700">
-                      {feature}
-                    </span>
-                  </li>
-                ))}
+                {plan.aiFeatures.map((feature) => {
+                  // Subtext lines (prefixed with ↳) render as small gray helper text
+                  if (feature.startsWith("↳")) {
+                    return (
+                      <li key={feature} className="flex items-start gap-3 -mt-1.5 ml-8">
+                        <span className="text-xs leading-relaxed text-gray-400">
+                          {feature.slice(2)}
+                        </span>
+                      </li>
+                    );
+                  }
+                  return (
+                    <li key={feature} className="flex items-start gap-3">
+                      <Zap className="mt-0.5 h-5 w-5 shrink-0 text-purple-500" />
+                      <span className="text-sm leading-relaxed font-medium text-purple-700">
+                        {feature}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
+
+              {/* Upgrade hint for Free plan */}
+              {plan.name === "Free" && (
+                <p className="mt-2 text-center text-xs text-gray-500">
+                  Upgrade anytime to unlock more AI-powered analyses
+                </p>
+              )}
 
               <Button
                 onClick={() => handlePlanClick(plan)}
@@ -268,7 +293,7 @@ export function PricingSection() {
         {/* AI insight line */}
         <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-gray-500">
           <Sparkles className="h-3.5 w-3.5 text-purple-500" />
-          AI-powered insights help reduce review time by up to 70%
+          ⚡ Reduce review time by up to 70% with AI-powered insights
         </p>
 
         {/* Bottom notes */}

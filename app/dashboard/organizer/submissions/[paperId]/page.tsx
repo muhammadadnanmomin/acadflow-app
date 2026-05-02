@@ -38,6 +38,7 @@ import {
 import AIReviewCard from "@/components/dashboard/AIReviewCard";
 import PlagiarismRiskCard from "@/components/dashboard/PlagiarismRiskCard";
 import AIUsageBanner from "@/components/dashboard/AIUsageBanner";
+import SmartAssignCard from "@/components/dashboard/SmartAssignCard";
 import { useAICreditPurchase } from "@/lib/hooks/useAICreditPurchase";
 
 const supabase = createClient();
@@ -420,6 +421,84 @@ export default function OrganizerPaperReviewPage() {
           </div>
         </Card>
       )}
+
+      {/* ── Smart Reviewer Assignment ── */}
+      <SmartAssignCard
+        submissionId={paperId as string}
+        currentReviewerId={paper.reviewer_id}
+        onAssign={async (reviewerId) => {
+          // Prevent duplicate assignment
+          if (String(paper.reviewer_id) === String(reviewerId)) {
+            toast({ title: "This reviewer is already assigned", variant: "destructive" });
+            return;
+          }
+
+          // Update reviewer in DB
+          const { error: updateErr } = await supabase
+            .from("paper_submissions")
+            .update({ reviewer_id: reviewerId })
+            .eq("id", paper.id);
+
+          if (updateErr) {
+            toast({ title: "Assignment failed", description: updateErr.message, variant: "destructive" });
+            return;
+          }
+
+          // Send assignment notification email
+          try {
+            await fetch("/api/send-reviewer-assigned", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                reviewerId,
+                conference: paper.conferences?.title,
+                paperTitle: paper.title || `Paper #${paper.id.slice(0, 8)}`,
+              }),
+            });
+          } catch (emailErr) {
+            console.error("Reviewer assignment email failed:", emailErr);
+          }
+
+          toast({ title: "Reviewer assigned ✅", description: "Notification email sent." });
+          loadPaper();
+        }}
+        onAssignAll={async (reviewerIds) => {
+          // Schema supports single reviewer per paper — assign the top match
+          const topId = reviewerIds.find((id) => String(id) !== String(paper.reviewer_id));
+          if (!topId) {
+            toast({ title: "Top reviewer is already assigned", variant: "destructive" });
+            return;
+          }
+
+          const { error: updateErr } = await supabase
+            .from("paper_submissions")
+            .update({ reviewer_id: topId })
+            .eq("id", paper.id);
+
+          if (updateErr) {
+            toast({ title: "Assignment failed", description: updateErr.message, variant: "destructive" });
+            return;
+          }
+
+          // Send assignment notification email
+          try {
+            await fetch("/api/send-reviewer-assigned", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                reviewerId: topId,
+                conference: paper.conferences?.title,
+                paperTitle: paper.title || `Paper #${paper.id.slice(0, 8)}`,
+              }),
+            });
+          } catch (emailErr) {
+            console.error("Reviewer assignment email failed:", emailErr);
+          }
+
+          toast({ title: "Best reviewer assigned ✅", description: "Notification email sent." });
+          loadPaper();
+        }}
+      />
 
       {/* ── Paper Files ── */}
       <Card className="p-5 space-y-3">

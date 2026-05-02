@@ -8,7 +8,7 @@ interface AIUsageBannerProps {
 }
 
 /**
- * Displays AI credit usage with an animated progress bar.
+ * Displays AI analysis usage with an animated progress bar.
  * Fetches usage from the API or accepts usage from AI card responses.
  */
 export default function AIUsageBanner({ conferenceId }: AIUsageBannerProps) {
@@ -126,14 +126,22 @@ export default function AIUsageBanner({ conferenceId }: AIUsageBannerProps) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-2">
-        <p className="text-[11px] text-gray-500 flex items-center gap-1">
-          <Zap className="h-3 w-3" />
-          {remaining > 0
-            ? `${remaining} analysis${remaining !== 1 ? "es" : ""} remaining`
-            : "Purchase add-on credits to continue"}
-        </p>
-        <p className="text-[11px] text-gray-400">{percentage}% used</p>
+      <div className="flex flex-col gap-1.5 mt-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] text-gray-500 flex items-center gap-1">
+            <Zap className="h-3 w-3" />
+            {remaining > 0
+              ? `${remaining} ${remaining !== 1 ? "analyses" : "analysis"} remaining`
+              : "Purchase additional analyses to continue"}
+          </p>
+          <p className="text-[11px] text-gray-400">{percentage}% used</p>
+        </div>
+        <p className="text-[10px] text-gray-400">Each AI action uses 1 analysis</p>
+        {percentage >= 80 && remaining > 0 && (
+          <p className="text-[10px] text-yellow-600 flex items-center gap-1">
+            ⚠️ You&apos;re running low on AI analyses
+          </p>
+        )}
       </div>
     </div>
   );

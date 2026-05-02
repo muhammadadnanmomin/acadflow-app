@@ -386,11 +386,9 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-indigo-600" />
-            <span>🔍 AI Plagiarism Risk Detector</span>
+            <span>🔍 AI Plagiarism Check</span>
           </h2>
-          <Badge className="bg-indigo-50 text-indigo-600 text-[10px] tracking-wider uppercase border border-indigo-200">
-            AI Powered
-          </Badge>
+
         </div>
 
         <div className="flex flex-col items-center justify-center py-8 bg-gradient-to-b from-indigo-50/50 to-transparent rounded-lg border border-dashed border-indigo-200/60">
@@ -399,11 +397,11 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
           </div>
 
           <div className="text-center mb-4">
-            <p className="text-sm font-medium text-gray-700 mb-1">
-              Plagiarism: <span className="text-amber-600">Pending</span>
+            <p className="text-sm font-medium text-gray-800 mb-1">
+              Status: <span className="text-gray-500">Not analyzed yet</span>
             </p>
-            <p className="text-xs text-gray-500 max-w-xs">
-              Analyze similarity patterns, repetitive phrasing, and generic content using AI-powered detection.
+            <p className="text-xs text-gray-400 max-w-xs">
+              Detect similarity patterns, repeated phrasing, and generic content using AI
             </p>
           </div>
 
@@ -416,14 +414,14 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
             disabled={limitReached}
           >
             <Search className="h-4 w-4" />
-            {limitReached ? "Credits Exhausted" : "Analyze Similarity"}
+            {limitReached ? "Limit Reached" : "Analyze Similarity"}
           </Button>
 
-          <p className="text-[10px] text-gray-400 mt-3 text-center max-w-[280px]">
-            AI-based similarity detection. Not a definitive plagiarism check.
+          <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
+            ⚡ Uses 1 AI analysis
           </p>
-          <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
-            ⚡ Uses 1 AI credit
+          <p className="text-[10px] text-gray-400 mt-1 text-center max-w-[280px]">
+            This is an AI-based similarity check, not a definitive plagiarism result
           </p>
         </div>
       </Card>
@@ -437,11 +435,9 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-indigo-600" />
-            <span>🔍 AI Plagiarism Risk Detector</span>
+            <span>🔍 AI Plagiarism Check</span>
           </h2>
-          <Badge className="bg-indigo-50 text-indigo-600 text-[10px] tracking-wider uppercase border border-indigo-200">
-            Analyzing
-          </Badge>
+
         </div>
 
         <div className="flex flex-col items-center justify-center py-12">
@@ -469,7 +465,7 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-indigo-600" />
-            <span>🔍 AI Plagiarism Risk Detector</span>
+            <span>🔍 AI Plagiarism Check</span>
           </h2>
         </div>
 
@@ -522,7 +518,7 @@ export default function PlagiarismRiskCard({ submissionId }: PlagiarismRiskCardP
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-indigo-600" />
-            <span>🔍 AI Plagiarism Risk Detector</span>
+            <span>🔍 AI Plagiarism Check</span>
           </h2>
           <div className="flex items-center gap-2">
             <Badge className="bg-indigo-50 text-indigo-600 text-[10px] tracking-wider uppercase border border-indigo-200">
