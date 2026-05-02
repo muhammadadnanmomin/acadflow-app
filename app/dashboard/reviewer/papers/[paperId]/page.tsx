@@ -9,31 +9,28 @@ import { useProfile } from "@/lib/auth/useProfile";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 
 import {
-  Eye,
-  Download,
   CheckCircle,
   CheckCircle2,
   XCircle,
   Clock,
   FileText,
   AlertTriangle,
-  ShieldCheck,
-  Users,
-  ChevronDown,
-  ChevronUp,
   Loader2,
   RotateCcw,
-  History,
-  MessageSquare,
 } from "lucide-react";
 
-import AIReviewCard from "@/components/dashboard/AIReviewCard";
-import PlagiarismRiskCard from "@/components/dashboard/PlagiarismRiskCard";
-import AIUsageBanner from "@/components/dashboard/AIUsageBanner";
 import { useAICreditPurchase } from "@/lib/hooks/useAICreditPurchase";
+
+// ─── Section Components ─── //
+import ReviewerPaperOverview, { StatusBadge } from "./_components/ReviewerPaperOverview";
+import ReviewProgressTracker from "./_components/ReviewProgressTracker";
+import ReviewGuidance from "./_components/ReviewGuidance";
+import ReviewerAIAssistant from "./_components/ReviewerAIAssistant";
+import ReviewerPaperFiles from "./_components/ReviewerPaperFiles";
+import ReviewFormSection from "./_components/ReviewFormSection";
+import ReviewerAuthorsSection from "./_components/ReviewerAuthorsSection";
 
 const supabase = createClient();
 
@@ -48,15 +45,7 @@ export default function ReviewerReviewPage() {
   const [reviewHistory, setReviewHistory] = useState<any[]>([]);
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({
-    authors: true,
-    declarations: false,
-    history: true,
-  });
   const [confirmAction, setConfirmAction] = useState<"accepted" | "rejected" | "revision_required" | null>(null);
-
-  const toggle = (key: string) =>
-    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
   // AI credit purchase integration
   useAICreditPurchase({
@@ -239,309 +228,62 @@ export default function ReviewerReviewPage() {
     );
   }
 
-  // Multi-round locking logic
   const isFinalDecision = paper.status === "accepted" || paper.status === "rejected";
-  const canReview = !isFinalDecision; // Can review when not final
+  const canReview = !isFinalDecision;
   const title = paper.title || `Paper #${paper.id.slice(0, 6)}`;
   const currentRound = reviewHistory.length + 1;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6 pb-28">
 
-      {/* ── Header ── */}
-      <div>
-        <Button variant="ghost" size="sm" className="mb-2 text-gray-500" onClick={() => router.push("/dashboard/reviewer/papers")}>
-          ← Back to Papers
-        </Button>
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">{title}</h1>
-          {paper.revision_number > 1 && (
-            <Badge className="bg-purple-100 text-purple-700 text-xs">
-              <RotateCcw className="h-3 w-3 mr-1" />
-              Revision v{paper.revision_number}
-            </Badge>
-          )}
-        </div>
-        {paper.conferences?.title && (
-          <p className="text-gray-500 text-sm mt-1">
-            Conference: {paper.conferences.title}
-          </p>
-        )}
-      </div>
+      {/* ── Back Button ── */}
+      <Button variant="ghost" size="sm" className="mb-2 text-gray-500" onClick={() => router.push("/dashboard/reviewer/papers")}>
+        ← Back to Papers
+      </Button>
 
-      {/* ── Action Required Banner ── */}
-      {canReview && (paper.status === "submitted" || paper.status === "under_review" || paper.status === "resubmitted") && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-          <span className="text-sm text-amber-800 font-medium">
-            {paper.status === "resubmitted"
-              ? `Action required — revised paper (v${paper.revision_number}) is awaiting your review (Round ${currentRound}).`
-              : "Action required — this paper is awaiting your review."}
-          </span>
-        </div>
-      )}
+      {/* ── 1. Paper Overview ── */}
+      <ReviewerPaperOverview paper={paper} />
 
-      {/* ── Revision Required Banner ── */}
-      {paper.status === "revision_required" && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center gap-2">
-          <RotateCcw className="h-4 w-4 text-orange-600 flex-shrink-0" />
-          <span className="text-sm text-orange-800 font-medium">
-            Revision requested — waiting for the author to submit a revised version.
-          </span>
-        </div>
-      )}
+      {/* ── 2. Progress Tracker ── */}
+      <ReviewProgressTracker paper={paper} reviewCount={reviewHistory.length} />
 
-      {/* ── Final Decision Banner ── */}
-      {isFinalDecision && (
-        <div className={`${paper.status === "accepted" ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"} border rounded-lg p-3 flex items-center gap-2`}>
-          {paper.status === "accepted"
-            ? <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-            : <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />}
-          <span className={`text-sm font-medium ${paper.status === "accepted" ? "text-green-800" : "text-red-800"}`}>
-            Final decision: {paper.status === "accepted" ? "Accepted" : "Rejected"} — this paper is locked for further review.
-          </span>
-        </div>
-      )}
+      {/* ── 3. Review Guidance ── */}
+      <ReviewGuidance
+        paper={paper}
+        reviewCount={reviewHistory.length}
+        hasComments={!!comments.trim()}
+      />
 
-      {/* ── Plagiarism Flag Banner ── */}
-      {paper.plagiarism_status === "flagged" && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0" />
-          <span className="text-sm text-red-800 font-medium">
-            Similarity flagged — review carefully before submitting your decision.
-          </span>
-        </div>
-      )}
-
-      {/* ── Decision Summary Card ── */}
-      <Card className="p-5">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <InfoCell label="Paper ID" value={paper.id?.slice(0, 8)} mono />
-          <InfoCell label="Submitted" value={new Date(paper.created_at).toLocaleDateString()} />
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Status</p>
-            <div className="mt-0.5"><StatusBadge status={paper.status} /></div>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Similarity</p>
-            <div className="mt-0.5"><PlagiarismBadge status={paper.plagiarism_status} /></div>
-          </div>
-        </div>
-
-        {/* Workflow Stepper */}
-        <div className="mt-4 pt-4 border-t">
-          <div className="flex flex-wrap gap-2">
-            <StepPill label="Submitted" done={!!paper.created_at} />
-            <StepPill label="Assigned" done={!!paper.reviewer_id} />
-            <StepPill label={`Reviewed${reviewHistory.length > 0 ? ` (${reviewHistory.length}×)` : ""}`} done={reviewHistory.length > 0} />
-            {paper.revision_number > 1 && (
-              <StepPill label={`Revision v${paper.revision_number}`} done={true} variant="orange" />
-            )}
-            <StepPill
-              label={paper.status === "rejected" ? "Rejected" : paper.status === "accepted" ? "Accepted" : "Decision"}
-              done={isFinalDecision}
-              variant={paper.status === "rejected" ? "red" : paper.status === "accepted" ? "green" : undefined}
-            />
-          </div>
-        </div>
-
-        {/* Date row */}
-        <div className="flex gap-4 flex-wrap text-xs text-gray-400 mt-3">
-          {paper.reviewed_at && <span>Last reviewed: {new Date(paper.reviewed_at).toLocaleDateString()}</span>}
-          {reviewHistory.length > 0 && <span>Total reviews: {reviewHistory.length}</span>}
-          {paper.revision_number > 1 && <span>Current revision: v{paper.revision_number}</span>}
-        </div>
-      </Card>
-
-      {/* ── Paper Files ── */}
-      <Card className="p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <FileText className="h-4 w-4" /> Paper Files
-        </h2>
-
-        <div className="flex flex-wrap gap-2">
-          {paper.file_url && (
-            <>
-              <Button size="sm" variant="outline" asChild>
-                <a href={paper.file_url} target="_blank">
-                  <Eye className="h-3.5 w-3.5 mr-1" /> View Paper
-                </a>
-              </Button>
-              <Button size="sm" variant="outline" asChild>
-                <a href={paper.file_url} download>
-                  <Download className="h-3.5 w-3.5 mr-1" /> Download
-                </a>
-              </Button>
-            </>
-          )}
-          {paper.camera_ready_url && (
-            <Button size="sm" variant="outline" asChild>
-              <a href={paper.camera_ready_url} target="_blank">
-                <Download className="h-3.5 w-3.5 mr-1" /> Camera Ready
-              </a>
-            </Button>
-          )}
-        </div>
-
-        {paper.revision_number > 1 && (
-          <p className="text-xs text-gray-400">Currently viewing revision v{paper.revision_number}</p>
-        )}
-      </Card>
-
-      {/* ── AI Usage Banner ── */}
-      {paper.conference_id && (
-        <AIUsageBanner conferenceId={paper.conference_id} />
-      )}
-
-      {/* ── AI Paper Reviewer Assistant ── */}
-      <div className="space-y-2">
-        <p className="text-xs text-gray-500 italic px-1">
-          AI-generated insights to assist your review (use your judgment).
-        </p>
-        <AIReviewCard
-          submissionId={paperId as string}
-          readOnly={isFinalDecision}
-          onUseDecision={canReview ? (decision, summary) => {
+      {/* ── 4. AI Assistant ── */}
+      <div className="bg-gradient-to-br from-purple-50/30 via-indigo-50/20 to-transparent border border-purple-100/60 rounded-xl p-5">
+        <ReviewerAIAssistant
+          paperId={paperId as string}
+          paper={paper}
+          isFinalDecision={isFinalDecision}
+          canReview={canReview && (paper.status === "submitted" || paper.status === "under_review" || paper.status === "resubmitted")}
+          onUseDecision={(decision, summary) => {
             setComments(summary);
             setConfirmAction(decision);
-          } : undefined}
+          }}
         />
       </div>
 
-      {/* ── AI Plagiarism Risk Detector ── */}
-      <PlagiarismRiskCard submissionId={paperId as string} />
+      {/* ── 5. Paper Files ── */}
+      <ReviewerPaperFiles paper={paper} />
 
-      {/* ── Review History ── */}
-      {reviewHistory.length > 0 && (
-        <CollapsibleCard title={`Review History (${reviewHistory.length} round${reviewHistory.length > 1 ? "s" : ""})`} icon={<History className="h-4 w-4" />} id="history" expanded={expanded} toggle={toggle}>
-          <div className="space-y-4">
-            {reviewHistory.map((review, index) => (
-              <div key={review.id} className="border rounded-lg p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-blue-100 text-blue-700 text-xs">
-                      Round {index + 1}
-                    </Badge>
-                    {review.revision_number > 1 && (
-                      <Badge className="bg-purple-100 text-purple-700 text-xs">
-                        v{review.revision_number}
-                      </Badge>
-                    )}
-                    <DecisionBadge decision={review.decision} />
-                  </div>
-                  <span className="text-xs text-gray-400">
-                    {new Date(review.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                {review.comments && (
-                  <div className="bg-gray-50 rounded-md p-3">
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{review.comments}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </CollapsibleCard>
-      )}
+      {/* ── 6. Review Form ── */}
+      <ReviewFormSection
+        paper={paper}
+        comments={comments}
+        onCommentsChange={setComments}
+        reviewHistory={reviewHistory}
+        canReview={canReview}
+        isFinalDecision={isFinalDecision}
+        currentRound={currentRound}
+      />
 
-      {/* ── Legacy Review Comment (pre-migration data) ── */}
-      {paper.review_comment && reviewHistory.length === 0 && isFinalDecision && (
-        <Card className="p-5 space-y-2">
-          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" /> Previous Review
-          </h2>
-          <div className="bg-gray-50 rounded-md p-4">
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{paper.review_comment}</p>
-          </div>
-          <div className="flex items-center justify-between">
-            <Badge className="bg-gray-100 text-gray-700">
-              <CheckCircle2 className="h-3 w-3 mr-1" />
-              Review submitted — editing locked
-            </Badge>
-            {paper.reviewed_at && (
-              <span className="text-xs text-gray-400">
-                Reviewed on {new Date(paper.reviewed_at).toLocaleDateString()}
-              </span>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* ── Authors ── */}
-      <CollapsibleCard title="Authors" icon={<Users className="h-4 w-4" />} id="authors" expanded={expanded} toggle={toggle}>
-        {authors.length === 0 ? (
-          <p className="text-sm text-gray-500">No author data available</p>
-        ) : (
-          <div className="space-y-2">
-            {authors.map((a, i) => (
-              <div
-                key={i}
-                className={`border rounded-md p-3 ${a.is_primary ? "bg-blue-50 border-blue-200" : ""}`}
-              >
-                <div className="flex items-center justify-between">
-                  <p className="font-medium text-sm">
-                    {a.author_order}. {a.name}
-                    {a.is_primary && (
-                      <Badge className="ml-2 bg-blue-100 text-blue-700 text-xs">Primary</Badge>
-                    )}
-                  </p>
-                </div>
-                {a.affiliation && <p className="text-xs text-gray-500 mt-1">{a.affiliation}</p>}
-              </div>
-            ))}
-          </div>
-        )}
-      </CollapsibleCard>
-
-      {/* ── Declarations ── */}
-      <CollapsibleCard title="Author Declarations" icon={<ShieldCheck className="h-4 w-4" />} id="declarations" expanded={expanded} toggle={toggle}>
-        <div className="space-y-1">
-          <Declaration ok={paper.declaration_original} text="Original work" />
-          <Declaration ok={paper.declaration_no_plagiarism} text="No plagiarism" />
-          <Declaration ok={paper.declaration_author_approval} text="Author approvals" />
-        </div>
-      </CollapsibleCard>
-
-      {/* ── Review Comments ── */}
-      <Card className="p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-700">
-          {canReview && (paper.status === "submitted" || paper.status === "under_review" || paper.status === "resubmitted")
-            ? `Reviewer Comments — Round ${currentRound}`
-            : "Reviewer Comments"}
-        </h2>
-
-        {canReview && (paper.status === "submitted" || paper.status === "under_review" || paper.status === "resubmitted") ? (
-          <>
-            <Textarea
-              placeholder="Write strengths, weaknesses, and suggestions..."
-              value={comments}
-              onChange={(e) => setComments(e.target.value)}
-              rows={8}
-            />
-
-            <p className="text-xs text-gray-500">
-              Comment is required when requesting a revision.
-            </p>
-
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>Include strengths &amp; suggestions</span>
-              <span>
-                {comments.trim().split(/\s+/).filter(Boolean).length} words
-              </span>
-            </div>
-          </>
-        ) : (
-          <div className="bg-gray-50 rounded-md p-4">
-            <p className="text-sm text-gray-500 italic">
-              {paper.status === "revision_required"
-                ? "Waiting for the author to submit a revised version before you can review again."
-                : isFinalDecision
-                  ? "This paper has received a final decision. No further reviews can be submitted."
-                  : "No review action available at this time."}
-            </p>
-          </div>
-        )}
-      </Card>
+      {/* ── 7. Authors ── */}
+      <ReviewerAuthorsSection authors={authors} paper={paper} />
 
       {/* ── Confirmation Modal ── */}
       {confirmAction && (
@@ -604,30 +346,15 @@ export default function ReviewerReviewPage() {
           <div className="flex gap-2 ml-auto">
             {canReview && (paper.status === "submitted" || paper.status === "under_review" || paper.status === "resubmitted") ? (
               <>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  disabled={submitting}
-                  onClick={() => setConfirmAction("rejected")}
-                >
+                <Button variant="destructive" size="sm" disabled={submitting} onClick={() => setConfirmAction("rejected")}>
                   <XCircle className="h-4 w-4 mr-1" /> Reject
                 </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={submitting || !comments.trim()}
+                <Button variant="outline" size="sm" disabled={submitting || !comments.trim()}
                   className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                  onClick={() => setConfirmAction("revision_required")}
-                >
+                  onClick={() => setConfirmAction("revision_required")}>
                   <RotateCcw className="h-4 w-4 mr-1" /> Revision
                 </Button>
-
-                <Button
-                  size="sm"
-                  disabled={submitting}
-                  onClick={() => setConfirmAction("accepted")}
-                >
+                <Button size="sm" disabled={submitting} onClick={() => setConfirmAction("accepted")}>
                   <CheckCircle className="h-4 w-4 mr-1" /> Accept
                 </Button>
               </>
@@ -644,111 +371,13 @@ export default function ReviewerReviewPage() {
             ) : (
               <Badge className="bg-gray-100 text-gray-700">
                 <Clock className="h-3 w-3 mr-1" />
-                Pending
+                Waiting
               </Badge>
             )}
           </div>
         </div>
       </div>
+
     </div>
-  );
-}
-
-/* ═══════════════════════════ SUB-COMPONENTS ═══════════════════════════ */
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    submitted: { label: "Submitted", cls: "bg-gray-100 text-gray-700" },
-    under_review: { label: "Under Review", cls: "bg-blue-100 text-blue-700" },
-    resubmitted: { label: "Resubmitted", cls: "bg-purple-100 text-purple-700" },
-    revision_required: { label: "Revision Required", cls: "bg-orange-100 text-orange-700" },
-    accepted: { label: "Accepted", cls: "bg-green-100 text-green-700" },
-    rejected: { label: "Rejected", cls: "bg-red-100 text-red-700" },
-    final_submitted: { label: "Final Submitted", cls: "bg-green-100 text-green-700" },
-  };
-  const s = map[status] || { label: status || "Pending", cls: "bg-yellow-100 text-yellow-700" };
-  return <Badge className={s.cls}>{s.label}</Badge>;
-}
-
-function DecisionBadge({ decision }: { decision: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    accepted: { label: "Accepted", cls: "bg-green-100 text-green-700" },
-    rejected: { label: "Rejected", cls: "bg-red-100 text-red-700" },
-    revision_required: { label: "Revision Required", cls: "bg-orange-100 text-orange-700" },
-  };
-  const d = map[decision] || { label: decision, cls: "bg-gray-100 text-gray-700" };
-  return <Badge className={d.cls}>{d.label}</Badge>;
-}
-
-function PlagiarismBadge({ status }: { status?: string }) {
-  if (status === "passed") return <Badge className="bg-green-100 text-green-700">Passed</Badge>;
-  if (status === "flagged") return <Badge className="bg-red-100 text-red-700">Flagged</Badge>;
-  if (status === "checking") return <Badge className="bg-blue-100 text-blue-700">Checking</Badge>;
-  return <Badge className="bg-yellow-100 text-yellow-700">Not Analyzed</Badge>;
-}
-
-function StepPill({ label, done, variant }: { label: string; done: boolean; variant?: "green" | "red" | "orange" }) {
-  const base = done
-    ? variant === "red" ? "bg-red-100 text-red-700 border-red-200"
-      : variant === "green" ? "bg-green-100 text-green-700 border-green-200"
-        : variant === "orange" ? "bg-orange-100 text-orange-700 border-orange-200"
-          : "bg-blue-100 text-blue-700 border-blue-200"
-    : "bg-gray-100 text-gray-400 border-gray-200";
-
-  return (
-    <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border ${base}`}>
-      {done ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function InfoCell({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <p className="text-xs text-gray-400 uppercase tracking-wide">{label}</p>
-      <p className={`text-sm font-medium text-gray-700 mt-0.5 ${mono ? "font-mono" : ""}`}>{value}</p>
-    </div>
-  );
-}
-
-function Declaration({ ok, text }: { ok: boolean; text: string }) {
-  return (
-    <p className={`text-sm ${ok ? "text-green-600" : "text-red-600"}`}>
-      {ok ? "✔" : "✖"} {text}
-    </p>
-  );
-}
-
-function CollapsibleCard({
-  title,
-  icon,
-  children,
-  id,
-  expanded,
-  toggle,
-}: {
-  title: string;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-  id: string;
-  expanded: Record<string, boolean>;
-  toggle: (id: string) => void;
-}) {
-  const isOpen = expanded[id] ?? true;
-  return (
-    <Card className="overflow-hidden">
-      <button
-        className="w-full flex items-center justify-between px-5 py-4 bg-gray-50/50 hover:bg-gray-100/50 transition-colors text-left"
-        onClick={() => toggle(id)}
-      >
-        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          {icon}
-          {title}
-        </div>
-        {isOpen ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
-      </button>
-      {isOpen && <div className="px-5 py-4 border-t">{children}</div>}
-    </Card>
   );
 }
