@@ -59,6 +59,10 @@ export function SolutionSection() {
             <strong className="text-gray-900">all from a single dashboard</strong>.
           </p>
 
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-gray-500">
+            Now enhanced with AI-powered insights to speed up reviews and improve decision-making.
+          </p>
+
         </div>
 
         {/* Before → After Comparison */}

@@ -5,6 +5,8 @@ import {
   BarChart3,
   Award,
   Brain,
+  Search,
+  UserCheck,
 } from "lucide-react";
 
 const features = [
@@ -20,6 +22,32 @@ const features = [
       "✅ Identify strengths & weaknesses automatically",
       "✍️ Detect grammar issues across the manuscript",
       "🧾 AI-generated decision suggestion with confidence score",
+    ],
+  },
+  {
+    icon: UserCheck,
+    title: "Smart Reviewer Assignment",
+    tagline: "AI-powered reviewer matching",
+    isNew: true,
+    description:
+      "Automatically match papers with the most relevant reviewers based on expertise and past assignments.",
+    outcomes: [
+      "🔎 Find the best reviewers instantly",
+      "⚡ Improve review quality and speed",
+      "📉 Reduce manual assignment effort",
+    ],
+  },
+  {
+    icon: Search,
+    title: "AI Similarity Detection",
+    tagline: "AI-powered content analysis",
+    isNew: true,
+    description:
+      "Detect similarity patterns, repetitive phrasing, and generic content using AI.",
+    outcomes: [
+      "🔍 Identify potential similarity risks",
+      "📝 Highlight repeated patterns",
+      "✅ Support better decision-making",
     ],
   },
   {

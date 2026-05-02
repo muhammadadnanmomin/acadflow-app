@@ -6,8 +6,10 @@ import { SolutionSection } from "@/components/landing/solution-section";
 import { FeaturesSection } from "@/components/landing/features-section";
 import { AIDemoSection } from "@/components/landing/ai-demo-section";
 import { HowItWorksSection } from "@/components/landing/how-it-works";
+import { AIFeaturesSection } from "@/components/landing/ai-features-section";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { ComparisonSection } from "@/components/landing/comparison-section";
+import { FinalCTASection } from "@/components/landing/final-cta-section";
 // import { SocialProofSection } from "@/components/landing/social-proof-section";
 
 
@@ -45,7 +47,7 @@ export default function Home() {
       {/* 3. Solution — Before → After transformation */}
       <SolutionSection />
 
-      {/* 4. Features — Grouped into 6 modules */}
+      {/* 4. Features — Grouped into modules */}
       <FeaturesSection />
 
       {/* 4.5 AI Demo — Prove the AI capability */}
@@ -54,14 +56,20 @@ export default function Home() {
       {/* 5. How It Works — 5 clear steps */}
       <HowItWorksSection />
 
-      {/* 6. Pricing — Free-first positioning */}
+      {/* 6. AI Features Spotlight — Before pricing */}
+      <AIFeaturesSection />
+
+      {/* 7. Pricing — Free-first positioning */}
       <PricingSection />
 
-      {/* 7. Comparison — AcadFlow vs traditional */}
+      {/* 8. Comparison — AcadFlow vs traditional */}
       <ComparisonSection />
 
-      {/* 8. Social Proof — Testimonials + Use Cases */}
+      {/* 9. Social Proof — Testimonials + Use Cases */}
       {/* <SocialProofSection /> */}
+
+      {/* 10. Final CTA — Before footer */}
+      <FinalCTASection />
 
     </main>
   );

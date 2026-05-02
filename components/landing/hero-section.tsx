@@ -61,19 +61,18 @@ export function HeroSection() {
 
             {/* Heading */}
             <h1 className="text-balance text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
-              AI-Powered Academic{" "}
+              Run Your Conference with{" "}
               <span className="relative">
                 <span className="relative z-10 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  Conference Management
+                  AI-Powered Precision
                 </span>
               </span>
             </h1>
 
             {/* Subtitle */}
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-gray-600 sm:text-xl sm:leading-8">
-              Automatically review research papers with AI — generate summaries,
-              strengths, weaknesses, and decisions in seconds.{" "}
-              <strong className="text-gray-900">All in one platform.</strong>
+              Automate reviews, assign the right reviewers, and detect issues instantly —{" "}
+              <strong className="text-gray-900">all from one platform.</strong>
             </p>
 
             {/* CTAs */}
@@ -85,7 +84,7 @@ export function HeroSection() {
                 className="group inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-600/25 transition-all hover:shadow-xl hover:shadow-indigo-600/30 hover:-translate-y-0.5"
               >
                 <Sparkles className="h-4 w-4" />
-                Try AI Review
+                Start Free Conference
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
 
@@ -94,7 +93,7 @@ export function HeroSection() {
                 href="/#ai-demo"
                 className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-8 py-3.5 text-base font-medium text-gray-700 transition-all hover:border-gray-400 hover:bg-gray-50"
               >
-                View Demo
+                See How It Works
               </Link>
 
             </div>
@@ -139,7 +138,7 @@ export function HeroSection() {
                   <span className="text-sm font-semibold text-gray-700">🧠 AI Paper Reviewer</span>
                 </div>
                 <span className="text-[10px] tracking-wider uppercase font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-                  AI Generated
+                  AI Analysis Result
                 </span>
               </div>
 

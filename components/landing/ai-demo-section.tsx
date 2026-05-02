@@ -114,7 +114,7 @@ export function AIDemoSection() {
                   value: "6",
                   label: "Structured sections",
                 },
-                { icon: Sparkles, value: "AI", label: "Powered by LLM" },
+                { icon: Sparkles, value: "AI", label: "Powered by advanced AI models" },
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center gap-2.5">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
