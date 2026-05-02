@@ -287,6 +287,7 @@ export default function AIReviewCard({ submissionId, onUseDecision, readOnly }: 
 
   /* ─── Error State ────────────────────────────────────────── */
   if (error) {
+    const isAccessError = error.toLowerCase().includes("access restricted") || error.toLowerCase().includes("permission");
     return (
       <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between">
@@ -296,27 +297,33 @@ export default function AIReviewCard({ submissionId, onUseDecision, readOnly }: 
           </h2>
         </div>
 
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className={`border rounded-lg p-4 ${isAccessError ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200"}`}>
           <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className={`h-5 w-5 flex-shrink-0 mt-0.5 ${isAccessError ? "text-amber-500" : "text-red-500"}`} />
             <div>
-              <p className="text-sm font-medium text-red-700">Analysis Failed</p>
-              <p className="text-sm text-red-600 mt-1">{error}</p>
+              <p className={`text-sm font-medium ${isAccessError ? "text-amber-700" : "text-red-700"}`}>
+                {isAccessError ? "Access Restricted" : "Analysis Failed"}
+              </p>
+              <p className={`text-sm mt-1 ${isAccessError ? "text-amber-600" : "text-red-600"}`}>
+                {isAccessError ? "You don't have access to this action. Contact the conference organizer." : error}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-center">
-          <Button
-            onClick={() => analyzeePaper(false)}
-            variant="outline"
-            size="sm"
-            className="gap-2"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Try Again
-          </Button>
-        </div>
+        {!isAccessError && (
+          <div className="flex justify-center">
+            <Button
+              onClick={() => analyzeePaper(false)}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Try Again
+            </Button>
+          </div>
+        )}
       </Card>
     );
   }

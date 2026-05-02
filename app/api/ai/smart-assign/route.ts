@@ -263,36 +263,37 @@ export async function POST(req: NextRequest): Promise<NextResponse<SmartAssignRe
       );
     }
 
-    // 4. Authorization — must be organizer/admin for this conference
-    const { data: staffEntry } = await supabaseServer
-      .from("conference_staff")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("conference_id", paper.conference_id)
-      .in("role", ["organizer"])
-      .maybeSingle();
+    // 4. Authorization — use organization_members as single source of truth
+    //    Only organization members (owner/admin/staff) can assign reviewers
 
-    // Also check if user is global admin or conference owner
-    const { data: userProfile } = await supabaseServer
-      .from("profiles")
-      .select("role")
-      .eq("id", userId)
-      .single();
-
-    const isAdmin = userProfile?.role === "admin" || userProfile?.role === "organizer";
-
-    // Check if user owns the conference
+    // Fetch conference → organization_id
     const { data: conference } = await supabaseServer
       .from("conferences")
-      .select("user_id")
+      .select("organization_id")
       .eq("id", paper.conference_id)
       .single();
 
-    const isOwner = conference?.user_id === userId;
+    // Fetch organization membership for this user
+    const { data: membership } = conference?.organization_id
+      ? await supabaseServer
+          .from("organization_members")
+          .select("role")
+          .eq("user_id", userId)
+          .eq("organization_id", conference.organization_id)
+          .maybeSingle()
+      : { data: null };
 
-    if (!staffEntry && !isAdmin && !isOwner) {
+    const orgRole = membership?.role ?? null;
+    const isOwner = orgRole === "owner";
+    const isAdmin = orgRole === "admin";
+    const isStaff = orgRole === "staff";
+    const isOrganizer = isOwner || isAdmin || isStaff;
+
+    console.log("[smart-assign] Permission check:", { userId, orgRole, isOwner, isAdmin, isStaff, isOrganizer });
+
+    if (!isOrganizer) {
       return NextResponse.json(
-        { success: false, error: "You do not have permission to assign reviewers for this paper" },
+        { success: false, error: "Access restricted. You don't have access to this action." },
         { status: 403 }
       );
     }

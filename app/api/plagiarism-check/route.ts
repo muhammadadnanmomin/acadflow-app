@@ -179,16 +179,13 @@ async function cacheResult(submissionId: string, resultData: Record<string, any>
 // ── Main POST Handler ─────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    // 1. Auth
+    // 1. Auth — only get userId, do NOT use profiles.role for permission
     let userId: string | null = null;
-    let userRole = "guest";
     try {
       const supabase = await createServerSupabaseClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
       userId = user.id;
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-      userRole = profile?.role ?? "guest";
     } catch {
       return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
     }
@@ -237,7 +234,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 5. Fetch paper + auth
+    // 5. Fetch paper
     const { data: paper, error: paperErr } = await supabaseServer
       .from("paper_submissions")
       .select("id, file_url, title, reviewer_id, conference_id")
@@ -259,10 +256,36 @@ export async function POST(req: NextRequest) {
       }, { status: 429 });
     }
 
-    const isOrgAdmin = ["organizer", "admin"].includes(userRole);
-    const isAssigned = userRole === "reviewer" && paper.reviewer_id === userId;
-    if (!isOrgAdmin && !isAssigned) {
-      return NextResponse.json({ error: "Permission denied" }, { status: 403 });
+    // 5c. Permission — use organization_members as single source of truth
+    const isAssignedReviewer = paper.reviewer_id === userId;
+
+    // Fetch conference → organization_id
+    const { data: conference } = await supabaseServer
+      .from("conferences")
+      .select("organization_id")
+      .eq("id", paper.conference_id)
+      .single();
+
+    // Fetch organization membership for this user
+    const { data: membership } = conference?.organization_id
+      ? await supabaseServer
+          .from("organization_members")
+          .select("role")
+          .eq("user_id", userId!)
+          .eq("organization_id", conference.organization_id)
+          .maybeSingle()
+      : { data: null };
+
+    const orgRole = membership?.role ?? null;
+    const isOwner = orgRole === "owner";
+    const isAdmin = orgRole === "admin";
+    const isStaff = orgRole === "staff";
+    const isOrganizer = isOwner || isAdmin || isStaff;
+
+    console.log("[plagiarism-check] Permission check:", { userId, orgRole, isOwner, isAdmin, isStaff, isOrganizer, isAssignedReviewer });
+
+    if (!isOrganizer && !isAssignedReviewer) {
+      return NextResponse.json({ error: "Access restricted. You don't have access to this action." }, { status: 403 });
     }
     if (!paper.file_url) return NextResponse.json({ error: "No paper file uploaded" }, { status: 400 });
 
