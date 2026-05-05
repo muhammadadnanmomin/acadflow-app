@@ -142,7 +142,7 @@ export function HowItWorksSection() {
             href="/signup"
             className="group inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-600/25 transition-all hover:bg-indigo-700 hover:-translate-y-0.5"
           >
-            Run Your First Conference Free
+            Run Your Conference Free
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
 

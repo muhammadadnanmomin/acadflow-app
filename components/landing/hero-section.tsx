@@ -13,10 +13,13 @@ import {
   CheckCircle2,
   BarChart3,
 } from "lucide-react";
+import { BookDemoButton } from "@/components/demo/BookDemoButton";
+import { useDemoModal } from "@/components/demo/DemoProvider";
 
 export function HeroSection() {
   const router = useRouter();
   const supabase = createClient();
+  const { openDemo } = useDemoModal();
 
   const handleGetStarted = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -88,13 +91,8 @@ export function HeroSection() {
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
 
-              {/* Secondary CTA */}
-              <Link
-                href="/#ai-demo"
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-8 py-3.5 text-base font-medium text-gray-700 transition-all hover:border-gray-400 hover:bg-gray-50"
-              >
-                See How It Works
-              </Link>
+              {/* Secondary CTA — Book Demo */}
+              <BookDemoButton variant="secondary" onClick={openDemo} />
 
             </div>
 

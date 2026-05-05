@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowRight, Sparkles, Shield } from "lucide-react";
+import { ArrowRight, Sparkles, Shield, Calendar } from "lucide-react";
+import { useDemoModal } from "@/components/demo/DemoProvider";
 
 export function FinalCTASection() {
   const router = useRouter();
   const supabase = createClient();
+  const { openDemo } = useDemoModal();
 
   const handleGetStarted = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -37,6 +39,14 @@ export function FinalCTASection() {
             <Sparkles className="h-4 w-4" />
             Get Started for Free
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </button>
+
+          <button
+            onClick={openDemo}
+            className="group inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 backdrop-blur-sm px-8 py-4 text-base font-semibold text-white shadow-lg transition-all hover:bg-white/20 hover:-translate-y-0.5"
+          >
+            <Calendar className="h-4 w-4" />
+            Book 15-Min Demo
           </button>
         </div>
 

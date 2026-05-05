@@ -10,6 +10,7 @@ import { AIFeaturesSection } from "@/components/landing/ai-features-section";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { ComparisonSection } from "@/components/landing/comparison-section";
 import { FinalCTASection } from "@/components/landing/final-cta-section";
+import { MidPageDemoCTA } from "@/components/landing/mid-page-demo-cta";
 // import { SocialProofSection } from "@/components/landing/social-proof-section";
 
 
@@ -49,6 +50,9 @@ export default function Home() {
 
       {/* 4. Features — Grouped into modules */}
       <FeaturesSection />
+
+      {/* 4.25 Mid-page CTA — Book a Demo */}
+      <MidPageDemoCTA />
 
       {/* 4.5 AI Demo — Prove the AI capability */}
       <AIDemoSection />

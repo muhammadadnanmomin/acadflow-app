@@ -1,5 +1,7 @@
 import { Header } from "@/components/landing/header";
 import { Footer } from "@/components/landing/footer";
+import { DemoProvider } from "@/components/demo/DemoProvider";
+import { FloatingDemoButton } from "@/components/demo/FloatingDemoButton";
 
 export default function PublicLayout({
   children,
@@ -7,19 +9,24 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col">
+    <DemoProvider>
+      <div className="min-h-screen flex flex-col">
 
-      {/* Navbar */}
-      <Header />
+        {/* Navbar */}
+        <Header />
 
-      {/* Main Content */}
-      <main className="flex-1">
-        {children}
-      </main>
+        {/* Main Content */}
+        <main className="flex-1">
+          {children}
+        </main>
 
-      {/* Footer */}
-      <Footer />
+        {/* Footer */}
+        <Footer />
 
-    </div>
+        {/* Sticky floating CTA */}
+        <FloatingDemoButton />
+
+      </div>
+    </DemoProvider>
   );
 }
