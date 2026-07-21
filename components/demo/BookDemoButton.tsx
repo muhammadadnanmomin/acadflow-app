@@ -1,17 +1,19 @@
 "use client";
 
 import { Calendar } from "lucide-react";
+import { openDemo } from "./openDemo";
 
 type Variant = "primary" | "secondary" | "ghost" | "nav";
 
 interface BookDemoButtonProps {
   variant?: Variant;
   className?: string;
-  onClick: () => void;
+  /** Optional callback fired before opening Calendly (e.g. close a menu). */
+  onBeforeOpen?: () => void;
 }
 
 /**
- * BookDemoButton — Reusable CTA that opens the demo modal.
+ * BookDemoButton — Self-contained CTA that opens Calendly in a new tab.
  *
  * Variants:
  *  • primary   — gradient fill, hero/CTA-level
@@ -22,7 +24,7 @@ interface BookDemoButtonProps {
 export function BookDemoButton({
   variant = "primary",
   className = "",
-  onClick,
+  onBeforeOpen,
 }: BookDemoButtonProps) {
   const label =
     variant === "secondary" ? "Book 15-Min Demo" : "Book a Demo";
@@ -41,10 +43,15 @@ export function BookDemoButton({
       "rounded-md bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 text-sm text-white shadow-sm hover:shadow-md hover:-translate-y-px",
   };
 
+  const handleClick = () => {
+    onBeforeOpen?.();
+    openDemo();
+  };
+
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={handleClick}
       className={`${base} ${variants[variant]} ${className}`}
     >
       <Calendar className="h-4 w-4" />

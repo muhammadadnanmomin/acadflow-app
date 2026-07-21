@@ -3,12 +3,12 @@
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowRight, Sparkles, Shield, Calendar } from "lucide-react";
-import { useDemoModal } from "@/components/demo/DemoProvider";
+import { openDemo } from "@/components/demo/openDemo";
 
 export function FinalCTASection() {
   const router = useRouter();
   const supabase = createClient();
-  const { openDemo } = useDemoModal();
+
 
   const handleGetStarted = async () => {
     const { data: { session } } = await supabase.auth.getSession();

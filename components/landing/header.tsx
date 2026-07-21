@@ -11,7 +11,6 @@ import Image from "next/image";
 import { useProfile } from "@/lib/auth/useProfile";
 import { createClient } from "@/lib/supabase/client";
 import { BookDemoButton } from "@/components/demo/BookDemoButton";
-import { useDemoModal } from "@/components/demo/DemoProvider";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,7 +18,7 @@ export function Header() {
   const { profile, loading } = useProfile();
   const router = useRouter();
   const pathname = usePathname();
-  const { openDemo } = useDemoModal();
+
   const isBlogActive = pathname === "/blog" || pathname.startsWith("/blog/");
   const isConferencesActive = pathname === "/conferences" || pathname.startsWith("/conferences/");
 
@@ -114,7 +113,7 @@ export function Header() {
         {/* Desktop Actions */}
         <div className="hidden items-center gap-3 md:flex">
 
-          <BookDemoButton variant="nav" onClick={openDemo} />
+          <BookDemoButton variant="nav" />
 
           {!loading && !profile && (
             <>
@@ -235,7 +234,7 @@ export function Header() {
 
               <BookDemoButton
                 variant="secondary"
-                onClick={() => { setMobileMenuOpen(false); openDemo(); }}
+                onBeforeOpen={() => setMobileMenuOpen(false)}
                 className="w-full justify-center"
               />
 

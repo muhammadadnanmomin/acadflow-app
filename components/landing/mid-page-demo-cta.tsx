@@ -1,8 +1,7 @@
 "use client";
 
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { BookDemoButton } from "@/components/demo/BookDemoButton";
-import { useDemoModal } from "@/components/demo/DemoProvider";
 
 /**
  * MidPageDemoCTA — Conversion-focused CTA placed after the features section.
@@ -11,7 +10,7 @@ import { useDemoModal } from "@/components/demo/DemoProvider";
  * feature list to book a personalised demo.
  */
 export function MidPageDemoCTA() {
-  const { openDemo } = useDemoModal();
+
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50 px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
@@ -36,7 +35,7 @@ export function MidPageDemoCTA() {
         </p>
 
         <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          <BookDemoButton variant="primary" onClick={openDemo} />
+          <BookDemoButton variant="primary" />
         </div>
       </div>
     </section>

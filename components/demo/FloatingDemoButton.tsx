@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Calendar } from "lucide-react";
-import { useDemoModal } from "./DemoProvider";
+import { openDemo } from "./openDemo";
 
 /**
  * FloatingDemoButton — Sticky bottom-right CTA that appears after scroll.
@@ -11,7 +11,6 @@ import { useDemoModal } from "./DemoProvider";
  * Sits above the chatbot widget (z-40 vs z-50 for chatbot).
  */
 export function FloatingDemoButton() {
-  const { openDemo } = useDemoModal();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {

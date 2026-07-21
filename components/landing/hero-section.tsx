@@ -14,12 +14,11 @@ import {
   BarChart3,
 } from "lucide-react";
 import { BookDemoButton } from "@/components/demo/BookDemoButton";
-import { useDemoModal } from "@/components/demo/DemoProvider";
 
 export function HeroSection() {
   const router = useRouter();
   const supabase = createClient();
-  const { openDemo } = useDemoModal();
+
 
   const handleGetStarted = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -92,7 +91,7 @@ export function HeroSection() {
               </button>
 
               {/* Secondary CTA — Book Demo */}
-              <BookDemoButton variant="secondary" onClick={openDemo} />
+              <BookDemoButton variant="secondary" />
 
             </div>
 
