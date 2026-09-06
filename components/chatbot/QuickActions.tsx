@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// AcadFlow Chatbot — Quick Action Buttons
+// Confairo Chatbot — Quick Action Buttons
 // ============================================================
 import { Search, FileText, BarChart2, CalendarClock, HelpCircle } from "lucide-react";
 import type { QuickAction } from "@/lib/chatbot/types";
@@ -17,7 +17,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     id: "submit-paper",
     label: "Submit Paper",
     icon: "file",
-    query: "How do I submit a paper on AcadFlow?",
+    query: "How do I submit a paper on Confairo?",
   },
   {
     id: "track-status",

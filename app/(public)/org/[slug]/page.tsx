@@ -48,11 +48,11 @@ export async function generateMetadata({
         .maybeSingle();
 
     if (!org) {
-        return { title: "Organization Not Found | AcadFlow" };
+        return { title: "Organization Not Found | Confairo" };
     }
 
     return {
-        title: `${org.name} | AcadFlow`,
+        title: `${org.name} | Confairo`,
         description:
             org.description ||
             `View conferences and research events hosted by ${org.name}.`,

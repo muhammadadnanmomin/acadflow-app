@@ -51,7 +51,7 @@ export default function UpgradeModal({
     open,
     onClose,
     title = "Buy Conference Slot",
-    description = "Purchase an additional conference slot to create and manage more academic events on AcadFlow.",
+    description = "Purchase an additional conference slot to create and manage more academic events on Confairo.",
     organizationId,
     userId,
     payerName = "",
@@ -104,7 +104,7 @@ export default function UpgradeModal({
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
                 amount: order.amount,
                 currency: order.currency,
-                name: "AcadFlow",
+                name: "Confairo",
                 description: "Conference Slot — Pro Plan",
                 order_id: order.id,
                 handler: async (response: any) => {
@@ -142,7 +142,7 @@ export default function UpgradeModal({
                             variant: "destructive",
                             title: "Payment verification failed",
                             description:
-                                "Your payment could not be verified. Please contact support at acadflow.platform@gmail.com",
+                                "Your payment could not be verified. Please contact support at Confairo.platform@gmail.com",
                         });
                     }
                 },

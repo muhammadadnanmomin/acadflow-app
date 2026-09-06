@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow Chatbot — Zustand Store
+// Confairo Chatbot — Zustand Store
 // ============================================================
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -120,7 +120,7 @@ export const useChatbotStore = create<ChatbotState>()(
         })),
     }),
     {
-      name: "acadflow-chatbot",
+      name: "Confairo-chatbot",
       // Only persist session ID and user role; don't persist messages (reload from API)
       partialize: (state: ChatbotState) => ({
         sessionId: state.sessionId,

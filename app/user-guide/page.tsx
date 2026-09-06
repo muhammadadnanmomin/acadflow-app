@@ -316,7 +316,7 @@ const roles: RoleDef[] = [
           {
             title: "Discover Conferences",
             description:
-              "Browse academic conferences on AcadFlow. Each conference has a public page with full details — CFP topics, deadlines, fee structure, and venue information.",
+              "Browse academic conferences on Confairo. Each conference has a public page with full details — CFP topics, deadlines, fee structure, and venue information.",
             icon: Globe2,
             link: {
               label: "Browse Conferences",
@@ -385,7 +385,7 @@ const roles: RoleDef[] = [
           {
             title: "Browse Conferences",
             description:
-              "Explore all published conferences on AcadFlow. Each conference has a dedicated public page with complete details — Call for Papers, important dates, venue info, and fee structure.",
+              "Explore all published conferences on Confairo. Each conference has a dedicated public page with complete details — Call for Papers, important dates, venue info, and fee structure.",
             icon: Globe2,
             link: {
               label: "Browse All Conferences",
@@ -401,7 +401,7 @@ const roles: RoleDef[] = [
           {
             title: "Register as Attendee",
             description:
-              "Create an AcadFlow account and register as a Listener or attendee. Pay the registration fee (if applicable) — all payments are processed securely via Razorpay.",
+              "Create an Confairo account and register as a Listener or attendee. Pay the registration fee (if applicable) — all payments are processed securely via Razorpay.",
             icon: UserCheck,
             link: { label: "Sign Up", href: "/signup" },
           },
@@ -481,7 +481,7 @@ export default function UserGuidePage() {
 
           {/* Title with gradient */}
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-[3.25rem] lg:leading-[1.15]">
-            <span className="text-gray-900">AcadFlow </span>
+            <span className="text-gray-900">Confairo </span>
             <span className="bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-clip-text text-transparent">
               User Guide
             </span>
@@ -524,7 +524,7 @@ export default function UserGuidePage() {
               The Complete Conference Journey
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-gray-600">
-              Every conference on AcadFlow follows this lifecycle — from creation to certification.
+              Every conference on Confairo follows this lifecycle — from creation to certification.
             </p>
           </div>
 

@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Server-side Plan Enforcement Guards
+   Confairo — Server-side Plan Enforcement Guards
    Used in API routes to ensure plan limits are respected.
    Never rely on frontend checks alone.
    ================================================================ */

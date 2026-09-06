@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Certificate Template Resolver
+   Confairo — Certificate Template Resolver
    Maps certificate types to their DOCX template file paths.
    Extensible for future award types.
    ================================================================ */

@@ -12,11 +12,11 @@ export default function AboutPage() {
 
         {/* Title */}
         <h1 className="text-3xl font-bold">
-          About AcadFlow
+          About Confairo
         </h1>
 
         <p className="mt-6 text-lg text-gray-600">
-          AcadFlow is a modern platform designed to simplify how academic
+          Confairo is a modern platform designed to simplify how academic
           conferences are organized, reviewed, and managed.
         </p>
 
@@ -33,10 +33,10 @@ export default function AboutPage() {
           </p>
 
           <p>
-            AcadFlow was created to solve this challenge by bringing the
+            Confairo was created to solve this challenge by bringing the
             entire conference lifecycle into a single, streamlined platform.
             From paper submissions and peer review to registrations,
-            scheduling, and certificate generation, AcadFlow helps academic
+            scheduling, and certificate generation, Confairo helps academic
             communities manage conferences with clarity and efficiency.
           </p>
 
@@ -49,13 +49,13 @@ export default function AboutPage() {
 
           <p>
             By automating repetitive administrative tasks and providing
-            real-time visibility into conference activities, AcadFlow allows
+            real-time visibility into conference activities, Confairo allows
             organizers to focus more on research collaboration and less on
             manual coordination.
           </p>
 
           <p>
-            AcadFlow continues to evolve through feedback from educators,
+            Confairo continues to evolve through feedback from educators,
             researchers, and conference organizers, ensuring that the
             platform remains aligned with real academic needs.
           </p>

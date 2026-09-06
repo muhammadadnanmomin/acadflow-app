@@ -286,7 +286,7 @@ export default function ParticipantSubmissionsPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: order.currency,
-        name: "AcadFlow",
+        name: "Confairo",
         description: `Presentation Fee — ${submission.title}`,
         order_id: order.id,
         handler: async (response: any) => {

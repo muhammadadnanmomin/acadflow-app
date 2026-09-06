@@ -3,14 +3,14 @@ import { Footer } from "@/components/landing/footer";
 
 const faqs = [
   {
-    question: "What is AcadFlow?",
+    question: "What is Confairo?",
     answer:
-      "AcadFlow is an academic conference management platform that helps institutions manage submissions, peer reviews, registrations, payments, schedules, and certificate generation in one place.",
+      "Confairo is an academic conference management platform that helps institutions manage submissions, peer reviews, registrations, payments, schedules, and certificate generation in one place.",
   },
   {
-    question: "Who can use AcadFlow?",
+    question: "Who can use Confairo?",
     answer:
-      "AcadFlow is designed for colleges, universities, conference organizers, professors, reviewers, and students participating in academic conferences and research events.",
+      "Confairo is designed for colleges, universities, conference organizers, professors, reviewers, and students participating in academic conferences and research events.",
   },
   {
     question: "How do I create a conference?",
@@ -18,9 +18,9 @@ const faqs = [
       "After signing up, you can create an organization from your dashboard. Once your organization is set up, you can create and publish conferences and start accepting submissions.",
   },
   {
-    question: "How much does it cost to run a conference on AcadFlow?",
+    question: "How much does it cost to run a conference on Confairo?",
     answer:
-      "AcadFlow offers a free plan for small conferences with essential features. For larger conferences, organizers can upgrade to a paid plan which currently costs ₹2,999 per conference and includes advanced conference management tools.",
+      "Confairo offers a free plan for small conferences with essential features. For larger conferences, organizers can upgrade to a paid plan which currently costs ₹2,999 per conference and includes advanced conference management tools.",
   },
   {
     question: "How do participants submit papers?",
@@ -40,17 +40,17 @@ const faqs = [
   {
     question: "Are payments secure?",
     answer:
-      "Yes. Payments are processed securely through trusted payment providers such as Razorpay. AcadFlow does not store card details or sensitive banking information.",
+      "Yes. Payments are processed securely through trusted payment providers such as Razorpay. Confairo does not store card details or sensitive banking information.",
   },
   {
     question: "Why is there a platform processing fee on payments?",
     answer:
-      "AcadFlow charges a small platform processing fee (currently 4%) on payments made through the platform. This helps cover payment infrastructure, gateway costs, and platform operations.",
+      "Confairo charges a small platform processing fee (currently 4%) on payments made through the platform. This helps cover payment infrastructure, gateway costs, and platform operations.",
   },
   {
     question: "Who receives the conference registration or submission fee?",
     answer:
-      "Conference fees belong to the conference organizer. AcadFlow facilitates the payment process and transfers the conference fee to the organizer after deducting the platform processing fee where applicable.",
+      "Conference fees belong to the conference organizer. Confairo facilitates the payment process and transfers the conference fee to the organizer after deducting the platform processing fee where applicable.",
   },
   {
     question: "Can I request a refund for conference payments?",
@@ -58,9 +58,9 @@ const faqs = [
       "Refund policies are determined by the respective conference organizer. Participants should contact the conference organizer directly regarding refund requests.",
   },
   {
-    question: "Is my research paper safe on AcadFlow?",
+    question: "Is my research paper safe on Confairo?",
     answer:
-      "Yes. AcadFlow uses secure infrastructure and access controls to protect submitted research papers and conference data.",
+      "Yes. Confairo uses secure infrastructure and access controls to protect submitted research papers and conference data.",
   },
   {
     question: "Can I generate certificates?",
@@ -68,9 +68,9 @@ const faqs = [
       "Yes. Organizers can generate and distribute digital certificates for participants, presenters, and reviewers through the platform.",
   },
   {
-    question: "Can I use AcadFlow on mobile devices?",
+    question: "Can I use Confairo on mobile devices?",
     answer:
-      "Yes. AcadFlow is fully responsive and works smoothly on desktops, tablets, and smartphones.",
+      "Yes. Confairo is fully responsive and works smoothly on desktops, tablets, and smartphones.",
   },
   {
     question: "What if I forget my password?",
@@ -80,7 +80,7 @@ const faqs = [
   {
     question: "How can I contact support?",
     answer:
-      "You can contact us through the Contact page or email us at acadflow.platform@gmail.com.",
+      "You can contact us through the Contact page or email us at Confairo.platform@gmail.com.",
   },
 ];
 
@@ -98,7 +98,7 @@ export default function FAQPage() {
         </h1>
 
         <p className="mt-4 text-gray-600">
-          Find answers to common questions about using AcadFlow.
+          Find answers to common questions about using Confairo.
         </p>
 
         <div className="mt-10 space-y-6">

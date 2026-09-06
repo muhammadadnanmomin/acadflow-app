@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow AI Credit Management
+// Confairo AI Credit Management
 // Validates and tracks AI usage per conference
 // ============================================================
 import { supabaseServer } from "@/lib/supabase/server";

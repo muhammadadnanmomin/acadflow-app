@@ -17,7 +17,7 @@ export function JsonLd({ post, url }: JsonLdProps) {
     description: post.seo.metaDescription,
     image: post.coverImage.startsWith("http")
       ? post.coverImage
-      : `https://acadflow.com${post.coverImage}`,
+      : `https://confairo.com${post.coverImage}`,
     datePublished: post.date,
     dateModified: post.updatedAt,
     author: {
@@ -27,10 +27,10 @@ export function JsonLd({ post, url }: JsonLdProps) {
     },
     publisher: {
       "@type": "Organization",
-      name: "AcadFlow",
+      name: "Confairo",
       logo: {
         "@type": "ImageObject",
-        url: "https://acadflow.com/logo.png",
+        url: "https://confairo.com/logo.png",
       },
     },
     mainEntityOfPage: {

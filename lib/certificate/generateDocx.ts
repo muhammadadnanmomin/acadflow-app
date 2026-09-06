@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — DOCX Certificate Generator (Template-Based)
+   Confairo — DOCX Certificate Generator (Template-Based)
 
    Primary path: loads the appropriate template via templateResolver
    and injects dynamic values via docxtemplater ({{placeholder}} syntax).
@@ -464,7 +464,7 @@ export async function generateCertificateDocxFallback(data: CertificateData): Pr
             spacing: { before: 0, after: 0 },
             children: [
               new TextRun({
-                text: "Powered by AcadFlow",
+                text: "Powered by Confairo",
                 size: 16,
                 color: TEXT_SUB,
                 italics: true,

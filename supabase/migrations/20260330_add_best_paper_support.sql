@@ -1,5 +1,5 @@
 -- ================================================================
--- AcadFlow — Best Paper Award Support
+-- Confairo — Best Paper Award Support
 -- Adds award_type to paper_submissions and updates the certificates
 -- unique index to allow multiple certificate types per author.
 -- ================================================================

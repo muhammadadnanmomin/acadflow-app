@@ -1,5 +1,5 @@
 -- ============================================================
--- AcadFlow — Refactor Chairperson & Coordinator to Manual Entry
+-- Confairo — Refactor Chairperson & Coordinator to Manual Entry
 -- Safe migration: preserves existing rows, no cascade issues.
 -- ============================================================
 

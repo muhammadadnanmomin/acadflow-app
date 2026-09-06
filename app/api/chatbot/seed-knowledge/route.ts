@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow Chatbot — /api/chatbot/seed-knowledge
+// Confairo Chatbot — /api/chatbot/seed-knowledge
 // POST: Admin — seed RAG knowledge base with Gemini embeddings
 // Uses: text-embedding-004 → 768-dim vectors
 // ============================================================

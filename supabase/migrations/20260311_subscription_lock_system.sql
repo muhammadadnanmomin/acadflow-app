@@ -1,5 +1,5 @@
 -- ============================================================
--- AcadFlow — Subscription Lock System Migration
+-- Confairo — Subscription Lock System Migration
 -- Introduces slot-based conference model for early_adopter plan
 -- ============================================================
 

@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — DOCX Template Engine
+   Confairo — DOCX Template Engine
    Loads a .docx template buffer, replaces {{placeholders}} with
    actual values using docxtemplater + pizzip, and returns the
    rendered DOCX as a Node.js Buffer.

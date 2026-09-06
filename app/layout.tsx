@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AcadFlow — Academic Conference Management Platform",
+  title: "Confairo — Academic Conference Management Platform",
   description:
-    "Streamline academic conferences with AcadFlow. Manage submissions, reviews, and registrations in one place.",
+    "Streamline academic conferences with Confairo. Manage submissions, reviews, and registrations in one place.",
 
   icons: {
     icon: [
@@ -60,7 +60,7 @@ export default function RootLayout({
         {/* ✅ REQUIRED FOR TOASTS */}
         <Toaster />
 
-        {/* ✅ AcadFlow AI Chatbot */}
+        {/* ✅ Confairo AI Chatbot */}
         <ChatbotWidget />
 
         {/* ✅ Razorpay Checkout Script */}

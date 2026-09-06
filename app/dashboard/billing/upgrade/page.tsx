@@ -104,7 +104,7 @@ export default function BillingUpgradePage() {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
                 amount: order.amount,
                 currency: order.currency,
-                name: "AcadFlow",
+                name: "Confairo",
                 description: "Conference Slot — Pro Plan",
                 order_id: order.id,
                 prefill: {
@@ -146,7 +146,7 @@ export default function BillingUpgradePage() {
                             variant: "destructive",
                             title: "Payment verification failed",
                             description:
-                                "Your payment could not be verified. Please contact support at acadflow.platform@gmail.gmail.com",
+                                "Your payment could not be verified. Please contact support at Confairo.platform@gmail.gmail.com",
                         });
                     }
                 },
@@ -223,7 +223,7 @@ export default function BillingUpgradePage() {
                 </h1>
                 <p className="text-gray-600 max-w-md mx-auto">
                     Purchase an additional conference slot to create and manage
-                    more academic events on AcadFlow.
+                    more academic events on Confairo.
                 </p>
             </div>
 

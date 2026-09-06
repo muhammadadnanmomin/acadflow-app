@@ -34,7 +34,7 @@ export function AIDemoSection() {
             </span>
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-600">
-            AcadFlow transforms raw research papers into structured insights —
+            Confairo transforms raw research papers into structured insights —
             helping reviewers save time and improve accuracy.
           </p>
         </div>
@@ -59,7 +59,7 @@ export function AIDemoSection() {
                   ✅ The Solution
                 </p>
                 <p className="text-sm text-gray-700 leading-relaxed">
-                  AcadFlow AI delivers instant, structured insights for better
+                  Confairo AI delivers instant, structured insights for better
                   and faster decisions.
                 </p>
               </div>

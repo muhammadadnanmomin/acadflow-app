@@ -14,7 +14,7 @@ export function RelatedPosts({ posts }: RelatedPostsProps) {
   return (
     <section className="border-t border-gray-100 pt-12">
       <h2 className="text-xl font-bold text-gray-900">
-        More from AcadFlow Blog
+        More from Confairo Blog
       </h2>
       <p className="mt-1 text-sm text-gray-500">
         Continue exploring related articles

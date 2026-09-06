@@ -1,5 +1,5 @@
 -- ============================================================
--- AcadFlow Chatbot System — Supabase Migration
+-- Confairo Chatbot System — Supabase Migration
 -- Run this in: Supabase Dashboard > SQL Editor
 -- ============================================================
 
@@ -90,8 +90,8 @@ create index if not exists chatbot_documents_embedding_idx
 create table if not exists chatbot_settings (
   id              integer primary key default 1 check (id = 1), -- enforce singleton
   enabled         boolean default true,
-  welcome_message text default 'Hi! I''m AcadFlow AI 👋 I can help you discover conferences, track submissions, check deadlines, and navigate the platform. How can I assist you today?',
-  bot_name        text default 'AcadFlow AI',
+  welcome_message text default 'Hi! I''m Confairo AI 👋 I can help you discover conferences, track submissions, check deadlines, and navigate the platform. How can I assist you today?',
+  bot_name        text default 'Confairo AI',
   primary_color   text default '#3b4fd4',
   updated_at      timestamptz default now()
 );

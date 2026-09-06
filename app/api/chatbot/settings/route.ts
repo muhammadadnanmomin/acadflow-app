@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow Chatbot — /api/chatbot/settings
+// Confairo Chatbot — /api/chatbot/settings
 // GET: Public settings fetch | PATCH: Admin update
 // ============================================================
 import { NextRequest, NextResponse } from "next/server";
@@ -31,8 +31,8 @@ export async function GET() {
       settings: {
         enabled: true,
         welcomeMessage:
-          "Hi! I'm AcadFlow AI 👋 How can I help you today?",
-        botName: "AcadFlow AI",
+          "Hi! I'm Confairo AI 👋 How can I help you today?",
+        botName: "Confairo AI",
         primaryColor: "#3b4fd4",
       },
     });

@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 
 /**
  * BlogCTA — Conversion-focused call-to-action section.
- * "Start managing your conferences with AcadFlow"
+ * "Start managing your conferences with Confairo"
  * Placed after blog content, before related posts.
  */
 export function BlogCTA() {
@@ -34,7 +34,7 @@ export function BlogCTA() {
         </div> */}
 
         <h2 className="mx-auto mt-6 max-w-xl text-2xl font-extrabold text-white sm:text-3xl">
-          Start managing your conferences with AcadFlow
+          Start managing your conferences with Confairo
         </h2>
 
         <p className="mx-auto mt-3 max-w-lg text-base leading-relaxed text-indigo-100/80">

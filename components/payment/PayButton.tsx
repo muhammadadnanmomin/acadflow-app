@@ -73,7 +73,7 @@ export default function PayButton({
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
       amount: order.amount,
       currency: order.currency,
-      name: "AcadFlow",
+      name: "Confairo",
       description: "Conference Registration",
       order_id: order.id,
 

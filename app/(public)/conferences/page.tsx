@@ -8,7 +8,7 @@ import type { ConferenceItem } from "@/components/conference/ConferenceExplorer"
 /* ------------------------------------------------------------------ */
 
 export const metadata: Metadata = {
-  title: "Academic Conferences | AcadFlow",
+  title: "Academic Conferences | Confairo",
   description:
     "Discover upcoming academic conferences, submission deadlines, and research events worldwide.",
 };

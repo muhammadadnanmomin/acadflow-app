@@ -17,7 +17,7 @@ export function ShareButtons({ title, slug }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
 
   // Build full URL on mount only (avoids server/client hydration mismatch)
-  const [url, setUrl] = useState(`https://acadflow.com/blog/${slug}`);
+  const [url, setUrl] = useState(`https://confairo.com/blog/${slug}`);
   useEffect(() => {
     setUrl(`${window.location.origin}/blog/${slug}`);
   }, [slug]);

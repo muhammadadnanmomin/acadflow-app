@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Payment Confirmation Email
+   Confairo — Payment Confirmation Email
    Sends a branded email after slot purchase or conference fee payment.
    Used server-side only (API routes).
    ================================================================ */
@@ -7,22 +7,22 @@
 import { sendEmail } from "@/lib/email/send";
 
 export interface PaymentEmailData {
-    /** Recipient email */
-    to: string;
-    /** Recipient name */
-    name: string;
-    /** Razorpay payment ID */
-    paymentId: string;
-    /** Razorpay order ID */
-    orderId: string;
-    /** Amount in INR */
-    amount: number;
-    /** What was paid for */
-    description: string;
-    /** Conference name (optional) */
-    conferenceName?: string;
-    /** Payment date */
-    paidAt?: string;
+  /** Recipient email */
+  to: string;
+  /** Recipient name */
+  name: string;
+  /** Razorpay payment ID */
+  paymentId: string;
+  /** Razorpay order ID */
+  orderId: string;
+  /** Amount in INR */
+  amount: number;
+  /** What was paid for */
+  description: string;
+  /** Conference name (optional) */
+  conferenceName?: string;
+  /** Payment date */
+  paidAt?: string;
 }
 
 /**
@@ -30,15 +30,15 @@ export interface PaymentEmailData {
  * Non-blocking — failures are logged but don't break the payment flow.
  */
 export async function sendPaymentConfirmationEmail(
-    data: PaymentEmailData
+  data: PaymentEmailData
 ): Promise<void> {
-    const formattedAmount = `₹${data.amount.toLocaleString("en-IN")}`;
-    const formattedDate = new Date(data.paidAt || Date.now()).toLocaleDateString(
-        "en-IN",
-        { day: "2-digit", month: "long", year: "numeric" }
-    );
+  const formattedAmount = `₹${data.amount.toLocaleString("en-IN")}`;
+  const formattedDate = new Date(data.paidAt || Date.now()).toLocaleDateString(
+    "en-IN",
+    { day: "2-digit", month: "long", year: "numeric" }
+  );
 
-    const html = `
+  const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -51,7 +51,7 @@ export async function sendPaymentConfirmationEmail(
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#4f46e5,#6366f1);border-radius:12px 12px 0 0;padding:32px 28px;text-align:center;">
       <h1 style="margin:0;font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.3px;">
-        AcadFlow
+        Confairo
       </h1>
       <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.8);">
         Payment Confirmation
@@ -121,17 +121,17 @@ export async function sendPaymentConfirmationEmail(
 
       <p style="margin:24px 0 0;font-size:13px;color:#9ca3af;text-align:center;">
         You can download your receipt anytime from the
-        <a href="https://acadflow.in/dashboard/organizer/payments" style="color:#4f46e5;text-decoration:none;">Payments</a> page.
+        <a href="https://confairo.com/dashboard/organizer/payments" style="color:#4f46e5;text-decoration:none;">Payments</a> page.
       </p>
     </div>
 
     <!-- Footer -->
     <div style="padding:20px 28px;text-align:center;border-radius:0 0 12px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-top:0;">
       <p style="margin:0;font-size:11px;color:#9ca3af;">
-        AcadFlow — Academic Conference Management Platform
+        Confairo — Academic Conference Management Platform
       </p>
       <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">
-        For support, contact acadflow.platform@gmail.com
+        For support, contact Confairo.platform@gmail.com
       </p>
     </div>
 
@@ -140,11 +140,11 @@ export async function sendPaymentConfirmationEmail(
 </html>
     `.trim();
 
-    try {
-        await sendEmail(data.to, "AcadFlow — Payment Confirmation", html);
-        console.log(`📧 Payment confirmation sent to ${data.to}`);
-    } catch (err) {
-        // Non-blocking — log but don't throw
-        console.error("⚠️ Payment email failed (non-blocking):", err);
-    }
+  try {
+    await sendEmail(data.to, "Confairo — Payment Confirmation", html);
+    console.log(`📧 Payment confirmation sent to ${data.to}`);
+  } catch (err) {
+    // Non-blocking — log but don't throw
+    console.error("⚠️ Payment email failed (non-blocking):", err);
+  }
 }

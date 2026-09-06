@@ -79,7 +79,7 @@ export function useAICreditPurchase({
           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
           amount: order.amount,
           currency: order.currency,
-          name: "AcadFlow",
+          name: "Confairo",
           description: `AI Credits — ${order.pack?.label || packId}`,
           order_id: order.id,
           prefill: {

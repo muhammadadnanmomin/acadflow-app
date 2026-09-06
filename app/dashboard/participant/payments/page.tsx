@@ -486,8 +486,8 @@ export default function ParticipantPaymentsPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: "INR",
-        name: "AcadFlow",
-        description: `Payment to ${fees[confId]?.organizer_name || "Conference Organizer"} via AcadFlow`,
+        name: "Confairo",
+        description: `Payment to ${fees[confId]?.organizer_name || "Conference Organizer"} via Confairo`,
         order_id: order.id,
 
         handler: async (response: any) => {
@@ -886,7 +886,7 @@ export default function ParticipantPaymentsPage() {
                       </p>
                     </div>
                     <p className="text-xs text-gray-400 leading-relaxed">
-                      AcadFlow charges a small platform processing fee to support secure payment infrastructure and platform operations. The conference fee (₹{formatINR(breakdown.conferenceFee)}) goes directly to the organizer.
+                      Confairo charges a small platform processing fee to support secure payment infrastructure and platform operations. The conference fee (₹{formatINR(breakdown.conferenceFee)}) goes directly to the organizer.
                     </p>
                   </div>
 
@@ -914,7 +914,7 @@ export default function ParticipantPaymentsPage() {
                   {/* Legal Confirmation */}
                   <p className="text-xs text-center text-gray-400 leading-relaxed">
                     By proceeding, you agree that the conference fee will be transferred to the organizer.
-                    A small platform processing fee is charged by AcadFlow.
+                    A small platform processing fee is charged by Confairo.
                   </p>
                 </div>
               )}

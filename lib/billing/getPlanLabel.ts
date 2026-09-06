@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Plan Label Helper
+   Confairo — Plan Label Helper
    Single source of truth for plan display names.
    ================================================================ */
 

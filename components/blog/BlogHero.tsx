@@ -32,7 +32,7 @@ export function BlogHero() {
 
         {/* Title */}
         <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-          AcadFlow{" "}
+          Confairo{" "}
           <span className="bg-gradient-to-r from-indigo-600 to-indigo-500 bg-clip-text text-transparent">
             Blog
           </span>

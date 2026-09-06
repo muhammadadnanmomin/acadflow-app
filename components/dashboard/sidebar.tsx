@@ -194,7 +194,7 @@ export function DashboardSidebar({
         <div className="flex items-center justify-center h-9 w-9 flex-shrink-0">
           <Image
             src="/logo.png"
-            alt="AcadFlow Logo"
+            alt="Confairo Logo"
             width={32}
             height={32}
             priority
@@ -208,7 +208,7 @@ export function DashboardSidebar({
             href="/dashboard"
             className="text-lg font-semibold tracking-tight leading-none text-gray-900"
           >
-            AcadFlow
+            Confairo
           </Link>
         )}
 
@@ -261,13 +261,13 @@ export function DashboardSidebar({
             const normalized = normalizePlanType(organization.plan_type);
             return normalized !== "institutional";
           })() && (
-            <Link
-              href="/dashboard/organizer/billing"
-              className="mx-3 mt-1 inline-flex items-center justify-center rounded-md border border-indigo-300 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-50"
-            >
-              {normalizePlanType(organization.plan_type) === "pro" ? "Buy Slot" : "Upgrade"}
-            </Link>
-          )}
+              <Link
+                href="/dashboard/organizer/billing"
+                className="mx-3 mt-1 inline-flex items-center justify-center rounded-md border border-indigo-300 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-50"
+              >
+                {normalizePlanType(organization.plan_type) === "pro" ? "Buy Slot" : "Upgrade"}
+              </Link>
+            )}
 
           <div className="mx-3 my-3 border-t border-gray-200" />
         </div>

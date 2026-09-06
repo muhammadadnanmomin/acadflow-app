@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow — Get AI Usage for a Conference
+// Confairo — Get AI Usage for a Conference
 // ============================================================
 import { NextResponse } from "next/server";
 import { getAIUsage } from "@/lib/ai/credits";

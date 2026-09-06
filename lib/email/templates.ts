@@ -23,7 +23,7 @@ export const submissionReceived = (name: string, conf: string) => `
       Regards,<br/>
       <strong>Conference Organizing Committee</strong><br/>
       ${conf}<br/>
-      <em>Powered by AcadFlow</em>
+      <em>Powered by Confairo</em>
     </p>
 
   </div>
@@ -62,7 +62,7 @@ export const paperAccepted = (name: string, conf: string) => `
       Kind regards,<br/>
       <strong>Conference Organizing Committee</strong><br/>
       ${conf}<br/>
-      <em>Powered by AcadFlow</em>
+      <em>Powered by Confairo</em>
     </p>
 
   </div>
@@ -99,7 +99,7 @@ export const paperRejected = (name: string, conf: string) => `
       Kind regards,<br/>
       <strong>Conference Organizing Committee</strong><br/>
       ${conf}<br/>
-      <em>Powered by AcadFlow</em>
+      <em>Powered by Confairo</em>
     </p>
 
   </div>
@@ -161,7 +161,7 @@ export const paperRevisionRequired = (
       Kind regards,<br/>
       <strong>Conference Organizing Committee</strong><br/>
       ${conference}<br/>
-      <em>Powered by AcadFlow</em>
+      <em>Powered by Confairo</em>
     </p>
 
   </div>
@@ -203,7 +203,7 @@ export const reviewerInviteEmail = (
       Regards,<br/>
       <strong>Conference Organizing Committee</strong><br/>
       ${conference}<br/>
-      <em>Powered by AcadFlow</em>
+      <em>Powered by Confairo</em>
     </p>
 
   </div>
@@ -255,7 +255,7 @@ export const reviewerAssignedEmail = (
       </p>
 
       <p style="font-size:12px; color:#777; margin-top:20px;">
-        This email was sent automatically by <strong>AcadFlow</strong>.<br/>
+        This email was sent automatically by <strong>Confairo</strong>.<br/>
         If you were not expecting this assignment, please contact the conference organizer.
       </p>
 
@@ -315,7 +315,7 @@ export const reviewerDecisionNotification = (
       Regards,<br/>
       <strong>Conference Management System</strong><br/>
       ${conference}<br/>
-      <em>Powered by AcadFlow</em>
+      <em>Powered by Confairo</em>
     </p>
 
   </div>
@@ -366,7 +366,7 @@ export const sessionScheduleNotification = (
       </p>
 
       <p style="font-size:12px; color:#777; margin-top:20px;">
-        This email was sent automatically by <strong>AcadFlow</strong>.
+        This email was sent automatically by <strong>Confairo</strong>.
       </p>
     </div>
   </div>
@@ -411,7 +411,7 @@ export const chairpersonAssignmentNotification = (
       </p>
 
       <p style="font-size:12px; color:#777; margin-top:20px;">
-        This email was sent automatically by <strong>AcadFlow</strong>.
+        This email was sent automatically by <strong>Confairo</strong>.
       </p>
     </div>
   </div>

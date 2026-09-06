@@ -30,7 +30,7 @@ import { calculateReadingTime } from "@/lib/blog/utils";
 import { cn } from "@/lib/utils";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const SITE_URL = "https://acadflow.com";
+const SITE_URL = "https://confairo.com";
 
 // ─── Static params for build-time generation ─────────────────────────────────
 export function generateStaticParams() {
@@ -45,7 +45,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = getBlogBySlug(slug);
-  if (!post) return { title: "Post Not Found — AcadFlow Blog" };
+  if (!post) return { title: "Post Not Found — Confairo Blog" };
 
   const canonicalUrl = `${SITE_URL}/blog/${post.slug}`;
   const imageUrl = post.coverImage.startsWith("http")
@@ -75,7 +75,7 @@ export async function generateMetadata({
           alt: post.title,
         },
       ],
-      siteName: "AcadFlow",
+      siteName: "Confairo",
     },
     twitter: {
       card: "summary_large_image",

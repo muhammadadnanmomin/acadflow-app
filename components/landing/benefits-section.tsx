@@ -51,7 +51,7 @@ export function BenefitsSection() {
 
           <p className="mt-4 text-lg text-indigo-100">
             Every role in a conference has different needs.
-            AcadFlow gives each one a clear, focused experience.
+            Confairo gives each one a clear, focused experience.
           </p>
 
         </div>

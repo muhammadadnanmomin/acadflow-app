@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — PDF Certificate Generator
+   Confairo — PDF Certificate Generator
    Supports multiple certificate types (participation, best_paper).
    ================================================================ */
 
@@ -20,10 +20,10 @@ const MARGIN = 40;
 /* ------------------------------------------------------------------ */
 
 const COL_PRIMARY = rgb(0.16, 0.24, 0.46);  // deep academic blue
-const COL_GOLD    = rgb(0.72, 0.53, 0.04);  // gold accent
-const COL_TEXT    = rgb(0.12, 0.12, 0.14);  // main text
-const COL_SUB     = rgb(0.4,  0.4,  0.45);  // secondary text
-const COL_BG      = rgb(0.98, 0.97, 0.94);  // warm background
+const COL_GOLD = rgb(0.72, 0.53, 0.04);  // gold accent
+const COL_TEXT = rgb(0.12, 0.12, 0.14);  // main text
+const COL_SUB = rgb(0.4, 0.4, 0.45);  // secondary text
+const COL_BG = rgb(0.98, 0.97, 0.94);  // warm background
 const COL_CRIMSON = rgb(0.55, 0.0, 0.0);    // best paper emphasis
 
 /* ------------------------------------------------------------------ */
@@ -43,7 +43,7 @@ function fmtDate(date: Date) {
 }
 
 type TextSegment = { text: string; isBold?: boolean };
-type TextAtom    = { text: string; isBold: boolean; width: number };
+type TextAtom = { text: string; isBold: boolean; width: number };
 
 function createAtoms(
   segments: TextSegment[],
@@ -53,7 +53,7 @@ function createAtoms(
 ): TextAtom[] {
   const atoms: TextAtom[] = [];
   for (const seg of segments) {
-    const font   = seg.isBold ? fontBold : fontRegular;
+    const font = seg.isBold ? fontBold : fontRegular;
     const tokens = seg.text.split(/(\s+)/);
     for (const token of tokens) {
       if (!token) continue;
@@ -193,14 +193,14 @@ async function renderOrganizationLogos(
 ): Promise<{ endY: number; sectionHeight: number }> {
   if (orgs.length === 0) return { endY: startY, sectionHeight: 0 };
 
-  const LOGO_MAX   = 50;
-  const NAME_SIZE  = 11;
-  const NAME_GAP   = 6;
+  const LOGO_MAX = 50;
+  const NAME_SIZE = 11;
+  const NAME_GAP = 6;
   const BOTTOM_PAD = 0;
 
-  const SLOT_WIDTH  = orgs.length === 4 ? 140 : 160;
-  const COL_W       = SLOT_WIDTH - 15;
-  const startX      = PAGE_W / 2 - ((orgs.length - 1) * SLOT_WIDTH) / 2;
+  const SLOT_WIDTH = orgs.length === 4 ? 140 : 160;
+  const COL_W = SLOT_WIDTH - 15;
+  const startX = PAGE_W / 2 - ((orgs.length - 1) * SLOT_WIDTH) / 2;
   const xCentresRow = orgs.map((_, i) => startX + i * SLOT_WIDTH);
 
   interface LogoData { image: any | null; width: number; height: number; }
@@ -213,7 +213,7 @@ async function renderOrganizationLogos(
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const buf = new Uint8Array(await res.arrayBuffer());
       let img: any;
-      try   { img = await pdfDoc.embedPng(buf); }
+      try { img = await pdfDoc.embedPng(buf); }
       catch { img = await pdfDoc.embedJpg(buf); }
       const dim = img.scaleToFit(LOGO_MAX, LOGO_MAX);
       logoData.push({ image: img, width: dim.width, height: dim.height });
@@ -222,15 +222,15 @@ async function renderOrganizationLogos(
     }
   }
 
-  const maxLogoH      = Math.max(...logoData.map((l) => l.height), 0);
-  const rowH          = maxLogoH + NAME_GAP + NAME_SIZE * 2;
+  const maxLogoH = Math.max(...logoData.map((l) => l.height), 0);
+  const rowH = maxLogoH + NAME_GAP + NAME_SIZE * 2;
   const sectionHeight = rowH + BOTTOM_PAD;
-  const logoBaseY     = startY - maxLogoH;
+  const logoBaseY = startY - maxLogoH;
 
   for (let i = 0; i < orgs.length; i++) {
-    const org  = orgs[i];
+    const org = orgs[i];
     const logo = logoData[i];
-    const cx   = xCentresRow[i];
+    const cx = xCentresRow[i];
 
     if (logo.image) {
       page.drawImage(logo.image, {
@@ -291,9 +291,9 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
   } = data;
 
   const pdfDoc = await PDFDocument.create();
-  const page   = pdfDoc.addPage([PAGE_W, PAGE_H]);
+  const page = pdfDoc.addPage([PAGE_W, PAGE_H]);
 
-  const fontBold    = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   /* Background */
@@ -310,28 +310,28 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
 
   /* ---- Formatting constants ---- */
   const titleConfig = TITLE_CONFIG[certificateType] ?? TITLE_CONFIG.participation;
-  const SIZE_CONF  = 12;
-  const SIZE_BODY  = 15;
-  const SIZE_SIG   = 10;
-  const SIZE_FOOT  = 9;
+  const SIZE_CONF = 12;
+  const SIZE_BODY = 15;
+  const SIZE_SIG = 10;
+  const SIZE_FOOT = 9;
   const SIZE_AWARD = 11;
   const BODY_MAX_W = 440;
-  const GAP_LINE   = 20;
+  const GAP_LINE = 20;
 
   /* ---- Prepare body text segments ---- */
   const segmentBuilder = SEGMENT_BUILDERS[certificateType] ?? SEGMENT_BUILDERS.participation;
   const segments = segmentBuilder(data);
-  const atoms     = createAtoms(segments, fontRegular, fontBold, SIZE_BODY);
+  const atoms = createAtoms(segments, fontRegular, fontBold, SIZE_BODY);
   const bodyLines = wrapAtoms(atoms, BODY_MAX_W);
 
   /* ---- Height math ---- */
-  const namesToTitleGap       = 12;
-  const titleToDividerGap     = 10;
-  const dividerToCertGap      = 15;
-  const titleGap              = 20;
-  const ORG_ROW_H             = 50 + 6 + 11 * 2;
-  const orgSectionH           = conferenceOrgs.length > 0 ? ORG_ROW_H : 0;
-  const awardTextH            = certificateType === "best_paper" ? SIZE_AWARD + 16 : 0;
+  const namesToTitleGap = 12;
+  const titleToDividerGap = 10;
+  const dividerToCertGap = 15;
+  const titleGap = 20;
+  const ORG_ROW_H = 50 + 6 + 11 * 2;
+  const orgSectionH = conferenceOrgs.length > 0 ? ORG_ROW_H : 0;
+  const awardTextH = certificateType === "best_paper" ? SIZE_AWARD + 16 : 0;
 
   let totalBlockHeight = 0;
   if (orgSectionH > 0) {
@@ -417,9 +417,9 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
     }
 
     for (let i = 0; i < count; i++) {
-      const sig   = conferenceSignatures[i];
-      const cx    = xCentres[i];
-      const lx    = cx - sigW / 2;
+      const sig = conferenceSignatures[i];
+      const cx = xCentres[i];
+      const lx = cx - sigW / 2;
       const lineY = sigY + 32;
 
       // Signature image
@@ -428,7 +428,7 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
         if (imgRes.ok) {
           const imgBytes = new Uint8Array(await imgRes.arrayBuffer());
           let sigImage: any;
-          try   { sigImage = await pdfDoc.embedPng(imgBytes); }
+          try { sigImage = await pdfDoc.embedPng(imgBytes); }
           catch { sigImage = await pdfDoc.embedJpg(imgBytes); }
           const scaled = sigImage.scaleToFit(100, 38);
           page.drawImage(sigImage, { x: cx - scaled.width / 2, y: lineY + 5, width: scaled.width, height: scaled.height });
@@ -455,8 +455,8 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
     const colW = (PAGE_W - MARGIN * 2) / 3;
     const labels = ["Convener", "Principal", "Director"];
     for (let i = 0; i < 3; i++) {
-      const cx    = MARGIN + colW * i + colW / 2;
-      const lx    = cx - sigW / 2;
+      const cx = MARGIN + colW * i + colW / 2;
+      const lx = cx - sigW / 2;
       const lineY = sigY + 32;
       page.drawLine({ start: { x: lx, y: lineY }, end: { x: lx + sigW, y: lineY }, thickness: 0.5, color: COL_TEXT });
       const lw = fontRegular.widthOfTextAtSize(labels[i], SIZE_SIG - 1);
@@ -466,23 +466,23 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
 
   /* ---- Footer ---- */
   const FOOTER_BASE = MARGIN + 12;
-  const verifyUrl   = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/verify/${verificationCode}`;
+  const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/verify/${verificationCode}`;
 
   page.drawText(`Verification: ${verificationCode}`, { x: MARGIN + 12, y: FOOTER_BASE, size: SIZE_FOOT, font: fontRegular, color: COL_SUB });
 
-  const brandText = "Powered by AcadFlow";
-  const brandW    = fontRegular.widthOfTextAtSize(brandText, SIZE_FOOT);
+  const brandText = "Powered by Confairo";
+  const brandW = fontRegular.widthOfTextAtSize(brandText, SIZE_FOOT);
   page.drawText(brandText, { x: centerX(PAGE_W, brandW), y: FOOTER_BASE, size: SIZE_FOOT, font: fontRegular, color: COL_SUB });
 
   const dateStr = `Issued: ${fmtDate(issuedAt)}`;
-  const dateW   = fontRegular.widthOfTextAtSize(dateStr, SIZE_FOOT);
+  const dateW = fontRegular.widthOfTextAtSize(dateStr, SIZE_FOOT);
   page.drawText(dateStr, { x: centerX(PAGE_W, dateW), y: FOOTER_BASE + 14, size: SIZE_FOOT, font: fontRegular, color: COL_SUB });
 
   // QR code
   const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 200, margin: 1, color: { dark: "#1E1E24", light: "#FAF8F0" } });
-  const qrBase64  = qrDataUrl.split(",")[1];
-  const qrBytes   = Uint8Array.from(atob(qrBase64), (ch) => ch.charCodeAt(0));
-  const qrImage   = await pdfDoc.embedPng(qrBytes);
+  const qrBase64 = qrDataUrl.split(",")[1];
+  const qrBytes = Uint8Array.from(atob(qrBase64), (ch) => ch.charCodeAt(0));
+  const qrImage = await pdfDoc.embedPng(qrBytes);
   page.drawImage(qrImage, { x: PAGE_W - MARGIN - 40 - 12, y: FOOTER_BASE - 4, width: 40, height: 40 });
 
   return pdfDoc.save();

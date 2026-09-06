@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow AI Plagiarism Risk Detector — /api/plagiarism-check
+// Confairo AI Plagiarism Risk Detector — /api/plagiarism-check
 // ZERO-FAILURE: Always returns a usable result.
 // Flow: cooldown → cache → structural + AI → heuristic
 // ============================================================
@@ -269,11 +269,11 @@ export async function POST(req: NextRequest) {
     // Fetch organization membership for this user
     const { data: membership } = conference?.organization_id
       ? await supabaseServer
-          .from("organization_members")
-          .select("role")
-          .eq("user_id", userId!)
-          .eq("organization_id", conference.organization_id)
-          .maybeSingle()
+        .from("organization_members")
+        .select("role")
+        .eq("user_id", userId!)
+        .eq("organization_id", conference.organization_id)
+        .maybeSingle()
       : { data: null };
 
     const orgRole = membership?.role ?? null;

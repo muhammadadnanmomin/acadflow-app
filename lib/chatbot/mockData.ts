@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow Chatbot — Mock Knowledge Base Data
+// Confairo Chatbot — Mock Knowledge Base Data
 // Used to seed the RAG vector store via /api/chatbot/seed-knowledge
 // ============================================================
 
@@ -128,14 +128,14 @@ export const MOCK_CONFERENCES = [
 
 export const MOCK_FAQS = [
   {
-    question: "How do I submit a paper to AcadFlow?",
+    question: "How do I submit a paper to Confairo?",
     answer:
       "To submit a paper: 1) Log in and go to your Participant Dashboard, 2) Click 'Submit Paper', 3) Select the conference, 4) Fill in the title, abstract, and keywords, 5) Upload your PDF (max 15MB), 6) Add co-authors, 7) Click 'Submit'. You'll receive a confirmation email within minutes.",
   },
   {
     question: "What file formats are accepted for paper submission?",
     answer:
-      "AcadFlow accepts PDF files only for paper submissions. The maximum file size is 15MB. Please ensure your paper follows the conference-specific formatting guidelines (usually IEEE or ACM format). Some conferences also accept supplementary materials as ZIP files.",
+      "Confairo accepts PDF files only for paper submissions. The maximum file size is 15MB. Please ensure your paper follows the conference-specific formatting guidelines (usually IEEE or ACM format). Some conferences also accept supplementary materials as ZIP files.",
   },
   {
     question: "How can I check the status of my paper submission?",
@@ -148,7 +148,7 @@ export const MOCK_FAQS = [
       "After acceptance: 1) You'll receive an acceptance email with camera-ready instructions, 2) Submit the final version by the camera-ready deadline, 3) Complete conference registration and pay the registration fee, 4) Your paper will be included in the conference proceedings, 5) Prepare a presentation (oral or poster based on assignment).",
   },
   {
-    question: "How do I become a conference organizer on AcadFlow?",
+    question: "How do I become a conference organizer on Confairo?",
     answer:
       "To create a conference: 1) Log in and go to Dashboard → Organizer, 2) Click 'Create Conference', 3) Fill in conference details (name, dates, topics, fees), 4) Set up the review workflow and deadlines, 5) Invite program committee members. The conference will be listed publicly once published.",
   },
@@ -160,12 +160,12 @@ export const MOCK_FAQS = [
   {
     question: "How does the peer review process work?",
     answer:
-      "AcadFlow uses a double-blind review process by default. Reviewers are assigned by the program chairs and evaluate papers on originality, technical quality, clarity, and significance. Each paper typically receives 3 reviews. Authors can respond to reviews during the rebuttal period.",
+      "Confairo uses a double-blind review process by default. Reviewers are assigned by the program chairs and evaluate papers on originality, technical quality, clarity, and significance. Each paper typically receives 3 reviews. Authors can respond to reviews during the rebuttal period.",
   },
   {
     question: "What is the registration fee and how do I pay?",
     answer:
-      "Registration fees vary by conference (set by the organizer) and attendee type (author, student, professional). AcadFlow supports secure payments via Razorpay (credit/debit cards, UPI, net banking). Go to Dashboard → Billing to manage payments and download invoices.",
+      "Registration fees vary by conference (set by the organizer) and attendee type (author, student, professional). Confairo supports secure payments via Razorpay (credit/debit cards, UPI, net banking). Go to Dashboard → Billing to manage payments and download invoices.",
   },
   {
     question: "How do I find upcoming conferences in my research area?",
@@ -180,7 +180,7 @@ export const MOCK_FAQS = [
   {
     question: "How do I invite co-authors to my submission?",
     answer:
-      "During paper submission (or by editing an existing submission), go to the 'Authors' section and add co-authors by their email address. They'll receive an invitation to claim the paper. All listed authors must have AcadFlow accounts for proceedings purposes.",
+      "During paper submission (or by editing an existing submission), go to the 'Authors' section and add co-authors by their email address. They'll receive an invitation to claim the paper. All listed authors must have Confairo accounts for proceedings purposes.",
   },
   {
     question: "What is a camera-ready submission?",
@@ -191,9 +191,9 @@ export const MOCK_FAQS = [
 
 export const MOCK_GUIDES = [
   {
-    title: "Getting Started with AcadFlow",
+    title: "Getting Started with Confairo",
     content:
-      "AcadFlow is an academic conference management platform. To get started: Create an account at acadflow.in, verify your email, complete your profile (name, affiliation, research interests), then navigate to your Dashboard to start discovering conferences or submitting papers.",
+      "Confairo is an academic conference management platform. To get started: Create an account at confairo.com, verify your email, complete your profile (name, affiliation, research interests), then navigate to your Dashboard to start discovering conferences or submitting papers.",
   },
   {
     title: "Organizer Quick Start Guide",
@@ -203,7 +203,7 @@ export const MOCK_GUIDES = [
   {
     title: "Reviewer Guide",
     content:
-      "When invited as a reviewer: Accept the invitation via email, go to Dashboard → Reviewer, view your assigned papers, submit reviews by the review deadline, and participate in the discussion phase. Use the AcadFlow review form with criteria scores and a written evaluation.",
+      "When invited as a reviewer: Accept the invitation via email, go to Dashboard → Reviewer, view your assigned papers, submit reviews by the review deadline, and participate in the discussion phase. Use the Confairo review form with criteria scores and a written evaluation.",
   },
 ];
 

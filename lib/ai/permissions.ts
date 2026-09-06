@@ -1,5 +1,5 @@
 /**
- * AcadFlow AI Permission Helpers
+ * Confairo AI Permission Helpers
  *
  * Centralized role-based access control for AI features.
  * Uses organization_members as the single source of truth for organizer roles.

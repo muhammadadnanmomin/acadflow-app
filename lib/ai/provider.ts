@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow Shared AI Provider — Stabilized Zero-Failure
+// Confairo Shared AI Provider — Stabilized Zero-Failure
 // NEVER throws to callers. Always returns a result or null.
 // Features: stable models, input cap (8k), single retry,
 //   circuit breaker, fast-mode fallback, health check,
@@ -483,8 +483,8 @@ async function _callAIInternal(options: AICallOptions): Promise<AICallResult | n
   // ── Determine order ─────────────────────────────────────────
   const tryOrder: ("groq" | "gemini")[] =
     preferProvider === "gemini" ? ["gemini", "groq"] :
-    preferProvider === "groq" ? ["groq", "gemini"] :
-    ["groq", "gemini"]; // Default: Groq first
+      preferProvider === "groq" ? ["groq", "gemini"] :
+        ["groq", "gemini"]; // Default: Groq first
 
   // ── Sequential: NO retry for Groq (anti-ban), single retry for Gemini
   for (const provider of tryOrder) {
@@ -603,8 +603,8 @@ export function getPlagiarismHeuristicFallback(
       level === "Low"
         ? "✅ Low Risk — Structural analysis shows minimal repetition patterns."
         : level === "Medium"
-        ? "⚠️ Medium Risk — Structural analysis detected some repetition. Manual review recommended."
-        : "🚨 High Risk — Structural analysis detected significant repetition patterns.",
+          ? "⚠️ Medium Risk — Structural analysis detected some repetition. Manual review recommended."
+          : "🚨 High Risk — Structural analysis detected significant repetition patterns.",
     suspicious_sections: [],
     insights:
       `Based on structural analysis only (AI providers unavailable). ` +

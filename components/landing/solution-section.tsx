@@ -54,7 +54,7 @@ export function SolutionSection() {
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-600">
             You no longer have to switch between Google Forms, Excel, Gmail, and
-            payment apps to run a conference. AcadFlow handles submissions, peer reviews,
+            payment apps to run a conference. Confairo handles submissions, peer reviews,
             fee collection, and certificate generation —{" "}
             <strong className="text-gray-900">all from a single dashboard</strong>.
           </p>
@@ -77,7 +77,7 @@ export function SolutionSection() {
             </span>
             <span className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-emerald-600">
               <Check className="h-4 w-4" />
-              With AcadFlow
+              With Confairo
             </span>
           </div>
 

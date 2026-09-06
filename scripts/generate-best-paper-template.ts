@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Best Paper DOCX Template Generator
+   Confairo — Best Paper DOCX Template Generator
    Run once: npx ts-node scripts/generate-best-paper-template.ts
    Creates public/templates/best-paper-certificate.docx
    ================================================================ */
@@ -217,7 +217,7 @@ async function main() {
             spacing: { before: 0, after: 0 },
             children: [
               new TextRun({
-                text: "Powered by AcadFlow",
+                text: "Powered by Confairo",
                 size: 16,
                 color: TEXT_SUB,
                 italics: true,

@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow AI Smart Reviewer Assignment — /api/ai/smart-assign
+// Confairo AI Smart Reviewer Assignment — /api/ai/smart-assign
 // Suggests best-fit reviewers for a paper based on:
 //   - Paper title, abstract/content
 //   - Reviewer names, expertise, past assignments
@@ -276,11 +276,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<SmartAssignRe
     // Fetch organization membership for this user
     const { data: membership } = conference?.organization_id
       ? await supabaseServer
-          .from("organization_members")
-          .select("role")
-          .eq("user_id", userId)
-          .eq("organization_id", conference.organization_id)
-          .maybeSingle()
+        .from("organization_members")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("organization_id", conference.organization_id)
+        .maybeSingle()
       : { data: null };
 
     const orgRole = membership?.role ?? null;

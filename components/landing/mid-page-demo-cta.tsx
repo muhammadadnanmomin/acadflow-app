@@ -30,7 +30,7 @@ export function MidPageDemoCTA() {
         </h2>
 
         <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-gray-600 sm:text-lg">
-          Book a free 15-minute demo and see how AcadFlow can simplify your
+          Book a free 15-minute demo and see how Confairo can simplify your
           next conference — from submissions to certificates.
         </p>
 

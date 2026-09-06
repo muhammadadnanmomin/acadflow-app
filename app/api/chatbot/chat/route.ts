@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow Chatbot — /api/chatbot/chat
+// Confairo Chatbot — /api/chatbot/chat
 // POST: SSE streaming chat with RAG + role-aware context
 // Powered by Google Gemini (gemini-2.5-flash) — free tier
 // ============================================================
@@ -48,16 +48,16 @@ function buildSystemPrompt(userRole: string, ragContext: string): string {
       organizer:
         "The user is a conference ORGANIZER. They manage conferences, review workflows, submissions, and program committees. Help them with organizing tasks, setting up conferences, managing reviewers, and handling submissions.",
       reviewer:
-        "The user is a REVIEWER. They evaluate paper submissions. Help them understand the review process, deadlines, and how to submit reviews on AcadFlow.",
+        "The user is a REVIEWER. They evaluate paper submissions. Help them understand the review process, deadlines, and how to submit reviews on Confairo.",
       admin:
-        "The user is a platform ADMIN. They have full access to AcadFlow. Help them with platform management, settings, and troubleshooting.",
+        "The user is a platform ADMIN. They have full access to Confairo. Help them with platform management, settings, and troubleshooting.",
       participant:
         "The user is a PARTICIPANT/RESEARCHER. They submit papers and attend conferences. Help them with submissions, deadlines, registration, and conference discovery.",
       guest:
-        "The user is not logged in. Provide general guidance about AcadFlow and encourage them to sign up for personalized features.",
+        "The user is not logged in. Provide general guidance about Confairo and encourage them to sign up for personalized features.",
     } as Record<string, string>)[userRole] ?? "The user is a guest visitor.";
 
-  return `You are AcadFlow AI, an intelligent assistant for AcadFlow — an academic conference management platform.
+  return `You are Confairo AI, an intelligent assistant for Confairo — an academic conference management platform.
 
 Your role: ${roleContext}
 
@@ -87,7 +87,7 @@ ${ragContext ? `\n## Relevant Knowledge Base Context\n${ragContext}\n` : ""}
 function getFallbackResponse(message: string): string {
   const lower = message.toLowerCase();
   if (lower.includes("submit") || lower.includes("paper") || lower.includes("upload")) {
-    return "**Submitting a Paper on AcadFlow:**\n\n1. Go to **Dashboard → Participant**\n2. Click **Submit Paper**\n3. Select your target conference\n4. Fill in title, abstract, and keywords\n5. Upload your PDF (max 15MB)\n6. Add co-authors if needed\n7. Click **Submit**\n\nYou'll receive a confirmation email immediately. Is there a specific step you need help with?";
+    return "**Submitting a Paper on Confairo:**\n\n1. Go to **Dashboard → Participant**\n2. Click **Submit Paper**\n3. Select your target conference\n4. Fill in title, abstract, and keywords\n5. Upload your PDF (max 15MB)\n6. Add co-authors if needed\n7. Click **Submit**\n\nYou'll receive a confirmation email immediately. Is there a specific step you need help with?";
   }
   if (lower.includes("deadline") || lower.includes("due date")) {
     return "**Checking Deadlines:**\n\nGo to **Dashboard → Participant → My Submissions** to see all deadlines for your submitted papers.\n\nFor browsing all conference deadlines, visit the **Conferences** page and use the deadline filter.\n\nWould you like help finding a specific conference?";
@@ -96,15 +96,15 @@ function getFallbackResponse(message: string): string {
     return "**Discovering Conferences:**\n\nVisit the **Conferences** page (no login required) to browse all available conferences. You can filter by:\n- Research topic / keywords\n- Submission deadline\n- Conference date\n- Location / country\n\nWould you like to know more about a specific research area?";
   }
   if (lower.includes("review") || lower.includes("reviewer")) {
-    return "**Review Process:**\n\nAcadFlow uses a **double-blind peer review** process. As a reviewer:\n1. Accept your invitation via email\n2. Go to **Dashboard → Reviewer**\n3. View assigned papers\n4. Submit reviews by the deadline\n\nEach paper typically receives 3 independent reviews. Is there something specific about the review process you'd like to know?";
+    return "**Review Process:**\n\nConfairo uses a **double-blind peer review** process. As a reviewer:\n1. Accept your invitation via email\n2. Go to **Dashboard → Reviewer**\n3. View assigned papers\n4. Submit reviews by the deadline\n\nEach paper typically receives 3 independent reviews. Is there something specific about the review process you'd like to know?";
   }
   if (lower.includes("register") || lower.includes("payment") || lower.includes("fee")) {
     return "**Registration & Payment:**\n\nRegistration fees are set by the conference organizer. To register:\n1. Go to **Dashboard → Billing**\n2. Select your conference\n3. Pay via Razorpay (cards, UPI, net banking)\n\nYou can download your invoice from the Billing section. Need help with a specific payment?";
   }
   if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
-    return "Hello! 👋 I'm **AcadFlow AI**, your conference management assistant.\n\nI can help you with:\n- 📄 Paper submission guidance\n- 🗓️ Conference discovery & deadlines\n- 🔍 Submission status tracking\n- ❓ Platform FAQs\n- 🧭 Navigation help\n\nWhat would you like to know?";
+    return "Hello! 👋 I'm **Confairo AI**, your conference management assistant.\n\nI can help you with:\n- 📄 Paper submission guidance\n- 🗓️ Conference discovery & deadlines\n- 🔍 Submission status tracking\n- ❓ Platform FAQs\n- 🧭 Navigation help\n\nWhat would you like to know?";
   }
-  return "I'm here to help with AcadFlow — the academic conference management platform. I can assist with **paper submissions**, **conference discovery**, **deadlines**, **review processes**, and **platform navigation**.\n\nCould you be more specific about what you need help with? Or try one of the quick actions below.";
+  return "I'm here to help with Confairo — the academic conference management platform. I can assist with **paper submissions**, **conference discovery**, **deadlines**, **review processes**, and **platform navigation**.\n\nCould you be more specific about what you need help with? Or try one of the quick actions below.";
 }
 
 // ── Safety settings removed — handled by default in @google/genai SDK ──

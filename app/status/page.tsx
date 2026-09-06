@@ -15,7 +15,7 @@ export default function StatusPage() {
         </h1>
 
         <p className="mt-4 text-gray-600">
-          Check the current operational status of AcadFlow services.
+          Check the current operational status of Confairo services.
         </p>
 
         {/* Overall Status */}
@@ -105,11 +105,10 @@ function StatusItem({
       </div>
 
       <span
-        className={`text-sm font-medium ${
-          isOperational
+        className={`text-sm font-medium ${isOperational
             ? "text-green-600"
             : "text-yellow-600"
-        }`}
+          }`}
       >
         {status}
       </span>

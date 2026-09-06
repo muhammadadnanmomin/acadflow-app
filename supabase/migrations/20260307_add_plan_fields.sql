@@ -1,5 +1,5 @@
 -- ============================================================
--- AcadFlow — Add SaaS plan fields to organizations
+-- Confairo — Add SaaS plan fields to organizations
 -- plan_type: free | pro | enterprise
 -- conference_limit / submission_limit: NULL = unlimited
 -- ============================================================

@@ -1,5 +1,5 @@
 -- ================================================================
--- AcadFlow — Conference Signatures
+-- Confairo — Conference Signatures
 -- Adds a JSONB column to store organizer signature data per conference.
 -- Schema per element:
 --   { name: string (optional), role: string, image_url: string, type: "drawn" }

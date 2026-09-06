@@ -25,7 +25,7 @@ export default function TermsPage() {
             </h2>
 
             <p>
-              By accessing or using AcadFlow, you agree to comply with and be
+              By accessing or using Confairo, you agree to comply with and be
               bound by these Terms & Conditions. If you do not agree with these
               terms, you should discontinue use of the platform.
             </p>
@@ -37,13 +37,13 @@ export default function TermsPage() {
             </h2>
 
             <p>
-              AcadFlow provides a software platform designed to help academic
+              Confairo provides a software platform designed to help academic
               conference organizers manage submissions, peer reviews,
               registrations, payments, schedules, and certifications.
             </p>
 
             <p className="mt-2">
-              AcadFlow acts solely as a technology provider and does not
+              Confairo acts solely as a technology provider and does not
               organize or operate conferences directly.
             </p>
           </section>
@@ -79,33 +79,33 @@ export default function TermsPage() {
             </ul>
 
             <p className="mt-2">
-              AcadFlow does not control or influence academic review outcomes
+              Confairo does not control or influence academic review outcomes
               or conference decisions.
             </p>
           </section>
 
-<section>
-  <h2 className="text-xl font-semibold text-gray-900">
-    5. Conference Organizer Plans & Billing
-  </h2>
+          <section>
+            <h2 className="text-xl font-semibold text-gray-900">
+              5. Conference Organizer Plans & Billing
+            </h2>
 
-  <p>
-    AcadFlow may offer different plans and pricing options for conference
-    organizers. Certain features of the platform may require payment of a
-    conference management fee.
-  </p>
+            <p>
+              Confairo may offer different plans and pricing options for conference
+              organizers. Certain features of the platform may require payment of a
+              conference management fee.
+            </p>
 
-  <p className="mt-2">
-    Organizers may be charged a per-conference platform fee depending on
-    the selected plan. Pricing and plan details are displayed on the
-    AcadFlow website and may be updated periodically.
-  </p>
+            <p className="mt-2">
+              Organizers may be charged a per-conference platform fee depending on
+              the selected plan. Pricing and plan details are displayed on the
+              Confairo website and may be updated periodically.
+            </p>
 
-  <p className="mt-2">
-    Organizer plan fees are non-refundable once a conference has been
-    created or platform services have been used.
-  </p>
-</section>
+            <p className="mt-2">
+              Organizer plan fees are non-refundable once a conference has been
+              created or platform services have been used.
+            </p>
+          </section>
 
           <section>
             <h2 className="text-xl font-semibold text-gray-900">
@@ -113,14 +113,14 @@ export default function TermsPage() {
             </h2>
 
             <p>
-              Payments made through the AcadFlow platform may include a
+              Payments made through the Confairo platform may include a
               platform processing fee. This fee helps support payment
               infrastructure, platform maintenance, and transaction processing.
             </p>
 
             <p className="mt-2">
               Conference fees belong to the respective conference organizer.
-              AcadFlow may deduct a platform processing fee before settlement
+              Confairo may deduct a platform processing fee before settlement
               where applicable.
             </p>
 
@@ -142,7 +142,7 @@ export default function TermsPage() {
             </p>
 
             <p className="mt-2">
-              AcadFlow does not guarantee refunds for conference payments
+              Confairo does not guarantee refunds for conference payments
               unless required by applicable law or payment gateway policies.
             </p>
           </section>
@@ -154,7 +154,7 @@ export default function TermsPage() {
 
             <p>
               While we strive to maintain reliable and uninterrupted service,
-              AcadFlow does not guarantee that the platform will always be
+              Confairo does not guarantee that the platform will always be
               available without interruptions, delays, or technical errors.
             </p>
           </section>
@@ -166,7 +166,7 @@ export default function TermsPage() {
 
             <p>
               Authors retain ownership of their research papers and submitted
-              content. AcadFlow does not claim ownership of academic content
+              content. Confairo does not claim ownership of academic content
               but may store and process it to provide platform functionality.
             </p>
           </section>
@@ -177,7 +177,7 @@ export default function TermsPage() {
             </h2>
 
             <p>
-              AcadFlow is not responsible for conference outcomes, review
+              Confairo is not responsible for conference outcomes, review
               decisions, payment disputes between participants and organizers,
               or issues caused by third-party services such as payment
               providers.
@@ -190,7 +190,7 @@ export default function TermsPage() {
             </h2>
 
             <p>
-              AcadFlow may update these Terms & Conditions periodically.
+              Confairo may update these Terms & Conditions periodically.
               Continued use of the platform after updates indicates acceptance
               of the revised terms.
             </p>
@@ -205,7 +205,7 @@ export default function TermsPage() {
               For legal inquiries regarding these terms, please contact us at:
               <br />
               <span className="font-medium text-indigo-600">
-                acadflow.platform@gmail.com
+                Confairo.platform@gmail.com
               </span>
             </p>
           </section>

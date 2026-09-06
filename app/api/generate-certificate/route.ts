@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Certificate Generation API
+   Confairo — Certificate Generation API
    POST /api/generate-certificate
    POST /api/generate-certificate?format=docx   → organizer only, streams .docx
    POST /api/generate-certificate?format=pdf    → returns JSON URL (default)
@@ -7,13 +7,13 @@
    Supports certificateType: "participation" (default) | "best_paper"
    ================================================================ */
 
-import { NextResponse }            from "next/server";
-import { supabaseAdmin }           from "@/lib/supabase/admin";
-import crypto                      from "crypto";
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import crypto from "crypto";
 
 import { CertificateData, CertificateFormat, CertificateType } from "@/lib/certificate/types";
-import { generateCertificatePdf }             from "@/lib/certificate/generatePdf";
-import { generateCertificateDocx }            from "@/lib/certificate/generateDocx";
+import { generateCertificatePdf } from "@/lib/certificate/generatePdf";
+import { generateCertificateDocx } from "@/lib/certificate/generateDocx";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -150,7 +150,7 @@ export async function POST(req: Request) {
     }
 
     let resolvedConferenceTitle = (conferenceTitle as string) || "International Academic Conference";
-    let conferenceDates         = "";
+    let conferenceDates = "";
     let conferenceSignatures: SignatureRecord[] = [];
 
     if (conferenceId) {
@@ -162,11 +162,11 @@ export async function POST(req: Request) {
 
       if (conference) {
         resolvedConferenceTitle = conference.title || resolvedConferenceTitle;
-        conferenceSignatures    = (conference.signatures as SignatureRecord[]) ?? [];
+        conferenceSignatures = (conference.signatures as SignatureRecord[]) ?? [];
 
         if (conference.start_date) {
           const start = formatDate(new Date(conference.start_date));
-          const end   = conference.end_date ? formatDate(new Date(conference.end_date)) : null;
+          const end = conference.end_date ? formatDate(new Date(conference.end_date)) : null;
           conferenceDates = end ? `${start} \u2013 ${end}` : start;
         }
       }
@@ -190,14 +190,14 @@ export async function POST(req: Request) {
 
     /* --- Build shared data object --- */
     const verificationCode = generateVerificationCode();
-    const issuedAt         = new Date();
+    const issuedAt = new Date();
 
     const certData: CertificateData = {
       certificateType,
-      authorName:           authorName || "Participant",
+      authorName: authorName || "Participant",
       authorAffiliation,
-      paperTitle:           paperTitle || "",
-      conferenceTitle:      resolvedConferenceTitle,
+      paperTitle: paperTitle || "",
+      conferenceTitle: resolvedConferenceTitle,
       conferenceDates,
       verificationCode,
       issuedAt,
@@ -211,7 +211,7 @@ export async function POST(req: Request) {
 
     if (format === "docx") {
       const docxBuffer = await generateCertificateDocx(certData);
-      const docxBody   = docxBuffer.buffer.slice(
+      const docxBody = docxBuffer.buffer.slice(
         docxBuffer.byteOffset,
         docxBuffer.byteOffset + docxBuffer.byteLength
       ) as ArrayBuffer;
@@ -261,13 +261,13 @@ export async function POST(req: Request) {
     const { data: certRow, error: insertError } = await supabaseAdmin
       .from("certificates")
       .insert({
-        paper_id:         paperId,
-        author_id:        authorId,
-        conference_id:    conferenceId || null,
+        paper_id: paperId,
+        author_id: authorId,
+        conference_id: conferenceId || null,
         certificate_type: typeSlug,
-        file_url:         storageData.publicUrl,
+        file_url: storageData.publicUrl,
         verification_code: verificationCode,
-        pdf_hash:         pdfHash,
+        pdf_hash: pdfHash,
       })
       .select("id")
       .single();

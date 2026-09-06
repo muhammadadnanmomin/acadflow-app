@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow Chatbot — useChatbot Hook
+// Confairo Chatbot — useChatbot Hook
 // Central hook consumed by all chatbot components
 // ============================================================
 "use client";
@@ -29,13 +29,13 @@ export function useChatbot() {
         store.setSettings({
           enabled: true,
           welcomeMessage:
-            "Hi! I'm AcadFlow AI 👋 I can help you discover conferences, track submissions, check deadlines, and navigate the platform. How can I assist you today?",
-          botName: "AcadFlow AI",
+            "Hi! I'm Confairo AI 👋 I can help you discover conferences, track submissions, check deadlines, and navigate the platform. How can I assist you today?",
+          botName: "Confairo AI",
           primaryColor: "#3b4fd4",
         });
         store.setSettingsLoaded(true);
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Initialize session ────────────────────────────────────

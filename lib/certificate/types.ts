@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Certificate Generator Types
+   Confairo — Certificate Generator Types
    Shared between generatePdf.ts and generateDocx.ts
    ================================================================ */
 

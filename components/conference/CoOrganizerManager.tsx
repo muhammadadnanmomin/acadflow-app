@@ -304,7 +304,7 @@ export default function CoOrganizerManager({
           )}
 
           <p className="text-xs text-gray-500">
-            Only users with an existing AcadFlow account and organization
+            Only users with an existing Confairo account and organization
             membership can be added. They will immediately gain access to manage
             this conference.
           </p>

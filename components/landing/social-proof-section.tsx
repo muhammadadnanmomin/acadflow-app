@@ -6,7 +6,7 @@ const testimonials = [
     role: "Conference Chair, ICASET 2025",
     institution: "NIT Warangal",
     quote:
-      "We managed 320 paper submissions entirely on AcadFlow. What used to take us weeks of email coordination was done in days. The certificate generation alone saved us 40+ hours.",
+      "We managed 320 paper submissions entirely on Confairo. What used to take us weeks of email coordination was done in days. The certificate generation alone saved us 40+ hours.",
     highlight: "320 submissions managed",
   },
   {
@@ -117,7 +117,7 @@ export function SocialProofSection() {
             </h3>
             <p className="mt-3 text-gray-600">
               Whether you&apos;re running a departmental seminar or a national symposium,
-              AcadFlow adapts to your needs.
+              Confairo adapts to your needs.
             </p>
           </div>
 

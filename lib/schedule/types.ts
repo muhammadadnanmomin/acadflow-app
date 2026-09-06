@@ -1,5 +1,5 @@
 // ============================================================
-// Schedule Types — AcadFlow Multi-Track Scheduling
+// Schedule Types — Confairo Multi-Track Scheduling
 // ============================================================
 
 export type SessionType =

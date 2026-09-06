@@ -1,5 +1,5 @@
 /**
- * AcadFlow — Organizer Financial Ledger
+ * Confairo — Organizer Financial Ledger
  *
  * Append-only, double-entry inspired ledger.
  * Balance is always derived from ledger entries.

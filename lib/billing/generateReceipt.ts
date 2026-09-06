@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Receipt PDF Generator
+   Confairo — Receipt PDF Generator
    Uses jsPDF to generate and auto-download a payment receipt.
    ================================================================ */
 
@@ -58,7 +58,7 @@ export function generateReceipt(data: ReceiptData): void {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
-    doc.text("AcadFlow", margin, 18);
+    doc.text("Confairo", margin, 18);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
@@ -228,14 +228,14 @@ export function generateReceipt(data: ReceiptData): void {
     );
     y += 5;
     doc.text(
-        "AcadFlow — Academic Conference Management Platform  •  acadflow.in",
+        "Confairo — Academic Conference Management Platform  •  confairo.com",
         pageWidth / 2,
         y,
         { align: "center" }
     );
     y += 5;
     doc.text(
-        "For support, contact acadflow.platform@gmail.com",
+        "For support, contact Confairo.platform@gmail.com",
         pageWidth / 2,
         y,
         { align: "center" }
@@ -244,5 +244,5 @@ export function generateReceipt(data: ReceiptData): void {
     /* ---------------------------------------------------------------- */
     /*  Save / download                                                  */
     /* ---------------------------------------------------------------- */
-    doc.save(`AcadFlow_Receipt_${data.paymentId}.pdf`);
+    doc.save(`Confairo_Receipt_${data.paymentId}.pdf`);
 }

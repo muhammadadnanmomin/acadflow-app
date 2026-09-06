@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "No user found with this email. They must have an AcadFlow account first.",
+          "No user found with this email. They must have an Confairo account first.",
       },
       { status: 404 }
     );

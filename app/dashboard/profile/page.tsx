@@ -118,7 +118,7 @@ export default async function ProfileViewPage() {
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            Complete your profile to enhance your academic presence on AcadFlow.
+            Complete your profile to enhance your academic presence on Confairo.
           </p>
         </Card>
       )}

@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow Chatbot — TypeScript Types
+// Confairo Chatbot — TypeScript Types
 // ============================================================
 
 export type UserRole = "guest" | "participant" | "organizer" | "reviewer" | "admin";

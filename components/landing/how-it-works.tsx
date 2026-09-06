@@ -71,7 +71,7 @@ export function HowItWorksSection() {
           </p>
 
           <p className="mt-3 text-sm text-gray-500">
-            New to AcadFlow?{" "}
+            New to Confairo?{" "}
             <Link
               href="/user-guide"
               className="font-medium text-indigo-600 transition hover:text-indigo-700 hover:underline"

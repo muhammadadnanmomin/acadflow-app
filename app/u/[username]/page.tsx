@@ -38,7 +38,7 @@ export default async function PublicProfilePage({
         <User className="h-16 w-16 text-gray-300 mb-4" />
         <h1 className="text-2xl font-bold text-gray-800">Profile Not Found</h1>
         <p className="text-muted-foreground mt-2 max-w-sm">
-          The user <span className="font-mono font-medium">@{username}</span> does not exist on AcadFlow.
+          The user <span className="font-mono font-medium">@{username}</span> does not exist on Confairo.
         </p>
       </div>
     );
@@ -150,7 +150,7 @@ export default async function PublicProfilePage({
       {/* ── Footer ── */}
       <p className="text-center text-xs text-muted-foreground">
         Public academic profile on{" "}
-        <span className="font-semibold text-indigo-600">AcadFlow</span>
+        <span className="font-semibold text-indigo-600">Confairo</span>
       </p>
     </div>
   );

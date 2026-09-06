@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// AcadFlow Chatbot — Chat Window
+// Confairo Chatbot — Chat Window
 // Expandable glassmorphism chat panel
 // ============================================================
 import { useRef, useEffect, useState, KeyboardEvent } from "react";
@@ -87,7 +87,7 @@ export function ChatbotWindow({
     <div
       id="chatbot-window"
       role="dialog"
-      aria-label="AcadFlow AI Chat"
+      aria-label="Confairo AI Chat"
       aria-modal="true"
       className={`
         fixed bottom-24 right-6 z-[9997]
@@ -99,10 +99,9 @@ export function ChatbotWindow({
         backdrop-blur-xl
         shadow-[0_20px_60px_rgba(0,0,0,0.18)]
         transition-all duration-300 ease-out origin-bottom-right
-        ${
-          isOpen
-            ? "opacity-100 scale-100 translate-y-0"
-            : "opacity-0 scale-90 translate-y-4 pointer-events-none"
+        ${isOpen
+          ? "opacity-100 scale-100 translate-y-0"
+          : "opacity-0 scale-90 translate-y-4 pointer-events-none"
         }
       `}
       style={{ height: "clamp(440px, 70vh, 620px)" }}
@@ -126,7 +125,7 @@ export function ChatbotWindow({
           </div>
           <div>
             <p className="text-sm font-semibold text-white leading-none">
-              {settings?.botName ?? "AcadFlow AI"}
+              {settings?.botName ?? "Confairo AI"}
             </p>
             <div className="flex items-center gap-1 mt-0.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -201,7 +200,7 @@ export function ChatbotWindow({
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                {settings?.botName ?? "AcadFlow AI"}
+                {settings?.botName ?? "Confairo AI"}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                 {settings?.welcomeMessage ??

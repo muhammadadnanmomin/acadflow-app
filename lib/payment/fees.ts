@@ -1,12 +1,12 @@
 /**
- * AcadFlow — Fee Calculation Utility
+ * Confairo — Fee Calculation Utility
  *
  * Shared, pure fee-calculation logic used by both client (UI preview)
  * and server (order creation / validation).
  *
  * Business rule:
  *   Organiser receives the exact conference fee they set.
- *   AcadFlow charges a flat platform processing fee on top.
+ *   Confairo charges a flat platform processing fee on top.
  *   Payment gateway fees are absorbed by the processing fee.
  */
 

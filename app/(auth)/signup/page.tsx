@@ -90,14 +90,14 @@ function SignupInner() {
         {/* Brand header */}
         <div className="mb-2 text-center">
           <span className="text-lg font-semibold text-indigo-600 tracking-wide">
-            AcadFlow
+            Confairo
           </span>
         </div>
 
         {/* Title */}
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-gray-900">
-            Create your AcadFlow account
+            Create your Confairo account
           </h1>
           <p className="mt-1 text-sm text-gray-500">
             Manage conferences, submissions, and peer reviews in one place.

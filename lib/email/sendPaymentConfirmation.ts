@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Participant Payment Confirmation Email
+   Confairo — Participant Payment Confirmation Email
    Sends after conference fee / listener payment verification.
    Server-side only (API routes).
    ================================================================ */
@@ -7,20 +7,20 @@
 import { sendEmail } from "@/lib/email/send";
 
 export interface PaymentConfirmationData {
-    /** Recipient email */
-    email: string;
-    /** Recipient name */
-    name: string;
-    /** Conference name */
-    conferenceName: string;
-    /** Amount paid in INR */
-    amount: number;
-    /** Razorpay payment ID */
-    paymentId: string;
-    /** Razorpay order ID */
-    orderId: string;
-    /** Payment date */
-    paidAt?: string | Date;
+  /** Recipient email */
+  email: string;
+  /** Recipient name */
+  name: string;
+  /** Conference name */
+  conferenceName: string;
+  /** Amount paid in INR */
+  amount: number;
+  /** Razorpay payment ID */
+  paymentId: string;
+  /** Razorpay order ID */
+  orderId: string;
+  /** Payment date */
+  paidAt?: string | Date;
 }
 
 /**
@@ -28,21 +28,21 @@ export interface PaymentConfirmationData {
  * Non-blocking — failures are logged but never break the payment flow.
  */
 export async function sendPaymentConfirmation(
-    data: PaymentConfirmationData
+  data: PaymentConfirmationData
 ): Promise<void> {
-    const formattedAmount = `₹${data.amount.toLocaleString("en-IN")}`;
-    const paidDate = data.paidAt ? new Date(data.paidAt) : new Date();
-    const formattedDate = paidDate.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-    });
-    const formattedTime = paidDate.toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+  const formattedAmount = `₹${data.amount.toLocaleString("en-IN")}`;
+  const paidDate = data.paidAt ? new Date(data.paidAt) : new Date();
+  const formattedDate = paidDate.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  const formattedTime = paidDate.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
-    const html = `
+  const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -55,7 +55,7 @@ export async function sendPaymentConfirmation(
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#4f46e5,#6366f1);border-radius:12px 12px 0 0;padding:32px 28px;text-align:center;">
       <h1 style="margin:0;font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.3px;">
-        AcadFlow
+        Confairo
       </h1>
       <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.8);">
         Payment Confirmation
@@ -124,21 +124,21 @@ export async function sendPaymentConfirmation(
 
       <p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;">
         A receipt for this payment can be downloaded from your
-        <a href="https://acadflow.in/dashboard/participant/payments" style="color:#4f46e5;text-decoration:none;font-weight:500;">AcadFlow Dashboard</a>.
+        <a href="https://confairo.com/dashboard/participant/payments" style="color:#4f46e5;text-decoration:none;font-weight:500;">Confairo Dashboard</a>.
       </p>
     </div>
 
     <!-- Footer -->
     <div style="padding:20px 28px;text-align:center;border-radius:0 0 12px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-top:0;">
       <p style="margin:0;font-size:12px;font-weight:600;color:#6b7280;">
-        AcadFlow
+        Confairo
       </p>
       <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">
         Academic Conference Management Platform
       </p>
       <p style="margin:8px 0 0;font-size:11px;color:#9ca3af;">
         For support, contact
-        <a href="mailto:acadflow.platform@gmail.com" style="color:#4f46e5;text-decoration:none;">acadflow.platform@gmail.com</a>
+        <a href="mailto:Confairo.platform@gmail.com" style="color:#4f46e5;text-decoration:none;">Confairo.platform@gmail.com</a>
       </p>
     </div>
 
@@ -147,11 +147,11 @@ export async function sendPaymentConfirmation(
 </html>
     `.trim();
 
-    try {
-        await sendEmail(data.email, "AcadFlow — Payment Confirmation", html);
-        console.log(`📧 Payment confirmation email sent: ${data.email}`);
-    } catch (err) {
-        // Non-blocking — log but never throw
-        console.error("⚠️ Payment confirmation email failed (non-blocking):", err);
-    }
+  try {
+    await sendEmail(data.email, "Confairo — Payment Confirmation", html);
+    console.log(`📧 Payment confirmation email sent: ${data.email}`);
+  } catch (err) {
+    // Non-blocking — log but never throw
+    console.error("⚠️ Payment confirmation email failed (non-blocking):", err);
+  }
 }

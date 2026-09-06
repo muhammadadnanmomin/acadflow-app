@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Participant Payment Receipt Generator
+   Confairo — Participant Payment Receipt Generator
    Creates a branded receipt PDF for conference fee payments
    with full fee breakdown (conference fee + processing fee).
    ================================================================ */
@@ -54,7 +54,7 @@ export function generatePaymentReceipt(data: ParticipantReceiptData): void {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
-    doc.text("AcadFlow", margin, 18);
+    doc.text("Confairo", margin, 18);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
@@ -219,13 +219,13 @@ export function generatePaymentReceipt(data: ParticipantReceiptData): void {
     );
     y += 5;
     doc.text(
-        `Platform processing fee of Rs. ${formatINR(data.processingFee)} is retained by AcadFlow.`,
+        `Platform processing fee of Rs. ${formatINR(data.processingFee)} is retained by Confairo.`,
         margin,
         y
     );
     y += 5;
     doc.text(
-        "AcadFlow charges a small platform processing fee to support secure payment infrastructure and platform operations.",
+        "Confairo charges a small platform processing fee to support secure payment infrastructure and platform operations.",
         margin,
         y
     );
@@ -250,14 +250,14 @@ export function generatePaymentReceipt(data: ParticipantReceiptData): void {
     );
     y += 5;
     doc.text(
-        "AcadFlow — Academic Conference Management Platform  •  acadflow.in",
+        "Confairo — Academic Conference Management Platform  •  confairo.com",
         pageWidth / 2,
         y,
         { align: "center" }
     );
     y += 5;
     doc.text(
-        "For support, contact acadflow.platform@gmail.com",
+        "For support, contact Confairo.platform@gmail.com",
         pageWidth / 2,
         y,
         { align: "center" }
@@ -267,5 +267,5 @@ export function generatePaymentReceipt(data: ParticipantReceiptData): void {
     /*  Save                                                             */
     /* ---------------------------------------------------------------- */
     const safeId = data.paymentId.replace(/[^a-zA-Z0-9_-]/g, "_");
-    doc.save(`AcadFlow_Receipt_${safeId}.pdf`);
+    doc.save(`Confairo_Receipt_${safeId}.pdf`);
 }

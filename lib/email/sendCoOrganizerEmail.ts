@@ -19,7 +19,7 @@ export async function sendCoOrganizerEmail({
     conferenceId,
     addedByName,
 }: CoOrganizerEmailParams): Promise<void> {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://acadflow.in";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://confairo.com";
     const dashboardLink = `${appUrl}/dashboard/organizer/conferences/${conferenceId}`;
 
     const html = `
@@ -56,11 +56,11 @@ export async function sendCoOrganizerEmail({
 
       <p style="margin:0;">
         Regards,<br/>
-        <strong>AcadFlow Team</strong>
+        <strong>Confairo Team</strong>
       </p>
 
       <p style="font-size:12px; color:#777; margin-top:20px;">
-        This email was sent automatically by <strong>AcadFlow</strong>.<br/>
+        This email was sent automatically by <strong>Confairo</strong>.<br/>
         If you were not expecting this, please contact the conference organizer.
       </p>
 
@@ -71,7 +71,7 @@ export async function sendCoOrganizerEmail({
     try {
         await sendEmail(
             toEmail,
-            "You've been added as a Co-Organizer on AcadFlow",
+            "You've been added as a Co-Organizer on Confairo",
             html
         );
     } catch (err) {

@@ -25,7 +25,7 @@ export default function PrivacyPage() {
             </h2>
 
             <p>
-              AcadFlow collects information necessary to provide conference
+              Confairo collects information necessary to provide conference
               management services. This may include your name, email address,
               institution details, profile information, and documents submitted
               through the platform such as research papers or abstracts.
@@ -43,7 +43,7 @@ export default function PrivacyPage() {
             </h2>
 
             <p>
-              Your information is used to operate and improve the AcadFlow
+              Your information is used to operate and improve the Confairo
               platform, including managing conference submissions, peer
               reviews, participant registrations, payment processing,
               certificate generation, and communications related to
@@ -57,12 +57,12 @@ export default function PrivacyPage() {
             </h2>
 
             <p>
-              Payments made through AcadFlow are processed securely by
+              Payments made through Confairo are processed securely by
               third-party payment providers such as Razorpay.
             </p>
 
             <p className="mt-2">
-              AcadFlow does not store credit card or debit card details on
+              Confairo does not store credit card or debit card details on
               its servers. Payment data is handled directly by the payment
               provider according to their security and privacy policies.
             </p>
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
             </h2>
 
             <p>
-              AcadFlow does not sell or rent personal information.
+              Confairo does not sell or rent personal information.
             </p>
 
             <p className="mt-2">
@@ -108,7 +108,7 @@ export default function PrivacyPage() {
             </h2>
 
             <p>
-              AcadFlow uses secure cookies and authentication mechanisms
+              Confairo uses secure cookies and authentication mechanisms
               to maintain login sessions and ensure secure access to user
               accounts.
             </p>
@@ -121,7 +121,7 @@ export default function PrivacyPage() {
 
             <p>
               We implement industry-standard security practices to protect
-              user information. AcadFlow uses secure cloud infrastructure,
+              user information. Confairo uses secure cloud infrastructure,
               encrypted connections (HTTPS), and access controls to help
               prevent unauthorized access or misuse of data.
             </p>
@@ -157,7 +157,7 @@ export default function PrivacyPage() {
             </h2>
 
             <p>
-              AcadFlow may update this Privacy Policy periodically to reflect
+              Confairo may update this Privacy Policy periodically to reflect
               improvements to the platform or changes in legal requirements.
               Continued use of the platform indicates acceptance of the
               updated policy.
@@ -173,7 +173,7 @@ export default function PrivacyPage() {
               For privacy-related questions or concerns, contact us at:
               <br />
               <span className="font-medium text-indigo-600">
-                acadflow.platform@gmail.com
+                Confairo.platform@gmail.com
               </span>
             </p>
           </section>

@@ -1,5 +1,5 @@
 -- ================================================================
--- AcadFlow — Organizer Slot Purchases table
+-- Confairo — Organizer Slot Purchases table
 -- Tracks every conference slot purchase for billing history.
 -- ================================================================
 

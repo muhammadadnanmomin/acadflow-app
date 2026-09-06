@@ -35,7 +35,7 @@ const AUTHORS = {
     name: "Adnan Momin",
     avatar: "/blog/avatars/adnan.jpg",
     role: "Founder & Lead Developer",
-    bio: "Adnan Momin is the founder of AcadFlow, building tools that simplify conference management for academics worldwide.",
+    bio: "Adnan Momin is the founder of Confairo, building tools that simplify conference management for academics worldwide.",
     linkedin: "https://www.linkedin.com/in/adnanmomin/",
   },
 } as const;
@@ -85,7 +85,7 @@ export const blogPosts: BlogPost[] = [
         <li>Academic conference management involves multiple complex stages</li>
         <li>Manual workflows lead to errors, delays, and communication issues</li>
         <li>AI tools can automate reviewer matching, scheduling, and communication</li>
-        <li>Using a centralized platform like AcadFlow simplifies the entire process</li>
+        <li>Using a centralized platform like Confairo simplifies the entire process</li>
       </ul>
 
       <h2 id="challenges">Common Challenges in Conference Management</h2>
@@ -225,7 +225,7 @@ export const blogPosts: BlogPost[] = [
           <tr>
             <th>Task</th>
             <th>Traditional Approach</th>
-            <th>Modern Platform (AcadFlow)</th>
+            <th>Modern Platform (Confairo)</th>
           </tr>
         </thead>
         <tbody>
@@ -270,9 +270,9 @@ export const blogPosts: BlogPost[] = [
       <p>Traditional tools weren't built for conference management. They're general-purpose productivity tools being stretched beyond their design. The result is fragmented data, manual workarounds, and hours of unnecessary administrative friction.</p>
       <p>A purpose-built platform eliminates these workarounds by providing a single, integrated system designed specifically for the academic conference workflow. Explore more <a href="/blog">conference management strategies</a> on our blog.</p>
 
-      <h2 id="solution">A Better Approach with AcadFlow</h2>
-      <p>This is exactly why we built <strong>AcadFlow</strong> — a conference management platform designed by academics, for academics.</p>
-      <p>AcadFlow replaces the fragmented mess of emails, spreadsheets, and disconnected tools with a single, unified platform that handles the entire conference lifecycle:</p>
+      <h2 id="solution">A Better Approach with Confairo</h2>
+      <p>This is exactly why we built <strong>Confairo</strong> — a conference management platform designed by academics, for academics.</p>
+      <p>Confairo replaces the fragmented mess of emails, spreadsheets, and disconnected tools with a single, unified platform that handles the entire conference lifecycle:</p>
       <ul>
         <li><strong>Submission portal</strong> — Custom-branded portal with automatic file validation and author notifications</li>
         <li><strong>Review management</strong> — Structured review forms, reviewer invitations, and real-time tracking dashboards</li>
@@ -283,8 +283,8 @@ export const blogPosts: BlogPost[] = [
         <li><strong>Organizer dashboard</strong> — Real-time overview of submissions, reviews, and conference progress</li>
       </ul>
 
-      <h3 id="who-is-it-for">Who Is AcadFlow For?</h3>
-      <p>AcadFlow is designed for anyone who organizes academic events:</p>
+      <h3 id="who-is-it-for">Who Is Confairo For?</h3>
+      <p>Confairo is designed for anyone who organizes academic events:</p>
       <ul>
         <li><strong>University departments</strong> hosting annual symposiums or workshops</li>
         <li><strong>Research groups</strong> organizing focused workshops or colloquia</li>
@@ -292,7 +292,7 @@ export const blogPosts: BlogPost[] = [
         <li><strong>Student organizations</strong> managing undergraduate or graduate research showcases</li>
         <li><strong>Institutions</strong> coordinating multi-track conferences with hundreds of submissions</li>
       </ul>
-      <p>Whether your conference has 20 papers or 2,000 — the workflow is the same, and AcadFlow scales to handle it.</p>
+      <p>Whether your conference has 20 papers or 2,000 — the workflow is the same, and Confairo scales to handle it.</p>
 
       <h2 id="conclusion">Conclusion</h2>
       <p>Managing an academic conference doesn't have to mean drowning in spreadsheets and email threads. The tools and workflows available in 2026 are dramatically better than what organizers had even five years ago.</p>
@@ -309,9 +309,9 @@ export const blogPosts: BlogPost[] = [
 
       <h2 id="get-started">Start Managing Your Conference Efficiently</h2>
       <p>If you're tired of juggling emails, spreadsheets, and disconnected tools, it's time to upgrade your workflow.</p>
-      <p><strong>AcadFlow</strong> helps you manage submissions, reviews, scheduling, and certificates — all from one unified dashboard.</p>
+      <p><strong>Confairo</strong> helps you manage submissions, reviews, scheduling, and certificates — all from one unified dashboard.</p>
       <p>You can set up your conference in minutes and eliminate hours of manual work.</p>
-      <p><a href="/signup"><strong>Get Started with AcadFlow →</strong></a></p>
+      <p><a href="/signup"><strong>Get Started with Confairo →</strong></a></p>
     `,
   },
 
@@ -349,7 +349,7 @@ export const blogPosts: BlogPost[] = [
       <p>In this in-depth guide, we break down the <strong>top 10 academic conference management tools in 2026</strong> — comparing their features, strengths, weaknesses, and ideal use-cases — so you can make an informed decision before your next CFP goes live.</p>
 
       <h2 id="featured-snippet">Best Conference Management Tools in 2026</h2>
-      <p>The best academic conference management tools in 2026 include EasyChair (widely adopted for peer review), Microsoft CMT (enterprise-grade for large CS conferences), Ex Ordo (modern UI with strong support), ConfTool (highly configurable), and AcadFlow (a modern all-in-one platform covering submissions, reviews, scheduling, payments, and certificates). The right choice depends on your conference size, budget, and whether you need a unified system or are comfortable stitching multiple tools together.</p>
+      <p>The best academic conference management tools in 2026 include EasyChair (widely adopted for peer review), Microsoft CMT (enterprise-grade for large CS conferences), Ex Ordo (modern UI with strong support), ConfTool (highly configurable), and Confairo (a modern all-in-one platform covering submissions, reviews, scheduling, payments, and certificates). The right choice depends on your conference size, budget, and whether you need a unified system or are comfortable stitching multiple tools together.</p>
 
       <h2 id="summary">Quick Summary</h2>
       <ul>
@@ -358,7 +358,7 @@ export const blogPosts: BlogPost[] = [
         <li><strong>Whova</strong> and <strong>Eventbrite</strong> excel at event logistics but lack core academic features like peer review</li>
         <li><strong>Google Forms + Excel</strong> is free but doesn't scale and creates massive manual overhead</li>
         <li><strong>OpenConf</strong> and <strong>Pretalx</strong> are solid open-source options but require technical infrastructure</li>
-        <li><strong>AcadFlow</strong> is a modern all-in-one platform built specifically for academic conferences — covering submissions, reviews, scheduling, payments, and certificates in one system</li>
+        <li><strong>Confairo</strong> is a modern all-in-one platform built specifically for academic conferences — covering submissions, reviews, scheduling, payments, and certificates in one system</li>
       </ul>
 
       <h2 id="what-to-look">What to Look for in a Conference Tool</h2>
@@ -584,9 +584,9 @@ export const blogPosts: BlogPost[] = [
         </li>
       </ul>
 
-      <h3>10. AcadFlow</h3>
-      <p>AcadFlow is a modern, purpose-built conference management platform designed from the ground up for academic conferences. Unlike legacy tools that focus on one or two aspects (usually submission and review), AcadFlow covers the <strong>entire conference lifecycle</strong> in a single system: paper submissions, peer review management, scheduling, registration with integrated payments, and automated certificate generation. The platform was built by academics who experienced the fragmentation problem firsthand — and were tired of stitching together EasyChair + Google Forms + Excel + Canva just to run a single event.</p>
-      <p>AcadFlow's interface is clean and modern, with a minimal learning curve. Organizers can set up a full conference — complete with submission portal, review forms, and registration — in under 30 minutes. The platform automates routine tasks like confirmation emails, review reminders, and deadline notifications, freeing organizers to focus on the academic quality of their event rather than administrative logistics.</p>
+      <h3>10. Confairo</h3>
+      <p>Confairo is a modern, purpose-built conference management platform designed from the ground up for academic conferences. Unlike legacy tools that focus on one or two aspects (usually submission and review), Confairo covers the <strong>entire conference lifecycle</strong> in a single system: paper submissions, peer review management, scheduling, registration with integrated payments, and automated certificate generation. The platform was built by academics who experienced the fragmentation problem firsthand — and were tired of stitching together EasyChair + Google Forms + Excel + Canva just to run a single event.</p>
+      <p>Confairo's interface is clean and modern, with a minimal learning curve. Organizers can set up a full conference — complete with submission portal, review forms, and registration — in under 30 minutes. The platform automates routine tasks like confirmation emails, review reminders, and deadline notifications, freeing organizers to focus on the academic quality of their event rather than administrative logistics.</p>
       <p><strong>Best for:</strong> Conference organizers who want a single, modern platform that handles everything — without the complexity of legacy systems or the fragmentation of multiple tools.</p>
       <ul>
         <li><strong>Pros:</strong>
@@ -630,7 +630,7 @@ export const blogPosts: BlogPost[] = [
           <tr><td>Eventbrite</td><td>Registration & ticketing only</td><td>High</td><td>No</td></tr>
           <tr><td>Google Forms + Excel</td><td>Very small, informal events</td><td>High</td><td>No</td></tr>
           <tr><td>Pretalx</td><td>Open-source, talk-driven events</td><td>Medium</td><td>Partial</td></tr>
-          <tr><td>AcadFlow</td><td>Modern all-in-one academic conferences</td><td>High</td><td>Yes</td></tr>
+          <tr><td>Confairo</td><td>Modern all-in-one academic conferences</td><td>High</td><td>Yes</td></tr>
         </tbody>
       </table>
 
@@ -655,13 +655,13 @@ export const blogPosts: BlogPost[] = [
       <p>There's no one-size-fits-all answer — but here are clear recommendations based on common scenarios:</p>
 
       <h3>Best for Beginners or Small Workshops</h3>
-      <p>If you're organizing your first conference or running a small departmental workshop with under 30 submissions, you have two paths. You can use <strong>OpenConf</strong> for a simple, no-frills setup. Or, if you want something modern that will scale when your event grows, <strong>AcadFlow</strong> offers a clean, guided setup that gets a full conference live in minutes — without the manual overhead of spreadsheets.</p>
+      <p>If you're organizing your first conference or running a small departmental workshop with under 30 submissions, you have two paths. You can use <strong>OpenConf</strong> for a simple, no-frills setup. Or, if you want something modern that will scale when your event grows, <strong>Confairo</strong> offers a clean, guided setup that gets a full conference live in minutes — without the manual overhead of spreadsheets.</p>
 
       <h3>Best for Large, Established Conferences</h3>
       <p>If you're running a top-tier conference with 1,000+ submissions and complex multi-tier review workflows (area chairs, meta-reviewers, bidding), <strong>Microsoft CMT</strong> is the proven choice — it's battle-tested at venues like NeurIPS and CVPR. <strong>EasyChair</strong> is also a solid option with deep academic adoption. Just be prepared for the learning curve and plan for separate tools to handle registration, scheduling, and certificates.</p>
 
       <h3>Best Modern All-in-One Platform</h3>
-      <p>If you're tired of juggling multiple disconnected tools and want <em>one system</em> that handles submissions, reviews, scheduling, payments, and certificates, <strong>AcadFlow</strong> is the strongest option in 2026. It's designed for the organizer who values simplicity and doesn't want to become an IT integrator just to run a conference. The trade-off is that it's a newer platform — but its purpose-built approach means fewer workarounds and less time spent on logistics.</p>
+      <p>If you're tired of juggling multiple disconnected tools and want <em>one system</em> that handles submissions, reviews, scheduling, payments, and certificates, <strong>Confairo</strong> is the strongest option in 2026. It's designed for the organizer who values simplicity and doesn't want to become an IT integrator just to run a conference. The trade-off is that it's a newer platform — but its purpose-built approach means fewer workarounds and less time spent on logistics.</p>
 
       <hr />
 
@@ -671,16 +671,16 @@ export const blogPosts: BlogPost[] = [
       <hr />
 
       <h2 id="conclusion">Conclusion</h2>
-      <p>The academic conference management landscape in 2026 is more diverse than ever — but also more fragmented. Legacy tools like EasyChair and CMT remain dominant for large-scale events, while newer platforms like Ex Ordo and AcadFlow are raising the bar on usability and integration.</p>
+      <p>The academic conference management landscape in 2026 is more diverse than ever — but also more fragmented. Legacy tools like EasyChair and CMT remain dominant for large-scale events, while newer platforms like Ex Ordo and Confairo are raising the bar on usability and integration.</p>
       <p>The key takeaway: <strong>the best tool is the one that fits your specific needs</strong>. A 50-person departmental symposium doesn't need CMT's enterprise-grade reviewer matching. A 2,000-submission AI conference doesn't work on Google Forms.</p>
       <p>But the trend is unmistakable — organizers are moving toward unified, modern platforms that eliminate the "glue work" of managing five separate systems. The less time you spend on logistics, the more time you invest in what actually matters: the quality of the academic program.</p>
       <p>Whichever tool you choose, make the decision early, test it before your CFP launches, and don't settle for a tool that creates more work than it saves.</p>
 
       <h2 id="cta">Start Managing Your Conference Efficiently</h2>
-      <p>If you're looking for a modern, all-in-one solution that handles the entire conference lifecycle — from submissions to certificates — <strong>AcadFlow</strong> was built to solve exactly that problem.</p>
+      <p>If you're looking for a modern, all-in-one solution that handles the entire conference lifecycle — from submissions to certificates — <strong>Confairo</strong> was built to solve exactly that problem.</p>
       <p>No scattered spreadsheets. No juggling five different tools. No manual certificate generation at 2 AM.</p>
       <p>Set up your conference in minutes and let the platform handle the rest.</p>
-      <p><a href="/signup"><strong>Get Started with AcadFlow — It's Free →</strong></a></p>
+      <p><a href="/signup"><strong>Get Started with Confairo — It's Free →</strong></a></p>
     `,
   },
 
@@ -798,7 +798,7 @@ export const blogPosts: BlogPost[] = [
 
       <h2 id="cta">Simplify Your Conference Workflow</h2>
       <p>If these mistakes feel painfully familiar, you're not alone — and you don't have to keep managing conferences this way.</p>
-      <p><strong>AcadFlow</strong> is a modern conference management platform built specifically for academic conferences. It brings everything into one place: paper submissions, peer review management, scheduling, registration with integrated payments, and automated certificate generation.</p>
+      <p><strong>Confairo</strong> is a modern conference management platform built specifically for academic conferences. It brings everything into one place: paper submissions, peer review management, scheduling, registration with integrated payments, and automated certificate generation.</p>
       <p>Instead of juggling email inboxes, spreadsheets, and five separate tools, you get a single dashboard where every aspect of your conference is organized, automated, and trackable.</p>
       <ul>
         <li><strong>Submissions:</strong> Structured portal with automatic confirmation and metadata capture</li>
@@ -808,7 +808,7 @@ export const blogPosts: BlogPost[] = [
         <li><strong>Certificates:</strong> Template-based generation for hundreds of participants in one click</li>
       </ul>
       <p>Set up your conference in minutes — not days. Eliminate the manual work that burns out organizers and frustrates participants.</p>
-      <p><a href="/signup"><strong>Get Started with AcadFlow — It's Free →</strong></a></p>
+      <p><a href="/signup"><strong>Get Started with Confairo — It's Free →</strong></a></p>
     `,
   },
 
@@ -858,7 +858,7 @@ export const blogPosts: BlogPost[] = [
         <li>A medium-sized conference (80 submissions, 200 registrants) can save <strong>40–65 hours</strong> of organizer time by switching to automation</li>
         <li>Manual errors — missed reviews, payment mismatches, certificate typos — damage conference credibility in ways spreadsheets can't prevent</li>
         <li>If your conference involves payments, multiple reviewers, or multi-track scheduling, automation is no longer optional</li>
-        <li>Modern platforms like AcadFlow let you set up a full conference in minutes, not days — and reuse the same workflow every year</li>
+        <li>Modern platforms like Confairo let you set up a full conference in minutes, not days — and reuse the same workflow every year</li>
       </ul>
 
       <hr />
@@ -893,7 +893,7 @@ export const blogPosts: BlogPost[] = [
       <p>Every status change in an automated system triggers the appropriate communication. A submission is received → confirmation email goes out. A decision is made → notification is sent to the author. A reviewer assignment is created → the reviewer gets an invitation with instructions. These automations eliminate the manual email writing that consumes hours of organizer time across the conference lifecycle.</p>
 
       <h3>Integrated Scheduling, Payments, and Certificates</h3>
-      <p>Modern platforms like <strong>AcadFlow</strong> go beyond just submissions and reviews. They include visual schedule builders, integrated payment processing that links directly to registration records, and one-click certificate generation that produces personalized PDFs for hundreds of participants without a single copy-paste operation.</p>
+      <p>Modern platforms like <strong>Confairo</strong> go beyond just submissions and reviews. They include visual schedule builders, integrated payment processing that links directly to registration records, and one-click certificate generation that produces personalized PDFs for hundreds of participants without a single copy-paste operation.</p>
       <p>The result is a system where data flows automatically from one stage to the next — submissions become review assignments, accepted papers populate the schedule, registered participants receive certificates — all without the organizer acting as a human relay between disconnected tools.</p>
       <p>For a deeper look at how the full academic conference workflow fits together, see our <a href="/blog/manage-academic-conferences-efficiently">complete conference management guide</a>.</p>
 
@@ -1107,10 +1107,10 @@ export const blogPosts: BlogPost[] = [
       <h3>The Reproducibility of Modern Workflows</h3>
       <p>Once you've set up an automated conference workflow on a good platform — your submission form, your review rubric, your email templates, your certificate design — you can reuse the entire configuration for your next conference. The second event takes a fraction of the time to set up compared to the first. Over time, your conference operation gets more efficient, not less, because you're building on a reproducible system rather than reinventing the spreadsheet every year.</p>
 
-      <h3>Where AcadFlow Fits In</h3>
-      <p>This is precisely the problem <strong>AcadFlow</strong> was designed to solve. Built by academics who had experienced the fragmentation problem firsthand — running events on EasyChair + Google Forms + Excel + Canva + PayPal + manual emails — AcadFlow consolidates the entire conference lifecycle into a single modern platform.</p>
-      <p>What makes AcadFlow different from legacy tools isn't just feature coverage — it's the philosophy. The platform is designed to get out of the organizer's way. Set up is measured in minutes, not days. The interface is built for people who want to run conferences, not learn new software. And because everything lives in one system, data flows automatically from submissions to reviews to scheduling to certificates — with no copy-paste required.</p>
-      <p>For organizers tired of the "five tools for one conference" problem, AcadFlow represents a genuinely different way of working — one where the platform handles the logistics and you focus on the academic quality of your event.</p>
+      <h3>Where Confairo Fits In</h3>
+      <p>This is precisely the problem <strong>Confairo</strong> was designed to solve. Built by academics who had experienced the fragmentation problem firsthand — running events on EasyChair + Google Forms + Excel + Canva + PayPal + manual emails — Confairo consolidates the entire conference lifecycle into a single modern platform.</p>
+      <p>What makes Confairo different from legacy tools isn't just feature coverage — it's the philosophy. The platform is designed to get out of the organizer's way. Set up is measured in minutes, not days. The interface is built for people who want to run conferences, not learn new software. And because everything lives in one system, data flows automatically from submissions to reviews to scheduling to certificates — with no copy-paste required.</p>
+      <p>For organizers tired of the "five tools for one conference" problem, Confairo represents a genuinely different way of working — one where the platform handles the logistics and you focus on the academic quality of your event.</p>
 
       <h2 id="conclusion">Conclusion: Making the Right Call</h2>
       <p>The choice between manual and automated conference management isn't binary — it's contextual. For very small, one-off events with minimal budget and under 30 submissions, manual approaches can work. But as soon as your conference crosses the threshold of meaningful scale — more submissions, more reviewers, payments, multi-track scheduling — manual management starts costing more than it saves.</p>
@@ -1125,9 +1125,9 @@ export const blogPosts: BlogPost[] = [
 
       <h2 id="cta">Run Your Next Conference Without the Manual Chaos</h2>
       <p>If your current conference management process involves more email threads than you'd like to admit, it's time to try a better way.</p>
-      <p><strong>AcadFlow</strong> gives you a complete, modern conference management platform — paper submissions, peer review, scheduling, integrated payments, and certificate generation — all in one place. No spreadsheet juggling. No manual email campaigns. No certificate design at midnight.</p>
+      <p><strong>Confairo</strong> gives you a complete, modern conference management platform — paper submissions, peer review, scheduling, integrated payments, and certificate generation — all in one place. No spreadsheet juggling. No manual email campaigns. No certificate design at midnight.</p>
       <p>Set up your conference in minutes and focus on what actually matters: the quality of your academic program.</p>
-      <p><a href="/signup"><strong>Get Started with AcadFlow for Free →</strong></a></p>
+      <p><a href="/signup"><strong>Get Started with Confairo for Free →</strong></a></p>
     `,
   },
 
@@ -1381,11 +1381,11 @@ export const blogPosts: BlogPost[] = [
       <h2 id="cta">Upgrade Your Conference Workflow</h2>
       <p>If you're still manually matching reviewers to papers, skimming hundreds of abstracts without structured support, and hoping that no submission slips through with undetected overlap — you're spending dozens of hours on work that AI can handle in minutes.</p>
       <p>If the AI capabilities described in this article sound like what your conference needs, they're not hypothetical — they're available now.</p>
-      <p><strong>AcadFlow</strong> is a modern conference management platform with integrated AI features designed specifically for academic workflows. The AI Paper Reviewer Assistant, Smart Reviewer Assignment, and Similarity Detection are built directly into the organizer and reviewer dashboards — no separate tools, no manual exports, no additional subscriptions.</p>
+      <p><strong>Confairo</strong> is a modern conference management platform with integrated AI features designed specifically for academic workflows. The AI Paper Reviewer Assistant, Smart Reviewer Assignment, and Similarity Detection are built directly into the organizer and reviewer dashboards — no separate tools, no manual exports, no additional subscriptions.</p>
       <p>Every AI feature is designed as a decision-support tool: it provides structured analysis, quantified insights, and actionable recommendations — while keeping the final decision exactly where it belongs, with human experts.</p>
-      <p>Whether you're managing 30 submissions or 3,000, AcadFlow's AI capabilities scale with your conference — giving your organizing committee the analytical power of a much larger team without the overhead.</p>
+      <p>Whether you're managing 30 submissions or 3,000, Confairo's AI capabilities scale with your conference — giving your organizing committee the analytical power of a much larger team without the overhead.</p>
       <p>Set up your next conference with AI-powered workflows and see the difference for yourself.</p>
-      <p><a href="/signup"><strong>Get Started with AcadFlow →</strong></a></p>
+      <p><a href="/signup"><strong>Get Started with Confairo →</strong></a></p>
     `,
   },
 
@@ -1434,7 +1434,7 @@ export const blogPosts: BlogPost[] = [
         <li>Reviewers evaluate papers for novelty, methodology, clarity, and ethical standards</li>
         <li>Common problems include reviewer bias, delays, inconsistency, and workload overload</li>
         <li>AI tools are improving peer review through automated paper analysis, smart reviewer matching, and similarity detection</li>
-        <li>Modern platforms like AcadFlow integrate AI directly into the review workflow to support — not replace — human judgment</li>
+        <li>Modern platforms like Confairo integrate AI directly into the review workflow to support — not replace — human judgment</li>
       </ul>
 
       <hr />
@@ -1587,17 +1587,17 @@ export const blogPosts: BlogPost[] = [
       <h3>AI Paper Reviewer Assistant</h3>
       <p>One of the most impactful AI applications in peer review is the automated paper analysis assistant. Rather than a reviewer starting from scratch with a blank review form, an AI assistant can read the submitted paper and generate a structured pre-analysis within seconds — identifying the paper's core contribution, methodological approach, potential strengths, possible weaknesses, and writing quality indicators.</p>
       <p>This doesn't write the review. What it does is give the reviewer a structured starting point — a preliminary map of the paper that highlights areas worth closer attention. The reviewer then applies their domain expertise to evaluate the aspects that AI can't assess: the significance of the research question, the validity of the experimental design in context, and the broader implications for the field. The result is more thorough, more consistent reviews completed in less time.</p>
-      <p>Platforms like <strong>AcadFlow</strong> integrate this capability directly into the reviewer dashboard. A reviewer clicks a single button and receives an AI-generated analysis alongside the paper — summary, identified strengths and weaknesses, grammar assessment, and a preliminary confidence-scored recommendation. It's designed as decision <em>support</em>, not a decision <em>maker</em>.</p>
+      <p>Platforms like <strong>Confairo</strong> integrate this capability directly into the reviewer dashboard. A reviewer clicks a single button and receives an AI-generated analysis alongside the paper — summary, identified strengths and weaknesses, grammar assessment, and a preliminary confidence-scored recommendation. It's designed as decision <em>support</em>, not a decision <em>maker</em>.</p>
 
       <h3>Smart Reviewer Assignment</h3>
       <p>Traditional reviewer assignment relies on keyword matching and the program chair's personal knowledge of the reviewer pool. AI-powered assignment systems go deeper — they analyze the full semantic content of each submission and match it against reviewer expertise profiles built from declared interests, publication history, and past review assignments.</p>
       <p>The practical difference is significant. Instead of a paper about "federated learning for healthcare data" being assigned to anyone who listed "machine learning" as a keyword, an AI system can match it to a reviewer who specifically works on privacy-preserving distributed computing in clinical settings. Better matches produce better reviews — more substantive feedback, more accurate assessments, and fewer instances of reviewers evaluating papers outside their genuine expertise.</p>
-      <p>AcadFlow's smart assignment system generates ranked reviewer suggestions with relevance scores and automatic conflict-of-interest detection, reducing the assignment process from days of manual work to minutes of informed decision-making. For more on how AI is transforming conference workflows, see our detailed article on <a href="/blog/ai-academic-conference-management">AI in academic conference management</a>.</p>
+      <p>Confairo's smart assignment system generates ranked reviewer suggestions with relevance scores and automatic conflict-of-interest detection, reducing the assignment process from days of manual work to minutes of informed decision-making. For more on how AI is transforming conference workflows, see our detailed article on <a href="/blog/ai-academic-conference-management">AI in academic conference management</a>.</p>
 
       <h3>AI Similarity Detection</h3>
       <p>Traditional plagiarism detection compares text against databases using lexical matching — it catches copy-paste but misses paraphrased content, structural similarity, and conceptual overlap. AI-powered similarity detection uses language models trained on academic literature to identify multiple layers of overlap: direct text matches, paraphrased content that retains the same structure and meaning, and papers that follow suspiciously similar organizational patterns.</p>
       <p>For conference organizers, this serves as an early quality gate. Rather than discovering originality issues during peer review — or worse, after acceptance — AI similarity detection flags potential concerns at the submission stage. A paper with 5% similarity is routine; a paper with 40% similarity warrants immediate attention. This gives organizers actionable intelligence before the review process even begins.</p>
-      <p>AcadFlow's built-in similarity detection runs automatically on submitted papers, providing organizers with a quantified similarity score and a detailed breakdown of flagged sections — all within the same dashboard they use for managing submissions and reviews.</p>
+      <p>Confairo's built-in similarity detection runs automatically on submitted papers, providing organizers with a quantified similarity score and a detailed breakdown of flagged sections — all within the same dashboard they use for managing submissions and reviews.</p>
 
       <hr />
 
@@ -1632,7 +1632,7 @@ export const blogPosts: BlogPost[] = [
 
       <h2 id="cta">Simplify Peer Review Workflows</h2>
       <p>If you're organizing an academic conference and want a peer review process that's fair, efficient, and supported by modern AI tools — you don't need to build it from scratch.</p>
-      <p><strong>AcadFlow</strong> is a modern conference management platform with peer review workflows designed specifically for academic conferences. The platform integrates AI capabilities directly into the organizer and reviewer experience:</p>
+      <p><strong>Confairo</strong> is a modern conference management platform with peer review workflows designed specifically for academic conferences. The platform integrates AI capabilities directly into the organizer and reviewer experience:</p>
       <ul>
         <li><strong>Smart Reviewer Assignment</strong> — AI-powered matching that pairs papers with the most qualified reviewers based on expertise, not just keywords</li>
         <li><strong>AI Paper Reviewer Assistant</strong> — One-click paper analysis that gives reviewers a structured starting point, improving review quality and consistency</li>
@@ -1641,7 +1641,7 @@ export const blogPosts: BlogPost[] = [
       </ul>
       <p>Every AI feature is designed as decision support — providing structured insights while keeping the final call where it belongs: with human experts.</p>
       <p>Set up your conference's peer review process in minutes, not days.</p>
-      <p><a href="/signup"><strong>Get Started with AcadFlow — It's Free →</strong></a></p>
+      <p><a href="/signup"><strong>Get Started with Confairo — It's Free →</strong></a></p>
     `,
   },
 ];

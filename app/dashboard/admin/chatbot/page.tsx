@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// AcadFlow Chatbot — Admin Control Panel
+// Confairo Chatbot — Admin Control Panel
 // /dashboard/admin/chatbot
 // ============================================================
 import { useEffect, useState } from "react";
@@ -32,8 +32,8 @@ export default function ChatbotAdminPage() {
   const [settings, setSettings] = useState<ChatbotSettings>({
     enabled: true,
     welcomeMessage:
-      "Hi! I'm AcadFlow AI 👋 I can help you discover conferences, track submissions, check deadlines, and navigate the platform. How can I assist you today?",
-    botName: "AcadFlow AI",
+      "Hi! I'm Confairo AI 👋 I can help you discover conferences, track submissions, check deadlines, and navigate the platform. How can I assist you today?",
+    botName: "Confairo AI",
   });
   const [stats, setStats] = useState<Stats>({ totalDocuments: 0 });
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function ChatbotAdminPage() {
       .then((d) => {
         if (d.settings) setSettings(d.settings);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -125,7 +125,7 @@ export default function ChatbotAdminPage() {
         </div>
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Chatbot Controls</h1>
-          <p className="text-sm text-gray-500">Configure the AcadFlow AI assistant</p>
+          <p className="text-sm text-gray-500">Configure the Confairo AI assistant</p>
         </div>
       </div>
 
@@ -133,11 +133,10 @@ export default function ChatbotAdminPage() {
       {toast && (
         <div
           className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium shadow-sm border
-          ${
-            toast.type === "success"
+          ${toast.type === "success"
               ? "bg-emerald-50 border-emerald-200 text-emerald-700"
               : "bg-red-50 border-red-200 text-red-700"
-          }`}
+            }`}
         >
           {toast.type === "success" ? (
             <Check className="h-4 w-4 shrink-0" />

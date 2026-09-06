@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Automatic Certificate Generation
+   Confairo — Automatic Certificate Generation
    Server-side service that checks generation conditions and triggers
    certificate creation for all authors of a paper.
    ================================================================ */

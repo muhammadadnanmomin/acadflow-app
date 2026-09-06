@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// AcadFlow Chatbot — Message Bubble
+// Confairo Chatbot — Message Bubble
 // User vs AI message bubbles with Markdown support + copy
 // ============================================================
 import { useState, useEffect } from "react";

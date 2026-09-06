@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow Chatbot — /api/chatbot/sessions
+// Confairo Chatbot — /api/chatbot/sessions
 // POST: Create new session | GET: Fetch session + messages
 // ============================================================
 import { NextRequest, NextResponse } from "next/server";

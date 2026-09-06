@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Centralized Pricing Config
+   Confairo — Centralized Pricing Config
    Single source of truth for plan prices and limits.
    ================================================================ */
 

@@ -1,5 +1,5 @@
 -- ============================================================
--- AcadFlow — Multi-Track Hybrid Scheduling Schema
+-- Confairo — Multi-Track Hybrid Scheduling Schema
 -- ============================================================
 
 -- 1. ENUM TYPES

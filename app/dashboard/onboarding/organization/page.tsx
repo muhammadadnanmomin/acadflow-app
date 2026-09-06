@@ -377,7 +377,7 @@ export default function OrganizationSetup() {
             {slug && (
               <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
                 <Globe className="h-3 w-3" />
-                acadflow.in/org/
+                confairo.com/org/
                 <span className="font-mono text-gray-500">{slug}</span>
               </p>
             )}

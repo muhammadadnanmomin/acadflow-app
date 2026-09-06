@@ -1,5 +1,5 @@
 -- ================================================================
--- AcadFlow — Per-Author Certificates
+-- Confairo — Per-Author Certificates
 -- Each author of a paper receives an individual certificate.
 -- ================================================================
 

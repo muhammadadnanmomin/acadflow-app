@@ -69,7 +69,7 @@ function LoginInner() {
         {/* Brand header */}
         <div className="mb-2 text-center">
           <span className="text-lg font-semibold text-indigo-600 tracking-wide">
-            AcadFlow
+            Confairo
           </span>
         </div>
 
@@ -80,7 +80,7 @@ function LoginInner() {
           </h1>
 
           <p className="mt-1 text-sm text-gray-500">
-            Sign in to continue to AcadFlow.
+            Sign in to continue to Confairo.
           </p>
         </div>
 

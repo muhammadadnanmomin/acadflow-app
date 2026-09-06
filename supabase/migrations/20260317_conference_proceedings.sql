@@ -1,5 +1,5 @@
 -- ============================================================
--- AcadFlow — Conference Proceedings System
+-- Confairo — Conference Proceedings System
 -- Tables, access-control function, and RLS policies
 -- ============================================================
 

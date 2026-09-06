@@ -18,7 +18,7 @@ export function openDemo(): void {
   if (!url) {
     if (process.env.NODE_ENV === "development") {
       console.error(
-        "[AcadFlow] NEXT_PUBLIC_CALENDLY_URL is not set. " +
+        "[Confairo] NEXT_PUBLIC_CALENDLY_URL is not set. " +
           "Add it to .env.local to enable the Book a Demo button.",
       );
     }

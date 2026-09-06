@@ -39,14 +39,14 @@ export function Header() {
 
           <Image
             src="/logo.png"
-            alt="AcadFlow logo"
+            alt="Confairo logo"
             width={36}
             height={36}
             priority
           />
 
           <span className="text-xl font-semibold text-gray-900">
-            AcadFlow
+            Confairo
           </span>
 
           <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-purple-50 border border-purple-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-purple-600">
@@ -83,7 +83,7 @@ export function Header() {
             href="/#comparison"
             className="text-sm font-medium text-gray-600 hover:text-gray-900"
           >
-            Why AcadFlow
+            Why Confairo
           </Link>
 
           <Link
@@ -203,7 +203,7 @@ export function Header() {
               onClick={() => setMobileMenuOpen(false)}
               className="text-sm font-medium text-gray-600"
             >
-              Why AcadFlow
+              Why Confairo
             </Link>
 
             <Link

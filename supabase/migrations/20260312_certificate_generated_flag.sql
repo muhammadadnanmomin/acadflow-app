@@ -1,5 +1,5 @@
 -- ================================================================
--- AcadFlow — Add certificate_generated flag to paper_submissions
+-- Confairo — Add certificate_generated flag to paper_submissions
 -- Enables UI to quickly show certificate availability status.
 -- ================================================================
 

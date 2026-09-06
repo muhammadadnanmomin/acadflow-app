@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow — Verify AI Credit Pack Purchase
+// Confairo — Verify AI Credit Pack Purchase
 // ============================================================
 import { NextResponse } from "next/server";
 import crypto from "crypto";

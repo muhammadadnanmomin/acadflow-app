@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Public Certificate Verification Page
+   Confairo — Public Certificate Verification Page
    Anyone can visit /verify/{verificationCode} to confirm the
    authenticity of a certificate.  No authentication required.
    ================================================================ */
@@ -38,8 +38,8 @@ interface CertificateRow {
 /* ------------------------------------------------------------------ */
 
 export const metadata: Metadata = {
-  title: "Verify Certificate — AcadFlow",
-  description: "Verify the authenticity of an AcadFlow certificate.",
+  title: "Verify Certificate — Confairo",
+  description: "Verify the authenticity of a Confairo certificate.",
 };
 
 /* ------------------------------------------------------------------ */
@@ -113,7 +113,7 @@ export default async function VerifyCertificatePage({ params }: PageProps) {
 
           <p className="text-center text-xs text-gray-400 mt-6">
             Powered by{" "}
-            <span className="font-semibold text-gray-500">AcadFlow</span>
+            <span className="font-semibold text-gray-500">Confairo</span>
           </p>
         </div>
       </div>
@@ -219,7 +219,7 @@ export default async function VerifyCertificatePage({ params }: PageProps) {
 
         <p className="text-center text-xs text-gray-400 mt-6">
           Powered by{" "}
-          <span className="font-semibold text-gray-500">AcadFlow</span>
+          <span className="font-semibold text-gray-500">Confairo</span>
         </p>
       </div>
     </div>
@@ -255,9 +255,8 @@ function DetailRow({
           {label}
         </p>
         <p
-          className={`text-sm text-gray-900 mt-0.5 break-words ${
-            italic ? "italic" : ""
-          } ${mono ? "font-mono text-xs" : ""}`}
+          className={`text-sm text-gray-900 mt-0.5 break-words ${italic ? "italic" : ""
+            } ${mono ? "font-mono text-xs" : ""}`}
         >
           {value}
         </p>

@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// AcadFlow Chatbot — Floating Button (bottom-right)
+// Confairo Chatbot — Floating Button (bottom-right)
 // ============================================================
 import { MessageCircle, X } from "lucide-react";
 
@@ -31,7 +31,7 @@ export function ChatbotButton({
       <button
         id="chatbot-toggle-button"
         onClick={onClick}
-        aria-label={isOpen ? "Close chat" : "Open AcadFlow AI chat"}
+        aria-label={isOpen ? "Close chat" : "Open Confairo AI chat"}
         className="
           relative h-14 w-14 rounded-full
           shadow-[0_8px_30px_rgba(79,70,229,0.4)]
@@ -44,16 +44,14 @@ export function ChatbotButton({
       >
         {/* Icon swap */}
         <span
-          className={`absolute transition-all duration-200 ${
-            isOpen ? "opacity-100 rotate-0 scale-100" : "opacity-0 rotate-90 scale-50"
-          }`}
+          className={`absolute transition-all duration-200 ${isOpen ? "opacity-100 rotate-0 scale-100" : "opacity-0 rotate-90 scale-50"
+            }`}
         >
           <X className="h-6 w-6 text-white" />
         </span>
         <span
-          className={`absolute transition-all duration-200 ${
-            isOpen ? "opacity-0 rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"
-          }`}
+          className={`absolute transition-all duration-200 ${isOpen ? "opacity-0 rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"
+            }`}
         >
           <MessageCircle className="h-6 w-6 text-white" />
         </span>

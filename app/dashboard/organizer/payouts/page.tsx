@@ -248,7 +248,7 @@ export default function OrganizerPayoutsPage() {
                     <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                         <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
                         <span>
-                            Payouts are processed manually by the AcadFlow team.
+                            Payouts are processed manually by the Confairo team.
                             Settlement typically takes 2–3 business days.
                         </span>
                     </div>

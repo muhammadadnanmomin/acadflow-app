@@ -7,21 +7,21 @@ import { getFeaturedPost, getNonFeaturedPosts } from "@/lib/blog/data";
 
 // ─── SEO Metadata ────────────────────────────────────────────────────────────
 export const metadata: Metadata = {
-  title: "Blog — AcadFlow | Insights on AI, Conferences & Academic Workflows",
+  title: "Blog — Confairo | Insights on AI, Conferences & Academic Workflows",
   description:
-    "Explore the AcadFlow blog for insights on AI in academia, conference management best practices, research productivity tips, and the latest in academic technology.",
+    "Explore the Confairo blog for insights on AI in academia, conference management best practices, research productivity tips, and the latest in academic technology.",
   keywords: [
     "academic blog",
     "conference management tips",
     "AI in academia",
     "research productivity",
     "peer review guide",
-    "AcadFlow blog",
+    "Confairo blog",
   ],
   openGraph: {
-    title: "AcadFlow Blog — Insights on AI, Conferences & Academic Workflows",
+    title: "Confairo Blog — Insights on AI, Conferences & Academic Workflows",
     description:
-      "Tips, guides, and insights for conference organizers, researchers, and academics. Powered by AcadFlow.",
+      "Tips, guides, and insights for conference organizers, researchers, and academics. Powered by Confairo.",
     type: "website",
   },
 };

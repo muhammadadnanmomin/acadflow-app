@@ -209,7 +209,7 @@ export default function OrganizerBillingPage() {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
                 amount: order.amount,
                 currency: order.currency,
-                name: "AcadFlow",
+                name: "Confairo",
                 description: selectedCredits > 0
                     ? `Pro Plan + ${selectedCredits} AI Analyses`
                     : "Pro Plan + 100 AI Analyses",
@@ -265,7 +265,7 @@ export default function OrganizerBillingPage() {
                             variant: "destructive",
                             title: "Payment verification failed",
                             description:
-                                "Your payment could not be verified. Please contact support at acadflow.platform@gmail.com",
+                                "Your payment could not be verified. Please contact support at Confairo.platform@gmail.com",
                         });
                     }
                 },
@@ -330,7 +330,7 @@ export default function OrganizerBillingPage() {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
                 amount: order.amount,
                 currency: order.currency,
-                name: "AcadFlow",
+                name: "Confairo",
                 description: `AI Analyses — ${pack.label}`,
                 order_id: order.id,
                 prefill: {
@@ -475,11 +475,10 @@ export default function OrganizerBillingPage() {
                                 key={pack.id}
                                 onClick={() => handleBuyCredits(pack.id)}
                                 disabled={buyingCredits}
-                                className={`relative group rounded-xl border-2 p-4 text-left transition-all hover:shadow-md ${
-                                    pack.id === "ai_100"
+                                className={`relative group rounded-xl border-2 p-4 text-left transition-all hover:shadow-md ${pack.id === "ai_100"
                                         ? "border-indigo-300 bg-indigo-50/50 hover:border-indigo-400"
                                         : "border-gray-200 bg-white hover:border-gray-300"
-                                }`}
+                                    }`}
                             >
                                 {pack.id === "ai_100" && (
                                     <span className="absolute -top-2.5 right-3 bg-indigo-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">

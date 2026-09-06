@@ -1,5 +1,5 @@
 // ============================================================
-// AcadFlow — Create Razorpay Order for AI Credit Pack
+// Confairo — Create Razorpay Order for AI Credit Pack
 // ============================================================
 import Razorpay from "razorpay";
 import { NextResponse } from "next/server";

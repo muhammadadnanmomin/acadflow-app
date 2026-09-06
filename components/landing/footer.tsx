@@ -7,7 +7,7 @@ const navigation = {
     { name: "Features", href: "/#features" },
     { name: "How It Works", href: "/#how-it-works" },
     { name: "Pricing", href: "/#pricing" },
-    { name: "Why AcadFlow", href: "/#comparison" },
+    { name: "Why Confairo", href: "/#comparison" },
     { name: "Conferences", href: "/conferences" },
     { name: "Dashboard", href: "/dashboard" },
   ],
@@ -45,19 +45,19 @@ export function Footer() {
             <Link href="/" className="flex items-center gap-3">
               <Image
                 src="/logo.png"
-                alt="AcadFlow"
+                alt="Confairo"
                 width={36}
                 height={36}
                 priority
               />
 
               <span className="text-xl font-semibold text-gray-900">
-                AcadFlow
+                Confairo
               </span>
             </Link>
 
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-gray-600">
-              AcadFlow is a conference management platform for universities
+              Confairo is a conference management platform for universities
               and research communities. Automate submissions, reviews,
               scheduling, and certificates from one dashboard.
             </p>
@@ -67,7 +67,7 @@ export function Footer() {
 
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-indigo-600" />
-                acadflow.platform@gmail.com
+                Confairo.platform@gmail.com
               </div>
 
               <div className="flex items-center gap-2">
@@ -99,7 +99,7 @@ export function Footer() {
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-gray-200 pt-6 sm:flex-row">
 
           <p className="text-sm text-gray-500">
-            © {new Date().getFullYear()} AcadFlow. All rights reserved.
+            © {new Date().getFullYear()} Confairo. All rights reserved.
           </p>
 
           {/* <p className="text-sm text-gray-500">

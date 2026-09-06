@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// AcadFlow Chatbot — Root Widget
+// Confairo Chatbot — Root Widget
 // Orchestrates button + window + initializes settings/session
 // ============================================================
 import { useEffect } from "react";

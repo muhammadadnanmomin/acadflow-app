@@ -1,5 +1,5 @@
 /* ================================================================
-   AcadFlow — Certificate System Types
+   Confairo — Certificate System Types
    Shared types for certificates, paper authors, and submissions.
    ================================================================ */
 

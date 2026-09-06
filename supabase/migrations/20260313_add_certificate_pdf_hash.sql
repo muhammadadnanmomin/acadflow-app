@@ -1,5 +1,5 @@
 -- ================================================================
--- AcadFlow — Add pdf_hash column for certificate tamper protection
+-- Confairo — Add pdf_hash column for certificate tamper protection
 -- ================================================================
 
 ALTER TABLE certificates
