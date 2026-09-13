@@ -5,20 +5,43 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
   ArrowRight,
-  Clock,
   FileText,
-  Shield,
-  Sparkles,
-  Brain,
-  CheckCircle2,
-  BarChart3,
+  Users,
+  CreditCard,
+  Calendar,
+  Award,
+  LayoutDashboard,
 } from "lucide-react";
-import { BookDemoButton } from "@/components/demo/BookDemoButton";
+
+/* ------------------------------------------------------------------ */
+/*  Product preview data — real modules from the Confairo platform     */
+/* ------------------------------------------------------------------ */
+
+const sidebarModules = [
+  { label: "Overview", icon: LayoutDashboard },
+  { label: "Submissions", icon: FileText },
+  { label: "Reviews", icon: Users },
+  { label: "Payments", icon: CreditCard },
+  { label: "Schedule", icon: Calendar },
+  { label: "Certificates", icon: Award },
+];
+
+const moduleCards = [
+  { icon: FileText, label: "Submissions", desc: "Collect papers" },
+  { icon: Users, label: "Peer Review", desc: "Assign reviewers" },
+  { icon: CreditCard, label: "Payments", desc: "Track fees" },
+  { icon: Award, label: "Certificates", desc: "Generate & verify" },
+];
+
+const workflowSteps = ["Create", "Submit", "Review", "Decide", "Certify"];
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
 
 export function HeroSection() {
   const router = useRouter();
   const supabase = createClient();
-
 
   const handleGetStarted = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -39,178 +62,193 @@ export function HeroSection() {
   };
 
   return (
-    <section id="hero" className="relative overflow-hidden bg-white px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28 lg:px-8 lg:pt-28 lg:pb-32">
-
-      {/* Subtle background gradient */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(99,102,241,0.12),transparent)]" />
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,rgba(147,51,234,0.06),transparent_70%)]" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-      </div>
-
+    <section
+      id="hero"
+      className="bg-white px-4 pt-14 pb-14 sm:px-6 sm:pt-20 sm:pb-20 lg:px-8 lg:pt-24 lg:pb-24"
+    >
       <div className="mx-auto max-w-7xl">
+        <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 items-center">
 
-        <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 items-center">
+          {/* ── Left — Text Content ── */}
+          <div className="mx-auto max-w-xl text-center lg:text-left lg:mx-0">
 
-          {/* Left — Text Content */}
-          <div className="mx-auto max-w-2xl text-center lg:text-left lg:mx-0">
-
-            {/* Badge */}
-            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50/80 px-4 py-1.5 text-sm font-medium text-purple-700 shadow-sm">
-              <Sparkles className="h-3.5 w-3.5" />
-              AI-Powered Conference Management
-            </div>
+            {/* Eyebrow */}
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--lp-accent)]">
+              Academic Conference Management
+            </p>
 
             {/* Heading */}
-            <h1 className="text-balance text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
-              Run Your Conference with{" "}
-              <span className="relative">
-                <span className="relative z-10 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  AI-Powered Precision
-                </span>
-              </span>
+            <h1 className="mt-4 text-balance text-[2rem] font-bold tracking-tight text-[var(--lp-ink)] sm:text-[2.5rem] sm:leading-[1.2] lg:text-[3rem] lg:leading-[1.15]">
+              Manage your academic conference from submission to certificate.
             </h1>
 
-            {/* Subtitle */}
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-gray-600 sm:text-xl sm:leading-8">
-              Automate reviews, assign the right reviewers, and detect issues instantly —{" "}
-              <strong className="text-gray-900">all from one platform.</strong>
+            {/* Description */}
+            <p className="mt-6 max-w-lg text-base leading-relaxed text-[var(--lp-ink-secondary)] sm:text-[1.0625rem] sm:leading-7 lg:mx-0 mx-auto">
+              Paper submissions, peer review, registration, payments, scheduling,
+              and certificates — organized in one platform built for academia.
             </p>
 
             {/* CTAs */}
-            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row lg:justify-start sm:justify-center">
-
-              {/* Primary CTA */}
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start sm:justify-center">
               <button
                 onClick={handleGetStarted}
-                className="group inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-600/25 transition-all hover:shadow-xl hover:shadow-indigo-600/30 hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 rounded-md bg-[var(--lp-accent)] px-6 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[var(--lp-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
               >
-                <Sparkles className="h-4 w-4" />
-                Start Free Conference
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                Get Started
+                <ArrowRight className="h-4 w-4" />
               </button>
 
-              {/* Secondary CTA — Book Demo */}
-              <BookDemoButton variant="secondary" />
-
+              <Link
+                href="/#how-it-works"
+                className="inline-flex items-center gap-2 rounded-md border border-[var(--lp-border)] px-6 py-2.5 text-sm font-medium text-[var(--lp-ink-secondary)] transition-colors duration-200 hover:border-[var(--lp-border-strong)] hover:text-[var(--lp-ink)]"
+              >
+                See How It Works
+              </Link>
             </div>
 
             {/* Organizer link */}
-            <p className="mt-5 text-sm text-gray-500 lg:text-left text-center">
+            <p className="mt-5 text-sm text-[var(--lp-ink-tertiary)] lg:text-left text-center">
               Already organizing a conference?{" "}
               <button
                 onClick={handleOrganizerSetup}
-                className="font-medium text-indigo-600 transition hover:text-indigo-700 hover:underline"
+                className="font-medium text-[var(--lp-accent)] transition-colors duration-200 hover:text-[var(--lp-accent-hover)] hover:underline"
               >
                 Set up your organizer workspace →
               </button>
             </p>
 
             {/* Trust indicators */}
-            <div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-x-8 gap-y-3 text-sm text-gray-500">
+            <div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-2 text-sm text-[var(--lp-ink-tertiary)]">
               <span className="inline-flex items-center gap-1.5">
-                <Shield className="h-4 w-4 text-emerald-500" />
-                No credit card required
+                <span className="h-1 w-1 rounded-full bg-[var(--lp-positive)]" />
+                Built for academic conferences
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-indigo-500" />
-                Live in under 5 minutes
+                <span className="h-1 w-1 rounded-full bg-[var(--lp-positive)]" />
+                Submission-to-certificate workflow
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <FileText className="h-4 w-4 text-amber-500" />
-                Free for up to 150 submissions
+                <span className="h-1 w-1 rounded-full bg-[var(--lp-positive)]" />
+                Organizer, reviewer & participant access
               </span>
             </div>
 
           </div>
 
-          {/* Right — AI Review Preview Mock */}
-          <div className="relative hidden lg:block">
-            <div className="relative rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl shadow-gray-200/60">
+          {/* ── Right — Product Preview ── */}
+          <div>
 
-              {/* Mock header */}
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2">
-                  <Brain className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-semibold text-gray-700">🧠 AI Paper Reviewer</span>
-                </div>
-                <span className="text-[10px] tracking-wider uppercase font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-                  AI Analysis Result
+            {/* Desktop preview — full window mockup */}
+            <div
+              className="hidden lg:block overflow-hidden rounded-lg border border-[var(--lp-border)]"
+              style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)" }}
+            >
+              {/* Window chrome */}
+              <div className="flex items-center gap-1.5 border-b border-[var(--lp-border)] bg-[var(--lp-surface-subtle)] px-4 py-2">
+                <div className="h-2 w-2 rounded-full bg-[var(--lp-border-strong)]" />
+                <div className="h-2 w-2 rounded-full bg-[var(--lp-border-strong)]" />
+                <div className="h-2 w-2 rounded-full bg-[var(--lp-border-strong)]" />
+                <span className="ml-3 text-[11px] font-medium text-[var(--lp-ink-tertiary)]">
+                  Conference Dashboard
                 </span>
               </div>
 
-              {/* Decision + Score */}
-              <div className="rounded-lg bg-green-50 border border-green-200 p-4 mb-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">🧾 Final Decision</p>
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-700 ring-2 ring-green-400/30">
-                      Accept
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">📊 Confidence</p>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 h-2.5 bg-white rounded-full overflow-hidden border border-gray-200/50">
-                        <div className="h-full w-[87%] bg-green-500 rounded-full" />
+              <div className="flex">
+                {/* Sidebar */}
+                <div className="w-[140px] shrink-0 border-r border-[var(--lp-border)] bg-[var(--lp-surface-subtle)] p-2.5 space-y-0.5">
+                  {sidebarModules.map((mod, i) => (
+                    <div
+                      key={mod.label}
+                      className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-[11px] font-medium ${i === 0
+                        ? "bg-[var(--lp-accent-light)] text-[var(--lp-accent)]"
+                        : "text-[var(--lp-ink-tertiary)]"
+                        }`}
+                    >
+                      <mod.icon className="h-3.5 w-3.5" />
+                      {mod.label}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Content area */}
+                <div className="flex-1 p-4 bg-white">
+                  <p className="text-xs font-semibold text-[var(--lp-ink)]">
+                    Conference Overview
+                  </p>
+                  <p className="text-[10px] mt-0.5 text-[var(--lp-ink-tertiary)]">
+                    Manage your entire conference workflow
+                  </p>
+
+                  {/* Module cards */}
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    {moduleCards.map((card) => (
+                      <div
+                        key={card.label}
+                        className="rounded-md border border-[var(--lp-border)] p-2.5"
+                      >
+                        <card.icon className="h-3.5 w-3.5 text-[var(--lp-ink-tertiary)]" />
+                        <p className="mt-1.5 text-[10px] font-semibold text-[var(--lp-ink-secondary)]">
+                          {card.label}
+                        </p>
+                        <p className="text-[9px] text-[var(--lp-ink-tertiary)]">
+                          {card.desc}
+                        </p>
                       </div>
-                      <span className="text-sm font-bold text-gray-700">87%</span>
+                    ))}
+                  </div>
+
+                  {/* Workflow strip */}
+                  <div className="mt-3 rounded-md border border-[var(--lp-border)] p-2.5">
+                    <p className="text-[10px] font-medium text-[var(--lp-ink-tertiary)] mb-2">
+                      Conference Workflow
+                    </p>
+                    <div className="flex items-center gap-0.5 text-[9px] font-medium">
+                      {workflowSteps.map((step, i) => (
+                        <div key={step} className="flex items-center gap-0.5">
+                          <span
+                            className={`rounded px-1.5 py-0.5 ${i === 0
+                              ? "bg-[var(--lp-accent-light)] text-[var(--lp-accent)]"
+                              : "text-[var(--lp-ink-tertiary)]"
+                              }`}
+                          >
+                            {step}
+                          </span>
+                          {i < workflowSteps.length - 1 && (
+                            <span className="text-[var(--lp-border-strong)]">→</span>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* Summary */}
-              <div className="mb-3">
-                <p className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
-                  <FileText className="h-3 w-3 text-blue-500" /> 📄 Summary
-                </p>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  This paper presents a novel approach to federated learning with differential privacy guarantees, achieving state-of-the-art results on benchmark datasets...
-                </p>
-              </div>
-
-              {/* Strengths */}
-              <div className="mb-3">
-                <p className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-green-500" /> ✅ Strengths
-                </p>
-                <div className="space-y-1">
-                  <p className="text-xs text-gray-500 flex items-start gap-1.5">
-                    <span className="text-gray-300 mt-0.5">•</span> Strong theoretical foundation with formal proofs
-                  </p>
-                  <p className="text-xs text-gray-500 flex items-start gap-1.5">
-                    <span className="text-gray-300 mt-0.5">•</span> Comprehensive experimental evaluation
-                  </p>
-                </div>
-              </div>
-
-              {/* Weaknesses */}
-              <div>
-                <p className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1">
-                  <BarChart3 className="h-3 w-3 text-orange-500" /> ⚠️ Weaknesses
-                </p>
-                <div className="space-y-1">
-                  <p className="text-xs text-gray-500 flex items-start gap-1.5">
-                    <span className="text-gray-300 mt-0.5">•</span> Limited discussion on computational overhead
-                  </p>
-                </div>
-              </div>
-
-              {/* Decorative gradient overlay */}
-              <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-gradient-to-tl from-purple-100/40 to-transparent rounded-full blur-2xl -z-10" />
-              <div className="absolute -top-4 -left-4 w-24 h-24 bg-gradient-to-br from-indigo-100/40 to-transparent rounded-full blur-2xl -z-10" />
             </div>
 
-            {/* Floating label */}
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white border border-gray-200 rounded-full px-4 py-1.5 shadow-md text-xs font-medium text-gray-600 flex items-center gap-1.5">
-              <Sparkles className="h-3 w-3 text-purple-500" />
-              Analyzed in 12 seconds
+            {/* Mobile / tablet preview — simplified module grid */}
+            <div className="lg:hidden mt-2">
+              <div className="rounded-lg border border-[var(--lp-border)] bg-[var(--lp-surface-subtle)] p-4">
+                <p className="text-xs font-medium text-[var(--lp-ink-tertiary)] mb-3 text-center">
+                  One platform for your entire conference
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {sidebarModules.map((mod) => (
+                    <div
+                      key={mod.label}
+                      className="flex flex-col items-center gap-1.5 rounded-md bg-white border border-[var(--lp-border)] py-2.5 px-1"
+                    >
+                      <mod.icon className="h-4 w-4 text-[var(--lp-ink-tertiary)]" />
+                      <span className="text-[10px] font-medium text-[var(--lp-ink-secondary)]">
+                        {mod.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
+
           </div>
 
         </div>
-
       </div>
     </section>
   );

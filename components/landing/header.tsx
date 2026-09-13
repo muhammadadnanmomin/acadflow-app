@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { Menu, X, GraduationCap } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Image from "next/image";
 
 import { useProfile } from "@/lib/auth/useProfile";
@@ -29,102 +29,69 @@ export function Header() {
     router.refresh();
   }
 
-  return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/90 backdrop-blur">
+  const navLinkClass = (active: boolean) =>
+    `text-[13px] font-medium transition-colors duration-200 ${
+      active
+        ? "text-[var(--lp-accent)] border-b-2 border-current pb-0.5"
+        : "lp-link"
+    }`;
 
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-[var(--lp-border)] bg-white">
+
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-
+        <Link href="/" className="flex items-center gap-2.5">
           <Image
             src="/logo.png"
             alt="Confairo logo"
-            width={36}
-            height={36}
+            width={28}
+            height={28}
             priority
           />
-
-          <span className="text-xl font-semibold text-gray-900">
+          <span className="text-base font-semibold text-[var(--lp-ink)]">
             Confairo
           </span>
-
-          <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-purple-50 border border-purple-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-purple-600">
-            ✨ AI Powered
-          </span>
-
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden items-center gap-8 md:flex">
-
-          <Link
-            href="/#features"
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
-          >
+        <nav className="hidden items-center gap-6 md:flex" aria-label="Main navigation">
+          <Link href="/#features" className={navLinkClass(false)}>
             Features
           </Link>
-
-          <Link
-            href="/#how-it-works"
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
-          >
-            How it Works
+          <Link href="/#how-it-works" className={navLinkClass(false)}>
+            How It Works
           </Link>
-
-          <Link
-            href="/#pricing"
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
-          >
+          <Link href="/#pricing" className={navLinkClass(false)}>
             Plans
           </Link>
-
-          <Link
-            href="/#comparison"
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
-          >
-            Why Confairo
-          </Link>
-
-          <Link
-            href="/blog"
-            className={`text-sm font-medium transition-colors ${
-              isBlogActive
-                ? "text-indigo-600 border-b-2 border-indigo-600 pb-0.5"
-                : "text-gray-600 hover:text-indigo-600"
-            }`}
-          >
+          <Link href="/blog" className={navLinkClass(isBlogActive)}>
             Blog
           </Link>
-
-          <Link
-            href="/conferences"
-            className={`text-sm font-medium transition-colors ${
-              isConferencesActive
-                ? "text-indigo-600 border-b-2 border-indigo-600 pb-0.5"
-                : "text-gray-600 hover:text-indigo-600"
-            }`}
-          >
+          <Link href="/conferences" className={navLinkClass(isConferencesActive)}>
             Conferences
           </Link>
-
         </nav>
 
         {/* Desktop Actions */}
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-2 md:flex">
 
-          <BookDemoButton variant="nav" />
+          <BookDemoButton variant="ghost" />
 
           {!loading && !profile && (
             <>
               <Link href="/login">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="text-[13px]">
                   Log in
                 </Button>
               </Link>
 
               <Link href="/signup">
-                <Button size="sm">
+                <Button
+                  size="sm"
+                  className="text-[13px] bg-[var(--lp-accent)] text-white hover:bg-[var(--lp-accent-hover)]"
+                >
                   Get Started
                 </Button>
               </Link>
@@ -134,7 +101,7 @@ export function Header() {
           {!loading && profile && (
             <>
               <Link href="/dashboard">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="text-[13px]">
                   Dashboard
                 </Button>
               </Link>
@@ -143,7 +110,7 @@ export function Header() {
                 variant="outline"
                 size="sm"
                 onClick={logout}
-                className="hover:bg-red-500 hover:text-white hover:border-red-500 transition"
+                className="text-[13px] hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors duration-200"
               >
                 Logout
               </Button>
@@ -155,14 +122,15 @@ export function Header() {
         {/* Mobile Menu Button */}
         <button
           type="button"
-          className="md:hidden"
+          className="inline-flex items-center justify-center rounded-md p-1.5 md:hidden"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
+          aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? (
-            <X className="h-6 w-6 text-gray-900" />
+            <X className="h-5 w-5 text-[var(--lp-ink)]" />
           ) : (
-            <Menu className="h-6 w-6 text-gray-900" />
+            <Menu className="h-5 w-5 text-[var(--lp-ink)]" />
           )}
         </button>
 
@@ -170,14 +138,14 @@ export function Header() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="border-t bg-white md:hidden">
+        <div className="border-t border-[var(--lp-border)] bg-white md:hidden">
 
-          <nav className="flex flex-col gap-4 px-4 py-6">
+          <nav className="flex flex-col gap-1 px-4 py-4" aria-label="Mobile navigation">
 
             <Link
               href="#features"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-gray-600"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[var(--lp-ink-secondary)] hover:bg-[var(--lp-surface-subtle)]"
             >
               Features
             </Link>
@@ -185,34 +153,26 @@ export function Header() {
             <Link
               href="#how-it-works"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-gray-600"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[var(--lp-ink-secondary)] hover:bg-[var(--lp-surface-subtle)]"
             >
-              How it Works
+              How It Works
             </Link>
 
             <Link
               href="#pricing"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-gray-600"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[var(--lp-ink-secondary)] hover:bg-[var(--lp-surface-subtle)]"
             >
-              Pricing
-            </Link>
-
-            <Link
-              href="#comparison"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-gray-600"
-            >
-              Why Confairo
+              Plans
             </Link>
 
             <Link
               href="/blog"
               onClick={() => setMobileMenuOpen(false)}
-              className={`text-sm font-medium transition-colors ${
+              className={`rounded-md px-3 py-2 text-sm font-medium ${
                 isBlogActive
-                  ? "text-indigo-600 font-semibold"
-                  : "text-gray-600 hover:text-indigo-600"
+                  ? "text-[var(--lp-accent)] bg-[var(--lp-accent-light)]"
+                  : "text-[var(--lp-ink-secondary)] hover:bg-[var(--lp-surface-subtle)]"
               }`}
             >
               Blog
@@ -221,16 +181,16 @@ export function Header() {
             <Link
               href="/conferences"
               onClick={() => setMobileMenuOpen(false)}
-              className={`text-sm font-medium transition-colors ${
+              className={`rounded-md px-3 py-2 text-sm font-medium ${
                 isConferencesActive
-                  ? "text-indigo-600 font-semibold"
-                  : "text-gray-600 hover:text-indigo-600"
+                  ? "text-[var(--lp-accent)] bg-[var(--lp-accent-light)]"
+                  : "text-[var(--lp-ink-secondary)] hover:bg-[var(--lp-surface-subtle)]"
               }`}
             >
               Conferences
             </Link>
 
-            <div className="flex flex-col gap-2 pt-4">
+            <div className="mt-3 flex flex-col gap-2 border-t border-[var(--lp-border)] pt-4">
 
               <BookDemoButton
                 variant="secondary"
@@ -250,7 +210,7 @@ export function Header() {
                   </Link>
 
                   <Link href="/signup">
-                    <Button className="w-full">
+                    <Button className="w-full bg-[var(--lp-accent)] text-white hover:bg-[var(--lp-accent-hover)]">
                       Get Started
                     </Button>
                   </Link>

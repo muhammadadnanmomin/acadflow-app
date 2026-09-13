@@ -224,3 +224,34 @@
   border-radius: 9999px;
 }
 
+/* ============================================================
+   Confairo Landing Page — Design Tokens (Academic Ink)
+   These tokens are used by landing-page components only.
+   They do NOT override dashboard or application styles.
+   ============================================================ */
+
+:root {
+  --lp-ink: #1a1a2e;
+  --lp-ink-secondary: #4a4a6a;
+  --lp-ink-tertiary: #7a7a96;
+  --lp-surface: #ffffff;
+  --lp-surface-subtle: #f8f8fa;
+  --lp-surface-muted: #f0f0f4;
+  --lp-border: #e2e2ea;
+  --lp-border-strong: #c8c8d4;
+  --lp-accent: #2d4a8a;
+  --lp-accent-light: #e8edf6;
+  --lp-accent-hover: #1e3a70;
+  --lp-positive: #1a7a4a;
+  --lp-warning: #b45309;
+}
+
+/* Landing-page nav link */
+.lp-link {
+  color: var(--lp-ink-secondary);
+  transition: color 200ms;
+}
+.lp-link:hover {
+  color: var(--lp-ink);
+}
+

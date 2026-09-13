@@ -15,9 +15,9 @@ import { MidPageDemoCTA } from "@/components/landing/mid-page-demo-cta";
 
 
 export const metadata: Metadata = {
-  title: "Confairo — AI-Powered Academic Conference Management Platform",
+  title: "Confairo — Academic Conference Management Platform",
   description:
-    "Confairo uses AI to automatically review research papers, manage submissions, peer reviews, payments, and certificates — all in one platform. Free to start.",
+    "Manage paper submissions, peer reviews, registration, payments, scheduling, and certificates for academic conferences — all in one platform. Free to start.",
   keywords: [
     "academic conference management",
     "paper submission portal",
@@ -28,12 +28,13 @@ export const metadata: Metadata = {
     "Confairo",
   ],
   openGraph: {
-    title: "Confairo — Manage Academic Conferences Without the Admin Chaos",
+    title: "Confairo — Academic Conference Management Platform",
     description:
-      "One platform to manage submissions, reviews, payments, and certificates. Free to start. Built for professors and conference organizers.",
+      "Manage paper submissions, peer reviews, payments, and certificates for academic conferences. One platform, free to start.",
     type: "website",
   },
 };
+
 
 export default function Home() {
   return (
