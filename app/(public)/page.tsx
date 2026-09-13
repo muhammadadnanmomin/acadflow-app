@@ -4,6 +4,7 @@ import { HeroSection } from "@/components/landing/hero-section";
 import { ProblemSection } from "@/components/landing/problem-section";
 import { SolutionSection } from "@/components/landing/solution-section";
 import { FeaturesSection } from "@/components/landing/features-section";
+import { ProductExperienceSection } from "@/components/landing/product-experience-section";
 import { AIDemoSection } from "@/components/landing/ai-demo-section";
 import { HowItWorksSection } from "@/components/landing/how-it-works";
 import { AIFeaturesSection } from "@/components/landing/ai-features-section";
@@ -35,7 +36,6 @@ export const metadata: Metadata = {
   },
 };
 
-
 export default function Home() {
   return (
     <main className="min-h-screen bg-white text-gray-900">
@@ -43,39 +43,43 @@ export default function Home() {
       {/* 1. Hero — Headline + CTA + Trust */}
       <HeroSection />
 
-      {/* 2. Problem — Current pain points */}
+      {/* 2. Problem — Conference management fragmentation */}
       <ProblemSection />
 
-      {/* 3. Solution — Before → After transformation */}
+      {/* 3. Platform — One workflow, seven steps */}
       <SolutionSection />
 
-      {/* 4. Features — Grouped into modules */}
+      {/* 4. Core Capabilities — Six modules */}
       <FeaturesSection />
 
-      {/* 4.25 Mid-page CTA — Book a Demo */}
+      {/* 5. Product Experience — Dashboard preview */}
+      <ProductExperienceSection />
+
+      {/* 5.5 Mid-page CTA — Book a Demo */}
       <MidPageDemoCTA />
 
-      {/* 4.5 AI Demo — Prove the AI capability */}
+      {/* 6. AI Demo — Prove the AI capability */}
       <AIDemoSection />
 
-      {/* 5. How It Works — 5 clear steps */}
+      {/* 7. How It Works — 5 clear steps */}
       <HowItWorksSection />
 
-      {/* 6. AI Features Spotlight — Before pricing */}
+      {/* 8. AI Features Spotlight — Before pricing */}
       <AIFeaturesSection />
 
-      {/* 7. Pricing — Free-first positioning */}
+      {/* 9. Pricing — Free-first positioning */}
       <PricingSection />
 
-      {/* 8. Comparison — Confairo vs traditional */}
+      {/* 10. Comparison — Confairo vs traditional */}
       <ComparisonSection />
 
-      {/* 9. Social Proof — Testimonials + Use Cases */}
+      {/* 11. Social Proof — Testimonials + Use Cases */}
       {/* <SocialProofSection /> */}
 
-      {/* 10. Final CTA — Before footer */}
+      {/* 12. Final CTA — Before footer */}
       <FinalCTASection />
 
     </main>
   );
 }
+
