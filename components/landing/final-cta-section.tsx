@@ -2,13 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowRight, Sparkles, Shield, Calendar } from "lucide-react";
+import { ArrowRight, Calendar } from "lucide-react";
 import { openDemo } from "@/components/demo/openDemo";
 
 export function FinalCTASection() {
   const router = useRouter();
   const supabase = createClient();
-
 
   const handleGetStarted = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -20,40 +19,43 @@ export function FinalCTASection() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
-      {/* Background decorations */}
-      <div className="absolute inset-0 -z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_50%,rgba(255,255,255,0.08),transparent)]" />
-      </div>
+    <section
+      className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8"
+      style={{ backgroundColor: "var(--lp-surface)" }}
+    >
+      <div className="mx-auto max-w-2xl text-center">
 
-      <div className="relative mx-auto max-w-3xl text-center">
-        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-          Start Your AI-Powered Conference Today
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--lp-ink)] sm:text-3xl">
+          Ready to simplify your next conference?
         </h2>
 
-        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+        <p className="mt-3 text-base leading-relaxed text-[var(--lp-ink-secondary)]">
+          Set up your conference and manage submissions, reviews, registrations,
+          schedules, and certificates from one place.
+        </p>
+
+        <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <button
             onClick={handleGetStarted}
-            className="group inline-flex items-center gap-2 rounded-lg bg-white px-8 py-4 text-base font-semibold text-indigo-700 shadow-xl shadow-black/10 transition-all hover:bg-gray-50 hover:-translate-y-0.5 hover:shadow-2xl"
+            className="inline-flex items-center gap-2 rounded-md bg-[var(--lp-accent)] px-6 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[var(--lp-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
           >
-            <Sparkles className="h-4 w-4" />
-            Get Started for Free
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            Get Started
+            <ArrowRight className="h-4 w-4" />
           </button>
 
           <button
             onClick={openDemo}
-            className="group inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 backdrop-blur-sm px-8 py-4 text-base font-semibold text-white shadow-lg transition-all hover:bg-white/20 hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 rounded-md border border-[var(--lp-border)] px-6 py-2.5 text-sm font-medium text-[var(--lp-ink-secondary)] transition-colors duration-200 hover:border-[var(--lp-border-strong)] hover:text-[var(--lp-ink)]"
           >
             <Calendar className="h-4 w-4" />
-            Book 15-Min Demo
+            Book a Demo
           </button>
         </div>
 
-        <p className="mt-5 inline-flex items-center gap-1.5 text-sm text-indigo-100">
-          <Shield className="h-4 w-4" />
+        <p className="mt-5 text-sm text-[var(--lp-ink-tertiary)]">
           No credit card required
         </p>
+
       </div>
     </section>
   );

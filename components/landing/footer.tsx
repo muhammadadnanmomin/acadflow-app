@@ -6,25 +6,28 @@ const navigation = {
   product: [
     { name: "Features", href: "/#features" },
     { name: "How It Works", href: "/#how-it-works" },
-    { name: "Pricing", href: "/#pricing" },
-    { name: "Why Confairo", href: "/#comparison" },
+    { name: "Plans", href: "/#pricing" },
     { name: "Conferences", href: "/conferences" },
-    { name: "Dashboard", href: "/dashboard" },
   ],
 
   resources: [
     { name: "Blog", href: "/blog" },
-    { name: "User Guide", href: "user-guide" },
-    { name: "Support", href: "/contact" },
+    { name: "User Guide", href: "/user-guide" },
     { name: "FAQs", href: "/faq" },
-    { name: "System Status", href: "status" },
+    { name: "System Status", href: "/status" },
   ],
 
   company: [
-    { name: "About Us", href: "/about" },
+    { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },
     { name: "Privacy Policy", href: "/privacy" },
     { name: "Terms & Conditions", href: "/terms" },
+  ],
+
+  account: [
+    { name: "Log In", href: "/login" },
+    { name: "Get Started", href: "/signup" },
+    { name: "Dashboard", href: "/dashboard" },
   ],
 };
 
@@ -32,55 +35,49 @@ export function Footer() {
   return (
     <footer
       id="footer"
-      className="border-t border-gray-200 bg-slate-50 px-4 py-14 sm:px-6 lg:px-8"
+      className="border-t px-4 py-10 sm:px-6 lg:px-8"
+      style={{
+        borderColor: "var(--lp-border)",
+        backgroundColor: "var(--lp-surface-subtle)",
+      }}
     >
       <div className="mx-auto max-w-7xl">
 
         {/* Top Section */}
-        <div className="grid gap-10 lg:grid-cols-5">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-6">
 
-          {/* Brand */}
+          {/* Brand — spans 2 cols */}
           <div className="lg:col-span-2">
 
-            <Link href="/" className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2.5">
               <Image
                 src="/logo.png"
                 alt="Confairo"
-                width={36}
-                height={36}
+                width={28}
+                height={28}
                 priority
               />
-
-              <span className="text-xl font-semibold text-gray-900">
+              <span className="text-base font-semibold text-[var(--lp-ink)]">
                 Confairo
               </span>
             </Link>
 
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-gray-600">
-              Confairo is a conference management platform for universities
-              and research communities. Automate submissions, reviews,
-              scheduling, and certificates from one dashboard.
+            <p className="mt-2.5 max-w-xs text-sm leading-relaxed text-[var(--lp-ink-tertiary)]">
+              Academic conference management platform for universities
+              and research communities.
             </p>
 
             {/* Contact */}
-            <div className="mt-5 space-y-2 text-sm text-gray-600">
-
+            <div className="mt-3 space-y-1 text-sm text-[var(--lp-ink-tertiary)]">
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-indigo-600" />
+                <Mail className="h-3.5 w-3.5 text-[var(--lp-accent)]" />
                 Confairo.platform@gmail.com
               </div>
-
               <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-indigo-600" />
+                <Phone className="h-3.5 w-3.5 text-[var(--lp-accent)]" />
                 +91-7796453687
               </div>
-
             </div>
-
-            {/* Trust Note */}
-            <p className="mt-4 text-xs text-gray-500">
-              Secure platform • Role-based access • Built for academia
-            </p>
 
           </div>
 
@@ -93,19 +90,19 @@ export function Footer() {
           {/* Company */}
           <FooterColumn title="Company" items={navigation.company} />
 
+          {/* Account */}
+          <FooterColumn title="Account" items={navigation.account} />
+
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-gray-200 pt-6 sm:flex-row">
-
-          <p className="text-sm text-gray-500">
+        <div
+          className="mt-8 flex flex-col items-center justify-between gap-2 border-t pt-5 sm:flex-row"
+          style={{ borderColor: "var(--lp-border)" }}
+        >
+          <p className="text-xs text-[var(--lp-ink-tertiary)]">
             © {new Date().getFullYear()} Confairo. All rights reserved.
           </p>
-
-          {/* <p className="text-sm text-gray-500">
-            Built with ❤️ in India for academia
-          </p> */}
-
         </div>
 
       </div>
@@ -123,14 +120,15 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-
-      <ul className="mt-4 space-y-3">
+      <h3 className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--lp-ink)]">
+        {title}
+      </h3>
+      <ul className="mt-2.5 space-y-1.5">
         {items.map((item) => (
           <li key={item.name}>
             <Link
               href={item.href}
-              className="text-sm text-gray-600 transition hover:text-indigo-600"
+              className="text-sm text-[var(--lp-ink-tertiary)] transition-colors duration-200 hover:text-[var(--lp-accent)]"
             >
               {item.name}
             </Link>
