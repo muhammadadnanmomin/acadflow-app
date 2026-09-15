@@ -40,8 +40,8 @@ export function AIDemoSection() {
   return (
     <section
       id="ai-assistance"
-      className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8"
-      style={{ backgroundColor: "var(--lp-surface)" }}
+      className="px-4 py-14 sm:px-6 sm:py-18 lg:px-8"
+      style={{ backgroundColor: "var(--lp-surface-subtle)" }}
     >
       <div className="mx-auto max-w-7xl">
 
@@ -63,7 +63,7 @@ export function AIDemoSection() {
             {aiCapabilities.map((cap) => (
               <div
                 key={cap.title}
-                className="flex items-start gap-3.5 rounded-lg border border-[var(--lp-border)] bg-[var(--lp-surface-subtle)] p-4"
+                className="flex items-start gap-3.5 rounded-lg border border-[var(--lp-border)] bg-white p-4"
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--lp-border)] bg-white">
                   <cap.icon className="h-4 w-4 text-[var(--lp-accent)]" />
@@ -83,7 +83,7 @@ export function AIDemoSection() {
           {/* Right — AI workflow visual */}
           <div className="hidden lg:flex flex-col items-center">
             <div
-              className="rounded-lg border border-[var(--lp-border)] bg-[var(--lp-surface-subtle)] px-6 py-5"
+              className="rounded-lg border border-[var(--lp-border)] bg-white px-6 py-5"
               style={{ width: "200px" }}
             >
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-ink-tertiary)] text-center mb-4">
@@ -144,7 +144,7 @@ export function AIDemoSection() {
 
         {/* Mobile AI workflow — horizontal strip */}
         <div className="mt-6 lg:hidden">
-          <div className="rounded-lg border border-[var(--lp-border)] bg-[var(--lp-surface-subtle)] px-4 py-3">
+          <div className="rounded-lg border border-[var(--lp-border)] bg-white px-4 py-3">
             <div className="flex items-center justify-center gap-1 text-[10px] font-medium">
               {workflowSteps.map((step, i) => (
                 <span

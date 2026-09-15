@@ -231,17 +231,17 @@
    ============================================================ */
 
 :root {
-  --lp-ink: #1a1a2e;
-  --lp-ink-secondary: #4a4a6a;
-  --lp-ink-tertiary: #7a7a96;
+  --lp-ink: #17233D;
+  --lp-ink-secondary: #52627A;
+  --lp-ink-tertiary: #718096;
   --lp-surface: #ffffff;
-  --lp-surface-subtle: #f8f8fa;
-  --lp-surface-muted: #f0f0f4;
-  --lp-border: #e2e2ea;
-  --lp-border-strong: #c8c8d4;
-  --lp-accent: #2d4a8a;
-  --lp-accent-light: #e8edf6;
-  --lp-accent-hover: #1e3a70;
+  --lp-surface-subtle: #EEF2F7;
+  --lp-surface-muted: #F5F7FA;
+  --lp-border: #D9E0EA;
+  --lp-border-strong: #C5CEDA;
+  --lp-accent: #2D4A8A;
+  --lp-accent-light: #e0e7f3;
+  --lp-accent-hover: #1F376B;
   --lp-positive: #1a7a4a;
   --lp-warning: #b45309;
 }

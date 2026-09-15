@@ -30,8 +30,8 @@ export function HowItWorksSection() {
   return (
     <section
       id="how-it-works"
-      className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8"
-      style={{ backgroundColor: "var(--lp-surface)" }}
+      className="px-4 py-14 sm:px-6 sm:py-18 lg:px-8"
+      style={{ backgroundColor: "var(--lp-surface-subtle)" }}
     >
       <div className="mx-auto max-w-7xl">
 
@@ -87,7 +87,7 @@ export function HowItWorksSection() {
           {steps.map((step, i) => (
             <div
               key={step.num}
-              className="flex items-center gap-3 rounded-lg border border-[var(--lp-border)] bg-[var(--lp-surface-subtle)] px-4 py-3"
+              className="flex items-center gap-3 rounded-lg border border-[var(--lp-border)] bg-white px-4 py-3"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--lp-border)] bg-white text-xs font-bold text-[var(--lp-accent)]">
                 {step.num}

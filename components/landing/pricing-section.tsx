@@ -88,8 +88,8 @@ export function PricingSection() {
   return (
     <section
       id="pricing"
-      className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8"
-      style={{ backgroundColor: "var(--lp-surface)" }}
+      className="px-4 py-14 sm:px-6 sm:py-18 lg:px-8"
+      style={{ backgroundColor: "white" }}
     >
       <div className="mx-auto max-w-5xl">
 

@@ -31,7 +31,7 @@ export function ComparisonSection() {
   return (
     <section
       id="comparison"
-      className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8"
+      className="px-4 py-14 sm:px-6 sm:py-18 lg:px-8"
       style={{ backgroundColor: "var(--lp-surface-subtle)" }}
     >
       <div className="mx-auto max-w-7xl">
@@ -58,7 +58,7 @@ export function ComparisonSection() {
                 {topRow.map((item, i) => (
                   <div key={item.label} className="flex items-center gap-2">
                     <div className="flex flex-col items-center text-center">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--lp-border)] bg-[var(--lp-surface-subtle)]">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--lp-border)] bg-white">
                         <item.icon className="h-5 w-5 text-[var(--lp-accent)]" />
                       </div>
                       <span className="mt-2 text-xs font-medium text-[var(--lp-ink-secondary)]">
@@ -85,7 +85,7 @@ export function ComparisonSection() {
                 {bottomRow.map((item, i) => (
                   <div key={item.label} className="flex items-center gap-2">
                     <div className="flex flex-col items-center text-center">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--lp-border)] bg-[var(--lp-surface-subtle)]">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--lp-border)] bg-white">
                         <item.icon className="h-5 w-5 text-[var(--lp-accent)]" />
                       </div>
                       <span className="mt-2 text-xs font-medium text-[var(--lp-ink-secondary)]">
@@ -105,7 +105,7 @@ export function ComparisonSection() {
               {allItems.map((item) => (
                 <div
                   key={item.label}
-                  className="flex items-center gap-2.5 rounded-md border border-[var(--lp-border)] bg-[var(--lp-surface-subtle)] px-3 py-2.5"
+                  className="flex items-center gap-2.5 rounded-md border border-[var(--lp-border)] bg-white px-3 py-2.5"
                 >
                   <item.icon className="h-4 w-4 shrink-0 text-[var(--lp-accent)]" />
                   <span className="text-xs font-medium text-[var(--lp-ink-secondary)]">

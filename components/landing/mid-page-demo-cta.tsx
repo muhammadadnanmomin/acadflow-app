@@ -11,8 +11,8 @@ import { BookDemoButton } from "@/components/demo/BookDemoButton";
 export function MidPageDemoCTA() {
   return (
     <section
-      className="px-4 py-14 sm:px-6 sm:py-16 lg:px-8"
-      style={{ backgroundColor: "var(--lp-surface)" }}
+      className="px-4 py-10 sm:px-6 sm:py-14 lg:px-8"
+      style={{ backgroundColor: "white" }}
     >
       <div className="mx-auto max-w-2xl text-center">
 

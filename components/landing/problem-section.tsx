@@ -25,8 +25,8 @@ export function ProblemSection() {
   return (
     <section
       id="problem"
-      className="px-4 py-16 sm:px-6 sm:py-20 lg:px-8"
-      style={{ backgroundColor: "var(--lp-surface)" }}
+      className="px-4 py-14 sm:px-6 sm:py-18 lg:px-8"
+      style={{ backgroundColor: "white" }}
     >
       <div className="mx-auto max-w-7xl">
 

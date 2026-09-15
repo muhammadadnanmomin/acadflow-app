@@ -27,8 +27,8 @@ export function TrustSection() {
   return (
     <section
       id="trust"
-      className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8"
-      style={{ backgroundColor: "var(--lp-surface-subtle)" }}
+      className="px-4 py-10 sm:px-6 sm:py-14 lg:px-8"
+      style={{ backgroundColor: "white" }}
     >
       <div className="mx-auto max-w-7xl">
 
