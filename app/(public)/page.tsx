@@ -5,15 +5,15 @@ import { ProblemSection } from "@/components/landing/problem-section";
 import { SolutionSection } from "@/components/landing/solution-section";
 import { FeaturesSection } from "@/components/landing/features-section";
 import { ProductExperienceSection } from "@/components/landing/product-experience-section";
-import { AIDemoSection } from "@/components/landing/ai-demo-section";
+import { MidPageDemoCTA } from "@/components/landing/mid-page-demo-cta";
 import { HowItWorksSection } from "@/components/landing/how-it-works";
-import { AIFeaturesSection } from "@/components/landing/ai-features-section";
+import { AudienceSection } from "@/components/landing/audience-section";
+import { AIDemoSection } from "@/components/landing/ai-demo-section";
+import { TrustSection } from "@/components/landing/trust-section";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { ComparisonSection } from "@/components/landing/comparison-section";
 import { FinalCTASection } from "@/components/landing/final-cta-section";
-import { MidPageDemoCTA } from "@/components/landing/mid-page-demo-cta";
 // import { SocialProofSection } from "@/components/landing/social-proof-section";
-
 
 export const metadata: Metadata = {
   title: "Confairo — Academic Conference Management Platform",
@@ -55,31 +55,33 @@ export default function Home() {
       {/* 5. Product Experience — Dashboard preview */}
       <ProductExperienceSection />
 
-      {/* 5.5 Mid-page CTA — Book a Demo */}
+      {/* 6. Mid-page CTA — Book a Demo */}
       <MidPageDemoCTA />
 
-      {/* 6. AI Demo — Prove the AI capability */}
-      <AIDemoSection />
-
-      {/* 7. How It Works — 5 clear steps */}
+      {/* 7. How It Works — Set up → Run → Finish */}
       <HowItWorksSection />
 
-      {/* 8. AI Features Spotlight — Before pricing */}
-      <AIFeaturesSection />
+      {/* 8. Who It's For — Organizers, institutions, communities */}
+      <AudienceSection />
 
-      {/* 9. Pricing — Free-first positioning */}
+      {/* 9. AI Assistance — Reviewer, analysis, similarity */}
+      <AIDemoSection />
+
+      {/* 10. Trust — Product-based credibility signals */}
+      <TrustSection />
+
+      {/* 11. Pricing — Free-first positioning */}
       <PricingSection />
 
-      {/* 10. Comparison — Confairo vs traditional */}
+      {/* 12. Comparison — Confairo vs traditional */}
       <ComparisonSection />
 
-      {/* 11. Social Proof — Testimonials + Use Cases */}
+      {/* 13. Social Proof — Testimonials + Use Cases */}
       {/* <SocialProofSection /> */}
 
-      {/* 12. Final CTA — Before footer */}
+      {/* 14. Final CTA — Before footer */}
       <FinalCTASection />
 
     </main>
   );
 }
-
